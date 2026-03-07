@@ -50,6 +50,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddBinarizeNode() => AddNode(new BinarizeNode(), (n, x, y) => new BinarizeNodeViewModel((BinarizeNode)n, x, y));
 
+    [RelayCommand]
+    private void AddSubImageNode() => AddNode(new SubImageNode(), (n, x, y) => new SubImageNodeViewModel((SubImageNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);
@@ -180,6 +183,8 @@ public partial class NodeGraphViewModel : ObservableObject
         foreach (var node in Nodes.OfType<SaveImageNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<BinarizeNodeViewModel>())
+            node.RefreshPreview();
+        foreach (var node in Nodes.OfType<SubImageNodeViewModel>())
             node.RefreshPreview();
     }
 }

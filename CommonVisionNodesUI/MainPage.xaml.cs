@@ -104,6 +104,7 @@ public sealed partial class MainPage : Page
                 SaveImageNodeViewModel => (DataTemplate)Resources["SaveImageNodePropertiesTemplate"],
                 DeviceNodeViewModel => (DataTemplate)Resources["DeviceNodePropertiesTemplate"],
                 BinarizeNodeViewModel => (DataTemplate)Resources["BinarizeNodePropertiesTemplate"],
+                SubImageNodeViewModel => (DataTemplate)Resources["SubImageNodePropertiesTemplate"],
                 _ => null
             };
 
@@ -256,12 +257,15 @@ public sealed partial class MainPage : Page
     private void AddBinarizeNode_Click(object sender, RoutedEventArgs e) =>
         _viewModel.AddBinarizeNodeCommand.Execute(null);
 
+    private void AddSubImageNode_Click(object sender, RoutedEventArgs e) =>
+        _viewModel.AddSubImageNodeCommand.Execute(null);
+
     private void RemoveNode_Click(object sender, RoutedEventArgs e) =>
         RemoveSelectedNode();
 
     private void GraphCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Windows.System.VirtualKey.Delete)
+        if (e.Key == Windows.System.VirtualKey.Delete && !_viewModel.IsRunning)
         {
             RemoveSelectedNode();
             e.Handled = true;
@@ -296,5 +300,20 @@ public sealed partial class MainPage : Page
             RunStopButton.Content = "\uE768 Run";
             RunStopButton.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 142, 60));
         }
+
+        UpdateEditingEnabled();
+    }
+
+    private void UpdateEditingEnabled()
+    {
+        bool enabled = !_viewModel.IsRunning;
+        AddImageButton.IsEnabled = enabled;
+        AddSaveImageButton.IsEnabled = enabled;
+        AddDeviceButton.IsEnabled = enabled;
+        AddBinarizeButton.IsEnabled = enabled;
+        AddSubImageButton.IsEnabled = enabled;
+        InitializeButton.IsEnabled = enabled;
+        ExecuteButton.IsEnabled = enabled;
+        RemoveNodeButton.IsEnabled = enabled;
     }
 }

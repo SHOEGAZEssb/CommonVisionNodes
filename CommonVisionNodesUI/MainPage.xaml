@@ -33,6 +33,33 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="SubImageNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Crop Area" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                <TextBlock Text="Drag a rectangle on the preview to define the area" FontSize="11" Foreground="#777777" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                <Grid ColumnSpacing="8" RowSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding AreaX, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="0" Grid.Column="3" Value="{Binding AreaY, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="W" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding AreaWidth, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="H" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="1" Grid.Column="3" Value="{Binding AreaHeight, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="DeviceNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -69,24 +96,27 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal"
                     Padding="8" Spacing="8"
                     Background="#333333">
-            <Button Content="&#xE710; Image" Click="AddImageNode_Click"
+            <Button x:Name="AddImageButton" Content="&#xE710; Image" Click="AddImageNode_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#4A90D9" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE74E; Save Image" Click="AddSaveImageNode_Click"
+            <Button x:Name="AddSaveImageButton" Content="&#xE74E; Save Image" Click="AddSaveImageNode_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#66BB6A" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE714; Device" Click="AddDeviceNode_Click"
+            <Button x:Name="AddDeviceButton" Content="&#xE714; Device" Click="AddDeviceNode_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#AB47BC" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE71C; Binarize" Click="AddBinarizeNode_Click"
+            <Button x:Name="AddBinarizeButton" Content="&#xE71C; Binarize" Click="AddBinarizeNode_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#FF9800" Foreground="White" CornerRadius="4"/>
+            <Button x:Name="AddSubImageButton" Content="&#xE740; SubImage" Click="AddSubImageNode_Click"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#00ACC1" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
-            <Button Content="Initialize" Click="Initialize_Click"
+            <Button x:Name="InitializeButton" Content="Initialize" Click="Initialize_Click"
                     Padding="12,6" CornerRadius="4"/>
-            <Button Content="Execute" Click="Execute_Click"
+            <Button x:Name="ExecuteButton" Content="Execute" Click="Execute_Click"
                     Padding="12,6" CornerRadius="4"/>
             <Button x:Name="RunStopButton" Content="&#xE768; Run" Click="ToggleRun_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
@@ -133,7 +163,7 @@
                                 <TextBlock x:Name="SelectedNodeType" FontSize="12"
                                            Foreground="#888888"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="&#xE74D;"
+                            <Button x:Name="RemoveNodeButton" Grid.Column="1" Content="&#xE74D;"
                                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     Click="RemoveNode_Click"
                                     ToolTipService.ToolTip="Remove node (Delete)"

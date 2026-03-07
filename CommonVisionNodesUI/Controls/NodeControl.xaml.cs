@@ -64,6 +64,32 @@ public sealed partial class NodeControl : UserControl
                     ImagePreview.SetImage(saveVM.PreviewImage);
             };
         }
+        else if (vm is SubImageNodeViewModel subVM)
+        {
+            CropPreview.Visibility = Visibility.Visible;
+            subVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SubImageNodeViewModel.PreviewImage))
+                {
+                    CropPreview.SetImage(subVM.PreviewImage);
+                    CropPreview.UpdateCropOverlay(subVM.AreaX, subVM.AreaY, subVM.AreaWidth, subVM.AreaHeight);
+                }
+                else if (e.PropertyName is nameof(SubImageNodeViewModel.AreaX)
+                                         or nameof(SubImageNodeViewModel.AreaY)
+                                         or nameof(SubImageNodeViewModel.AreaWidth)
+                                         or nameof(SubImageNodeViewModel.AreaHeight))
+                {
+                    CropPreview.UpdateCropOverlay(subVM.AreaX, subVM.AreaY, subVM.AreaWidth, subVM.AreaHeight);
+                }
+            };
+            CropPreview.CropAreaChanged += (x, y, w, h) =>
+            {
+                subVM.AreaX = x;
+                subVM.AreaY = y;
+                subVM.AreaWidth = w;
+                subVM.AreaHeight = h;
+            };
+        }
     }
 
     public void SetSelected(bool selected)

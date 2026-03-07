@@ -74,6 +74,11 @@
             <local:CvbImageDisplay x:Name="ImagePreview" Grid.Row="3"
                                    Height="120" Margin="4,0,4,4"
                                    Visibility="Collapsed"/>
+
+            <!-- Crop image preview (SubImage node) -->
+            <local:CropImageDisplay x:Name="CropPreview" Grid.Row="3"
+                                    Height="120" Margin="4,0,4,4"
+                                    Visibility="Collapsed"/>
         </Grid>
     </Border>
 </UserControl>
