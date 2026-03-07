@@ -10,6 +10,7 @@ public partial class NodeGraphViewModel : ObservableObject
 {
     private readonly NodeGraph _graph = new();
     private readonly DispatcherQueue _dispatcherQueue;
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private CancellationTokenSource? _runCts;
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
@@ -125,14 +126,19 @@ public partial class NodeGraphViewModel : ObservableObject
         IsRunning = true;
         var ct = _runCts.Token;
 
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
+                    await _refreshGate.WaitAsync(ct);
                     _graph.Execute();
-                    _dispatcherQueue.TryEnqueue(RefreshPreviews);
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        try { RefreshPreviews(); }
+                        finally { _refreshGate.Release(); }
+                    });
                 }
             }
             catch (Exception) when (ct.IsCancellationRequested)
