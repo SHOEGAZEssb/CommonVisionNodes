@@ -117,6 +117,8 @@ public sealed partial class MainPage : Page
             PropertiesPanel.Visibility = Visibility.Collapsed;
             NoSelectionText.Visibility = Visibility.Visible;
         }
+
+        UpdatePropertiesEnabled();
     }
 
     // --- Connection drag ---
@@ -315,5 +317,12 @@ public sealed partial class MainPage : Page
         InitializeButton.IsEnabled = enabled;
         ExecuteButton.IsEnabled = enabled;
         RemoveNodeButton.IsEnabled = enabled;
+        UpdatePropertiesEnabled();
+    }
+
+    private void UpdatePropertiesEnabled()
+    {
+        PropertiesContent.IsEnabled = !_viewModel.IsRunning
+            || (_viewModel.SelectedNode?.IsEditableWhileRunning ?? false);
     }
 }

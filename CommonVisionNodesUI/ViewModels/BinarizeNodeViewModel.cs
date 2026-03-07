@@ -15,6 +15,8 @@ public partial class BinarizeNodeViewModel : NodeViewModel
 
     public override string? Summary => $"Threshold: {Threshold}";
 
+    public override bool IsEditableWhileRunning => true;
+
     public BinarizeNodeViewModel(BinarizeNode node, double x, double y) : base(node, x, y)
     {
         _binarizeNode = node;

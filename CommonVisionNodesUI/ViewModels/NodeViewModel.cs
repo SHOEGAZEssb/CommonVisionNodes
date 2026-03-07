@@ -3,7 +3,7 @@ using Windows.UI;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-public partial class NodeViewModel : ObservableObject
+public abstract partial class NodeViewModel : ObservableObject
 {
     public const double NodeWidth = 200;
     public const double HeaderHeight = 36;
@@ -15,6 +15,8 @@ public partial class NodeViewModel : ObservableObject
     public List<PortViewModel> OutputPorts { get; }
 
     public virtual string? Summary => null;
+
+    public virtual bool IsEditableWhileRunning => false;
 
     [ObservableProperty]
     private double _x;
