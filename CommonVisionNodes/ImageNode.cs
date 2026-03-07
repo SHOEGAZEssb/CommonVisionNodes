@@ -6,6 +6,8 @@ namespace CommonVisionNodes
     {
         private Image? _cachedImage;
 
+        public Image? CachedImage => _cachedImage;
+
         public Port ImageOutput { get; }
 
         public string FilePath { get; set; } = string.Empty;
