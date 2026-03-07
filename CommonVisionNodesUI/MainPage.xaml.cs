@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 
 namespace CommonVisionNodesUI;
@@ -223,6 +224,43 @@ public sealed partial class MainPage : Page
         {
             _viewModel.RemoveSelectedNodeCommand.Execute(null);
             e.Handled = true;
+        }
+    }
+
+    // --- Code generation ---
+
+    private async void GenerateCodeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var code = _viewModel.Graph.GenerateCode();
+
+        var codeBox = new TextBox
+        {
+            Text = code,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.NoWrap,
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 12,
+            Height = 400
+        };
+        ScrollViewer.SetVerticalScrollBarVisibility(codeBox, ScrollBarVisibility.Auto);
+        ScrollViewer.SetHorizontalScrollBarVisibility(codeBox, ScrollBarVisibility.Auto);
+
+        var dialog = new ContentDialog
+        {
+            Title = "Generated CVB SDK Code",
+            Content = codeBox,
+            PrimaryButtonText = "Copy to Clipboard",
+            CloseButtonText = "Close",
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            var dataPackage = new DataPackage();
+            dataPackage.SetText(code);
+            Clipboard.SetContent(dataPackage);
         }
     }
 }

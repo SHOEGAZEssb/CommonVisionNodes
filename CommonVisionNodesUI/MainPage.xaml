@@ -172,6 +172,13 @@
                     Background="{Binding RunButtonBackground}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Foreground="White" CornerRadius="4"/>
+
+            <Border Width="1" Background="#555555" Margin="8,2"/>
+
+            <Button x:Name="GenerateCodeButton" Content="&#xE943; Generate Code"
+                    Click="GenerateCodeButton_Click"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#7B1FA2" Foreground="White" CornerRadius="4"/>
         </StackPanel>
 
         <!-- Main content: Canvas + Properties Panel -->

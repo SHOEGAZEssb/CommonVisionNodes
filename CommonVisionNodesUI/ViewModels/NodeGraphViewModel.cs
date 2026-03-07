@@ -179,6 +179,8 @@ public partial class NodeGraphViewModel : ObservableObject
         IsRunning = false;
     }
 
+    public string GenerateCode() => CodeGenerator.Generate(_graph);
+
     private void RefreshPreviews()
     {
         foreach (var node in Nodes.OfType<ImageNodeViewModel>())
