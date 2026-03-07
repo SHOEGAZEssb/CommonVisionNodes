@@ -256,6 +256,27 @@ public sealed partial class MainPage : Page
     private void AddBinarizeNode_Click(object sender, RoutedEventArgs e) =>
         _viewModel.AddBinarizeNodeCommand.Execute(null);
 
+    private void RemoveNode_Click(object sender, RoutedEventArgs e) =>
+        RemoveSelectedNode();
+
+    private void GraphCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Delete)
+        {
+            RemoveSelectedNode();
+            e.Handled = true;
+        }
+    }
+
+    private void RemoveSelectedNode()
+    {
+        if (_viewModel.SelectedNode is { } node)
+        {
+            SelectNode(null);
+            _viewModel.RemoveNodeCommand.Execute(node);
+        }
+    }
+
     private void Initialize_Click(object sender, RoutedEventArgs e) =>
         _viewModel.InitializeGraphCommand.Execute(null);
 

@@ -105,7 +105,10 @@
                     Background="#1E1E1E"
                     PointerPressed="GraphCanvas_PointerPressed"
                     PointerMoved="GraphCanvas_PointerMoved"
-                    PointerReleased="GraphCanvas_PointerReleased"/>
+                    PointerReleased="GraphCanvas_PointerReleased"
+                    KeyDown="GraphCanvas_KeyDown"
+                    IsTabStop="True"
+                    AllowFocusOnInteraction="True"/>
 
             <!-- Properties Panel -->
             <Border Grid.Column="1" Width="280" Background="#252525"
@@ -119,11 +122,27 @@
 
                     <!-- Properties editor -->
                     <StackPanel x:Name="PropertiesPanel" Visibility="Collapsed" Padding="16">
-                        <TextBlock x:Name="SelectedNodeTitle" FontSize="16" FontWeight="Bold"
-                                   Foreground="White" Margin="0,0,0,4"/>
-                        <TextBlock x:Name="SelectedNodeType" FontSize="12"
-                                   Foreground="#888888" Margin="0,0,0,16"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="SelectedNodeTitle" FontSize="16" FontWeight="Bold"
+                                           Foreground="White" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="SelectedNodeType" FontSize="12"
+                                           Foreground="#888888"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="&#xE74D;"
+                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                    Click="RemoveNode_Click"
+                                    ToolTipService.ToolTip="Remove node (Delete)"
+                                    Padding="8,6" CornerRadius="4"
+                                    Background="#D32F2F" Foreground="White"
+                                    VerticalAlignment="Top"/>
+                        </Grid>
 
+                        <Border Margin="0,12,0,0"/>
                         <ContentControl x:Name="PropertiesContent"/>
                     </StackPanel>
                 </Grid>

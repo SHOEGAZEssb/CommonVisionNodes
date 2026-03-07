@@ -88,14 +88,24 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void RemoveNode(NodeViewModel nodeVM)
     {
-        // Remove connections involving this node
         var toRemove = Connections
             .Where(c => c.Source.ParentNode == nodeVM || c.Target.ParentNode == nodeVM)
             .ToList();
         foreach (var c in toRemove)
             Connections.Remove(c);
 
+        _graph.RemoveNode(nodeVM.Node);
         Nodes.Remove(nodeVM);
+
+        if (SelectedNode == nodeVM)
+            SelectNode(null);
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedNode()
+    {
+        if (SelectedNode is { } node)
+            RemoveNode(node);
     }
 
     [RelayCommand]

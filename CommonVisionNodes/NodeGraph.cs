@@ -13,6 +13,15 @@
             _nodes.Add(node);
         }
 
+        public void RemoveNode(Node node)
+        {
+            _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
+            _nodes.Remove(node);
+
+            if (node is IInitializable initializable)
+                initializable.Dispose();
+        }
+
         public void Connect(Port output, Port input)
         {
             if (output.Direction != PortDirection.Output)
