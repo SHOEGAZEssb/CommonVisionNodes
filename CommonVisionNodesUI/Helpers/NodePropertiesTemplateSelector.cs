@@ -11,6 +11,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? DeviceNodeTemplate { get; set; }
     public DataTemplate? BinarizeNodeTemplate { get; set; }
     public DataTemplate? SubImageNodeTemplate { get; set; }
+    public DataTemplate? MatrixTransformNodeTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -21,6 +22,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             DeviceNodeViewModel => DeviceNodeTemplate,
             BinarizeNodeViewModel => BinarizeNodeTemplate,
             SubImageNodeViewModel => SubImageNodeTemplate,
+            MatrixTransformNodeViewModel => MatrixTransformNodeTemplate,
             _ => null
         };
     }

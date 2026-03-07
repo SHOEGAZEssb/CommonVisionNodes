@@ -36,6 +36,7 @@ public abstract partial class NodeViewModel : ObservableObject
         DeviceNode => Color.FromArgb(255, 171, 71, 188),
         BinarizeNode => Color.FromArgb(255, 255, 152, 0),
         SubImageNode => Color.FromArgb(255, 0, 172, 193),
+        MatrixTransformNode => Color.FromArgb(255, 233, 30, 99),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

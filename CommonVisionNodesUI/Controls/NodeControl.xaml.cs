@@ -90,6 +90,15 @@ public sealed partial class NodeControl : UserControl
                 subVM.AreaHeight = h;
             };
         }
+        else if (vm is MatrixTransformNodeViewModel transformVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            transformVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MatrixTransformNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(transformVM.PreviewImage);
+            };
+        }
     }
 
     public void SetSelected(bool selected)

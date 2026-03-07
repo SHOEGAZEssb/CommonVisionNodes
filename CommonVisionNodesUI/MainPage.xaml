@@ -61,6 +61,36 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="MatrixTransformNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Rotation (°)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="-180" Maximum="180" Value="{Binding Angle, Mode=TwoWay}" StepFrequency="0.5"/>
+                    <TextBlock Text="{Binding Angle}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <Grid ColumnSpacing="8" RowSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Scale X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ScaleX, Mode=TwoWay}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Scale Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ScaleY, Mode=TwoWay}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Translate X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding TranslateX, Mode=TwoWay}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Translate Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="3" Grid.Column="1" Value="{Binding TranslateY, Mode=TwoWay}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="DeviceNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -91,7 +121,8 @@
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
             DeviceNodeTemplate="{StaticResource DeviceNodePropertiesTemplate}"
             BinarizeNodeTemplate="{StaticResource BinarizeNodePropertiesTemplate}"
-            SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"/>
+            SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"
+            MatrixTransformNodeTemplate="{StaticResource MatrixTransformNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -124,6 +155,10 @@
                     IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#00ACC1" Foreground="White" CornerRadius="4"/>
+            <Button Content="&#xE809; Transform" Command="{Binding Graph.AddMatrixTransformNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#E91E63" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
