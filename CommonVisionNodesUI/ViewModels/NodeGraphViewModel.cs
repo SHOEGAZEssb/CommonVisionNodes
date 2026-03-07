@@ -47,6 +47,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddDeviceNode() => AddNode(new DeviceNode(), (n, x, y) => new DeviceNodeViewModel((DeviceNode)n, x, y));
 
+    [RelayCommand]
+    private void AddBinarizeNode() => AddNode(new BinarizeNode(), (n, x, y) => new BinarizeNodeViewModel((BinarizeNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);
@@ -165,6 +168,8 @@ public partial class NodeGraphViewModel : ObservableObject
         foreach (var node in Nodes.OfType<ImageNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<SaveImageNodeViewModel>())
+            node.RefreshPreview();
+        foreach (var node in Nodes.OfType<BinarizeNodeViewModel>())
             node.RefreshPreview();
     }
 }

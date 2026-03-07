@@ -32,6 +32,7 @@ public partial class NodeViewModel : ObservableObject
         ImageNode => Color.FromArgb(255, 74, 144, 217),
         SaveImageNode => Color.FromArgb(255, 102, 187, 106),
         DeviceNode => Color.FromArgb(255, 171, 71, 188),
+        BinarizeNode => Color.FromArgb(255, 255, 152, 0),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

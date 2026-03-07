@@ -23,6 +23,16 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="BinarizeNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Threshold (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding Threshold, Mode=TwoWay}" StepFrequency="1"/>
+                    <TextBlock Text="{Binding Threshold}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="DeviceNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -68,6 +78,9 @@
             <Button Content="&#xE714; Device" Click="AddDeviceNode_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#AB47BC" Foreground="White" CornerRadius="4"/>
+            <Button Content="&#xE71C; Binarize" Click="AddBinarizeNode_Click"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#FF9800" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 

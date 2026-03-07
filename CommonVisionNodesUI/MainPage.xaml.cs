@@ -103,6 +103,7 @@ public sealed partial class MainPage : Page
                 ImageNodeViewModel => (DataTemplate)Resources["ImageNodePropertiesTemplate"],
                 SaveImageNodeViewModel => (DataTemplate)Resources["SaveImageNodePropertiesTemplate"],
                 DeviceNodeViewModel => (DataTemplate)Resources["DeviceNodePropertiesTemplate"],
+                BinarizeNodeViewModel => (DataTemplate)Resources["BinarizeNodePropertiesTemplate"],
                 _ => null
             };
 
@@ -251,6 +252,9 @@ public sealed partial class MainPage : Page
 
     private void AddDeviceNode_Click(object sender, RoutedEventArgs e) =>
         _viewModel.AddDeviceNodeCommand.Execute(null);
+
+    private void AddBinarizeNode_Click(object sender, RoutedEventArgs e) =>
+        _viewModel.AddBinarizeNodeCommand.Execute(null);
 
     private void Initialize_Click(object sender, RoutedEventArgs e) =>
         _viewModel.InitializeGraphCommand.Execute(null);

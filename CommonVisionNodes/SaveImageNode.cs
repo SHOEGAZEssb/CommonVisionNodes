@@ -15,6 +15,9 @@ namespace CommonVisionNodes
 
         public override void Execute()
         {
+            if (string.IsNullOrWhiteSpace(FilePath))
+                return;
+
             var image = (Image)ImageInput.Value!;
             image.Save(FilePath);
         }
