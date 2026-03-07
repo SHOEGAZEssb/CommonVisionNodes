@@ -257,4 +257,19 @@ public sealed partial class MainPage : Page
 
     private void Execute_Click(object sender, RoutedEventArgs e) =>
         _viewModel.ExecuteGraphCommand.Execute(null);
+
+    private void ToggleRun_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ToggleRunCommand.Execute(null);
+        if (_viewModel.IsRunning)
+        {
+            RunStopButton.Content = "\uE71A Stop";
+            RunStopButton.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 211, 47, 47));
+        }
+        else
+        {
+            RunStopButton.Content = "\uE768 Run";
+            RunStopButton.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 142, 60));
+        }
+    }
 }

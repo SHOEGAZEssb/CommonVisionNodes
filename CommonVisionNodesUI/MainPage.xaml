@@ -26,8 +26,24 @@
         <DataTemplate x:Key="DeviceNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="Access Token" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding AccessToken, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="13"/>
+                    <TextBlock Text="Device" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding DiscoveredDevices}"
+                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                  DisplayMemberPath="DisplayName"
+                                  PlaceholderText="No devices found"
+                                  HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="1" Content="&#xE094;"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                Command="{Binding DiscoverDevicesCommand}"
+                                ToolTipService.ToolTip="Discover devices"
+                                Padding="8,6" CornerRadius="4"/>
+                    </Grid>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
@@ -59,6 +75,9 @@
                     Padding="12,6" CornerRadius="4"/>
             <Button Content="Execute" Click="Execute_Click"
                     Padding="12,6" CornerRadius="4"/>
+            <Button x:Name="RunStopButton" Content="&#xE768; Run" Click="ToggleRun_Click"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#388E3C" Foreground="White" CornerRadius="4"/>
         </StackPanel>
 
         <!-- Main content: Canvas + Properties Panel -->

@@ -1,13 +1,12 @@
 using Stemmer.Cvb;
 using Stemmer.Cvb.Driver;
-using CvbStream = Stemmer.Cvb.Driver.Stream;
 
 namespace CommonVisionNodes
 {
     public sealed class DeviceNode : Node, IInitializable
     {
-        private Device? _device;
-        private CvbStream? _stream;
+        private GenICamDevice? _device;
+        private ImageStream? _stream;
 
         public Port ImageOutput { get; }
 
@@ -23,8 +22,8 @@ namespace CommonVisionNodes
         public void Initialize()
         {
             Dispose();
-            _device = DeviceFactory.Open(AccessToken);
-            _stream = _device.Stream;
+            _device = DeviceFactory.Open(AccessToken, AcquisitionStack.GenTL) as GenICamDevice;
+            _stream = _device.GetStream<ImageStream>(0);
             _stream.Start();
             IsInitialized = true;
         }
@@ -34,7 +33,7 @@ namespace CommonVisionNodes
             if (!IsInitialized)
                 throw new InvalidOperationException($"{nameof(DeviceNode)} must be initialized before execution.");
 
-            ImageOutput.Value = _stream!.Wait();
+            ImageOutput.Value = _stream!.WaitFor(TimeSpan.FromSeconds(3));
         }
 
         public void Dispose()

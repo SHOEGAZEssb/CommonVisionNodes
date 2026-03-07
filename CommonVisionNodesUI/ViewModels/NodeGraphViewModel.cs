@@ -1,11 +1,16 @@
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using CommonVisionNodes;
+using Microsoft.UI.Dispatching;
 
 namespace CommonVisionNodesUI.ViewModels;
 
 public partial class NodeGraphViewModel : ObservableObject
 {
     private readonly NodeGraph _graph = new();
+    private readonly DispatcherQueue _dispatcherQueue;
+    private CancellationTokenSource? _runCts;
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
 
@@ -14,6 +19,14 @@ public partial class NodeGraphViewModel : ObservableObject
 
     [ObservableProperty]
     private NodeViewModel? _selectedNode;
+
+    [ObservableProperty]
+    private bool _isRunning;
+
+    public NodeGraphViewModel()
+    {
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+    }
 
     public void SelectNode(NodeViewModel? node)
     {
@@ -93,6 +106,56 @@ public partial class NodeGraphViewModel : ObservableObject
     private void ExecuteGraph()
     {
         _graph.Execute();
+        RefreshPreviews();
+    }
+
+    [RelayCommand]
+    private void ToggleRun()
+    {
+        if (IsRunning)
+            Stop();
+        else
+            Start();
+    }
+
+    private void Start()
+    {
+        if (IsRunning) return;
+        _runCts = new CancellationTokenSource();
+        IsRunning = true;
+        var ct = _runCts.Token;
+
+        Task.Run(() =>
+        {
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    _graph.Execute();
+                    _dispatcherQueue.TryEnqueue(RefreshPreviews);
+                }
+            }
+            catch (Exception) when (ct.IsCancellationRequested)
+            {
+                // Expected on cancellation
+            }
+            catch (Exception)
+            {
+                _dispatcherQueue.TryEnqueue(Stop);
+            }
+        }, ct);
+    }
+
+    private void Stop()
+    {
+        _runCts?.Cancel();
+        _runCts?.Dispose();
+        _runCts = null;
+        IsRunning = false;
+    }
+
+    private void RefreshPreviews()
+    {
         foreach (var node in Nodes.OfType<ImageNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<SaveImageNodeViewModel>())
