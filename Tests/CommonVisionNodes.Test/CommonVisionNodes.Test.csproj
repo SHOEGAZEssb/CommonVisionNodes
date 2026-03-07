@@ -21,6 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Stemmer.Cvb">
+      <HintPath>..\..\..\..\..\Program Files\STEMMER IMAGING\Common Vision Blox\Lib\Net\Stemmer.Cvb.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 

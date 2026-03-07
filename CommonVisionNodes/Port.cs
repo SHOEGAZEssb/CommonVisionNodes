@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-namespace CommonVisionNodes
+﻿namespace CommonVisionNodes
 {
     public enum PortDirection
     {
@@ -14,6 +12,7 @@ namespace CommonVisionNodes
         public string Name { get; }
         public Type Type { get; }
         public PortDirection Direction { get; }
+        public object? Value { get; set; }
 
         internal Port(Node node, string name, Type type, PortDirection direction)
         {

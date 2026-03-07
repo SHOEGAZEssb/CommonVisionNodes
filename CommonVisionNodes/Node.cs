@@ -27,5 +27,7 @@ namespace CommonVisionNodes
             _outputs.Add(port);
             return port;
         }
+
+        public abstract void Execute();
     }
 }

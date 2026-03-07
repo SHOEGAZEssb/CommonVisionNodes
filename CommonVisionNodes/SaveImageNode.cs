@@ -12,5 +12,11 @@ namespace CommonVisionNodes
         {
             ImageInput = AddInput("Image", typeof(Image));
         }
+
+        public override void Execute()
+        {
+            var image = (Image)ImageInput.Value!;
+            image.Save(FilePath);
+        }
     }
 }
