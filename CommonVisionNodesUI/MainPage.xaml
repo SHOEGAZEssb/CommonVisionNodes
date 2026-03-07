@@ -2,6 +2,7 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:local="using:CommonVisionNodesUI"
+      xmlns:helpers="using:CommonVisionNodesUI.Helpers"
       Background="{ThemeResource BackgroundBrush}">
 
     <Page.Resources>
@@ -84,6 +85,13 @@
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
+
+        <helpers:NodePropertiesTemplateSelector x:Key="NodePropertiesSelector"
+            ImageNodeTemplate="{StaticResource ImageNodePropertiesTemplate}"
+            SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
+            DeviceNodeTemplate="{StaticResource DeviceNodePropertiesTemplate}"
+            BinarizeNodeTemplate="{StaticResource BinarizeNodePropertiesTemplate}"
+            SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -96,31 +104,39 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal"
                     Padding="8" Spacing="8"
                     Background="#333333">
-            <Button x:Name="AddImageButton" Content="&#xE710; Image" Click="AddImageNode_Click"
+            <Button Content="&#xE710; Image" Command="{Binding Graph.AddImageNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#4A90D9" Foreground="White" CornerRadius="4"/>
-            <Button x:Name="AddSaveImageButton" Content="&#xE74E; Save Image" Click="AddSaveImageNode_Click"
+            <Button Content="&#xE74E; Save Image" Command="{Binding Graph.AddSaveImageNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#66BB6A" Foreground="White" CornerRadius="4"/>
-            <Button x:Name="AddDeviceButton" Content="&#xE714; Device" Click="AddDeviceNode_Click"
+            <Button Content="&#xE714; Device" Command="{Binding Graph.AddDeviceNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#AB47BC" Foreground="White" CornerRadius="4"/>
-            <Button x:Name="AddBinarizeButton" Content="&#xE71C; Binarize" Click="AddBinarizeNode_Click"
+            <Button Content="&#xE71C; Binarize" Command="{Binding Graph.AddBinarizeNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#FF9800" Foreground="White" CornerRadius="4"/>
-            <Button x:Name="AddSubImageButton" Content="&#xE740; SubImage" Click="AddSubImageNode_Click"
+            <Button Content="&#xE740; SubImage" Command="{Binding Graph.AddSubImageNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#00ACC1" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
-            <Button x:Name="InitializeButton" Content="Initialize" Click="Initialize_Click"
+            <Button Content="Initialize" Command="{Binding Graph.InitializeGraphCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     Padding="12,6" CornerRadius="4"/>
-            <Button x:Name="ExecuteButton" Content="Execute" Click="Execute_Click"
+            <Button Content="Execute" Command="{Binding Graph.ExecuteGraphCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
                     Padding="12,6" CornerRadius="4"/>
-            <Button x:Name="RunStopButton" Content="&#xE768; Run" Click="ToggleRun_Click"
+            <Button Content="{Binding RunButtonText}" Command="{Binding Graph.ToggleRunCommand}"
+                    Background="{Binding RunButtonBackground}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#388E3C" Foreground="White" CornerRadius="4"/>
+                    Padding="12,6" Foreground="White" CornerRadius="4"/>
         </StackPanel>
 
         <!-- Main content: Canvas + Properties Panel -->
@@ -145,27 +161,28 @@
                     BorderBrush="#3C3C3C" BorderThickness="1,0,0,0">
                 <Grid>
                     <!-- No selection placeholder -->
-                    <TextBlock x:Name="NoSelectionText"
-                               Text="Click a node to configure"
+                    <TextBlock Text="Click a node to configure"
+                               Visibility="{Binding NoSelectionVisibility}"
                                Foreground="#666666" FontSize="13"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                     <!-- Properties editor -->
-                    <StackPanel x:Name="PropertiesPanel" Visibility="Collapsed" Padding="16">
+                    <StackPanel Visibility="{Binding PropertiesPanelVisibility}" Padding="16">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock x:Name="SelectedNodeTitle" FontSize="16" FontWeight="Bold"
+                                <TextBlock Text="{Binding SelectedNodeTitle}" FontSize="16" FontWeight="Bold"
                                            Foreground="White" Margin="0,0,0,4"/>
-                                <TextBlock x:Name="SelectedNodeType" FontSize="12"
+                                <TextBlock Text="{Binding SelectedNodeTypeName}" FontSize="12"
                                            Foreground="#888888"/>
                             </StackPanel>
-                            <Button x:Name="RemoveNodeButton" Grid.Column="1" Content="&#xE74D;"
+                            <Button Grid.Column="1" Content="&#xE74D;"
                                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    Click="RemoveNode_Click"
+                                    Command="{Binding RemoveSelectedNodeCommand}"
+                                    IsEnabled="{Binding IsEditingEnabled}"
                                     ToolTipService.ToolTip="Remove node (Delete)"
                                     Padding="8,6" CornerRadius="4"
                                     Background="#D32F2F" Foreground="White"
@@ -173,7 +190,9 @@
                         </Grid>
 
                         <Border Margin="0,12,0,0"/>
-                        <ContentControl x:Name="PropertiesContent"/>
+                        <ContentControl Content="{Binding Graph.SelectedNode}"
+                                        ContentTemplateSelector="{StaticResource NodePropertiesSelector}"
+                                        IsEnabled="{Binding IsPropertiesContentEnabled}"/>
                     </StackPanel>
                 </Grid>
             </Border>

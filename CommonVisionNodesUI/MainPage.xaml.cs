@@ -12,7 +12,7 @@ namespace CommonVisionNodesUI;
 
 public sealed partial class MainPage : Page
 {
-    private readonly NodeGraphViewModel _viewModel = new();
+    private readonly MainViewModel _viewModel = new();
     private readonly List<Path> _connectionPaths = [];
     private readonly Dictionary<NodeViewModel, NodeControl> _nodeControls = [];
 
@@ -23,8 +23,9 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         this.InitializeComponent();
+        DataContext = _viewModel;
 
-        _viewModel.Nodes.CollectionChanged += (_, e) =>
+        _viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
         {
             if (e.NewItems != null)
             {
@@ -38,8 +39,15 @@ public sealed partial class MainPage : Page
             }
         };
 
-        _viewModel.Connections.CollectionChanged += (_, _) => RedrawConnections();
+        _viewModel.Graph.Connections.CollectionChanged += (_, _) => RedrawConnections();
+        _viewModel.Graph.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(NodeGraphViewModel.SelectedNode))
+                UpdateSelectionVisual();
+        };
     }
+
+    // --- Node control management ---
 
     private void AddNodeControl(NodeViewModel nodeVM)
     {
@@ -61,22 +69,19 @@ public sealed partial class MainPage : Page
         }
     }
 
-    // --- Selection ---
+    // --- Selection visual ---
 
     private void OnNodeSelected(NodeControl control)
     {
-        SelectNode(control.ViewModel);
+        _viewModel.Graph.SelectNode(control.ViewModel);
     }
 
-    private void SelectNode(NodeViewModel? nodeVM)
+    private void UpdateSelectionVisual()
     {
-        // Update old selection visual
         _selectedControl?.SetSelected(false);
 
-        _viewModel.SelectNode(nodeVM);
-
-        // Update new selection visual
-        if (nodeVM != null && _nodeControls.TryGetValue(nodeVM, out var control))
+        var selected = _viewModel.Graph.SelectedNode;
+        if (selected != null && _nodeControls.TryGetValue(selected, out var control))
         {
             control.SetSelected(true);
             _selectedControl = control;
@@ -85,40 +90,6 @@ public sealed partial class MainPage : Page
         {
             _selectedControl = null;
         }
-
-        UpdatePropertiesPanel();
-    }
-
-    private void UpdatePropertiesPanel()
-    {
-        var selected = _viewModel.SelectedNode;
-        if (selected != null)
-        {
-            SelectedNodeTitle.Text = selected.Title;
-            SelectedNodeType.Text = selected.Node.GetType().Name;
-
-            PropertiesContent.Content = selected;
-            PropertiesContent.ContentTemplate = selected switch
-            {
-                ImageNodeViewModel => (DataTemplate)Resources["ImageNodePropertiesTemplate"],
-                SaveImageNodeViewModel => (DataTemplate)Resources["SaveImageNodePropertiesTemplate"],
-                DeviceNodeViewModel => (DataTemplate)Resources["DeviceNodePropertiesTemplate"],
-                BinarizeNodeViewModel => (DataTemplate)Resources["BinarizeNodePropertiesTemplate"],
-                SubImageNodeViewModel => (DataTemplate)Resources["SubImageNodePropertiesTemplate"],
-                _ => null
-            };
-
-            PropertiesPanel.Visibility = Visibility.Visible;
-            NoSelectionText.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            PropertiesContent.Content = null;
-            PropertiesPanel.Visibility = Visibility.Collapsed;
-            NoSelectionText.Visibility = Visibility.Visible;
-        }
-
-        UpdatePropertiesEnabled();
     }
 
     // --- Connection drag ---
@@ -140,9 +111,8 @@ public sealed partial class MainPage : Page
 
     private void GraphCanvas_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Click on canvas background deselects
         if (e.OriginalSource == GraphCanvas)
-            SelectNode(null);
+            _viewModel.Graph.SelectNode(null);
     }
 
     private void GraphCanvas_PointerMoved(object sender, PointerRoutedEventArgs e)
@@ -162,7 +132,7 @@ public sealed partial class MainPage : Page
             var pos = e.GetCurrentPoint(GraphCanvas).Position;
             var targetPort = HitTestPort(pos);
             if (targetPort != null && targetPort != _connectionDragSource)
-                _viewModel.TryConnect(_connectionDragSource, targetPort);
+                _viewModel.Graph.TryConnect(_connectionDragSource, targetPort);
         }
 
         if (_pendingConnectionPath != null)
@@ -177,7 +147,7 @@ public sealed partial class MainPage : Page
     private PortViewModel? HitTestPort(Point point)
     {
         const double hitRadius = 15;
-        foreach (var nodeVM in _viewModel.Nodes)
+        foreach (var nodeVM in _viewModel.Graph.Nodes)
         {
             foreach (var port in nodeVM.InputPorts.Concat(nodeVM.OutputPorts))
             {
@@ -198,7 +168,7 @@ public sealed partial class MainPage : Page
             GraphCanvas.Children.Remove(path);
         _connectionPaths.Clear();
 
-        foreach (var conn in _viewModel.Connections)
+        foreach (var conn in _viewModel.Graph.Connections)
         {
             var path = CreateBezierPath(
                 conn.Source.CenterX, conn.Source.CenterY,
@@ -245,84 +215,14 @@ public sealed partial class MainPage : Page
         }
     }
 
-    // --- Toolbar handlers ---
-
-    private void AddImageNode_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.AddImageNodeCommand.Execute(null);
-
-    private void AddSaveImageNode_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.AddSaveImageNodeCommand.Execute(null);
-
-    private void AddDeviceNode_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.AddDeviceNodeCommand.Execute(null);
-
-    private void AddBinarizeNode_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.AddBinarizeNodeCommand.Execute(null);
-
-    private void AddSubImageNode_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.AddSubImageNodeCommand.Execute(null);
-
-    private void RemoveNode_Click(object sender, RoutedEventArgs e) =>
-        RemoveSelectedNode();
+    // --- Keyboard ---
 
     private void GraphCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Windows.System.VirtualKey.Delete && !_viewModel.IsRunning)
+        if (e.Key == Windows.System.VirtualKey.Delete && _viewModel.IsEditingEnabled)
         {
-            RemoveSelectedNode();
+            _viewModel.RemoveSelectedNodeCommand.Execute(null);
             e.Handled = true;
         }
-    }
-
-    private void RemoveSelectedNode()
-    {
-        if (_viewModel.SelectedNode is { } node)
-        {
-            SelectNode(null);
-            _viewModel.RemoveNodeCommand.Execute(node);
-        }
-    }
-
-    private void Initialize_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.InitializeGraphCommand.Execute(null);
-
-    private void Execute_Click(object sender, RoutedEventArgs e) =>
-        _viewModel.ExecuteGraphCommand.Execute(null);
-
-    private void ToggleRun_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.ToggleRunCommand.Execute(null);
-        if (_viewModel.IsRunning)
-        {
-            RunStopButton.Content = "\uE71A Stop";
-            RunStopButton.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 211, 47, 47));
-        }
-        else
-        {
-            RunStopButton.Content = "\uE768 Run";
-            RunStopButton.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 142, 60));
-        }
-
-        UpdateEditingEnabled();
-    }
-
-    private void UpdateEditingEnabled()
-    {
-        bool enabled = !_viewModel.IsRunning;
-        AddImageButton.IsEnabled = enabled;
-        AddSaveImageButton.IsEnabled = enabled;
-        AddDeviceButton.IsEnabled = enabled;
-        AddBinarizeButton.IsEnabled = enabled;
-        AddSubImageButton.IsEnabled = enabled;
-        InitializeButton.IsEnabled = enabled;
-        ExecuteButton.IsEnabled = enabled;
-        RemoveNodeButton.IsEnabled = enabled;
-        UpdatePropertiesEnabled();
-    }
-
-    private void UpdatePropertiesEnabled()
-    {
-        PropertiesContent.IsEnabled = !_viewModel.IsRunning
-            || (_viewModel.SelectedNode?.IsEditableWhileRunning ?? false);
     }
 }
