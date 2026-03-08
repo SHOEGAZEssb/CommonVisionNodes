@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using CommonVisionNodes;
@@ -23,6 +24,9 @@ public partial class NodeGraphViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isRunning;
+
+    [ObservableProperty]
+    private double _fps;
 
     public NodeGraphViewModel()
     {
@@ -147,15 +151,33 @@ public partial class NodeGraphViewModel : ObservableObject
 
         Task.Run(async () =>
         {
+            var fpsStopwatch = Stopwatch.StartNew();
+            int frameCount = 0;
+
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
                     await _refreshGate.WaitAsync(ct);
                     _graph.Execute();
+                    frameCount++;
+
+                    double? fpsToReport = null;
+                    if (fpsStopwatch.ElapsedMilliseconds >= 1000)
+                    {
+                        fpsToReport = frameCount * 1000.0 / fpsStopwatch.ElapsedMilliseconds;
+                        frameCount = 0;
+                        fpsStopwatch.Restart();
+                    }
+
                     _dispatcherQueue.TryEnqueue(() =>
                     {
-                        try { RefreshPreviews(); }
+                        try
+                        {
+                            if (fpsToReport.HasValue)
+                                Fps = fpsToReport.Value;
+                            RefreshPreviews();
+                        }
                         finally { _refreshGate.Release(); }
                     });
                 }
@@ -177,6 +199,7 @@ public partial class NodeGraphViewModel : ObservableObject
         _runCts?.Dispose();
         _runCts = null;
         IsRunning = false;
+        Fps = 0;
     }
 
     public string GenerateCode() => CodeGenerator.Generate(_graph);

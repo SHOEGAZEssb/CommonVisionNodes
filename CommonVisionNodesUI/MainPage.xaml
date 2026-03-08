@@ -129,6 +129,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
@@ -239,5 +240,23 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#252525" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0" Padding="12,4">
+            <StackPanel Orientation="Horizontal" Spacing="24">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="FPS:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding FpsText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="40"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="CPU:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CpuText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="50"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="RAM:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding MemoryText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="60"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
     </Grid>
 </Page>

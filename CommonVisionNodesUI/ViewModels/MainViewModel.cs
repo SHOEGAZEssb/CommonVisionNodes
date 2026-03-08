@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -7,6 +8,10 @@ namespace CommonVisionNodesUI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly DispatcherTimer _statusTimer;
+    private DateTime _lastCpuCheck;
+    private TimeSpan _lastCpuTime;
+
     public NodeGraphViewModel Graph { get; } = new();
 
     // Properties panel
@@ -36,9 +41,55 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private SolidColorBrush _runButtonBackground = new(Color.FromArgb(255, 56, 142, 60));
 
+    // Status bar
+    [ObservableProperty]
+    private string _fpsText = "—";
+
+    [ObservableProperty]
+    private string _cpuText = "0.0%";
+
+    [ObservableProperty]
+    private string _memoryText = "0 MB";
+
     public MainViewModel()
     {
         Graph.PropertyChanged += OnGraphPropertyChanged;
+
+        var process = Process.GetCurrentProcess();
+        _lastCpuCheck = DateTime.UtcNow;
+        _lastCpuTime = process.TotalProcessorTime;
+
+        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _statusTimer.Tick += OnStatusTimerTick;
+        _statusTimer.Start();
+    }
+
+    private void OnStatusTimerTick(object? sender, object e)
+    {
+        UpdateCpuAndMemory();
+        FpsText = Graph.IsRunning ? Graph.Fps.ToString("F1") : "—";
+    }
+
+    private void UpdateCpuAndMemory()
+    {
+        var process = Process.GetCurrentProcess();
+        var now = DateTime.UtcNow;
+        var currentCpuTime = process.TotalProcessorTime;
+
+        var elapsed = (now - _lastCpuCheck).TotalMilliseconds;
+        var cpuDelta = (currentCpuTime - _lastCpuTime).TotalMilliseconds;
+
+        _lastCpuCheck = now;
+        _lastCpuTime = currentCpuTime;
+
+        if (elapsed > 0)
+        {
+            var cpuPercent = cpuDelta / elapsed / Environment.ProcessorCount * 100.0;
+            CpuText = $"{cpuPercent:F1}%";
+        }
+
+        var memoryMb = process.WorkingSet64 / (1024.0 * 1024.0);
+        MemoryText = $"{memoryMb:F0} MB";
     }
 
     private void OnGraphPropertyChanged(object? sender, PropertyChangedEventArgs e)
