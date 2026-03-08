@@ -79,6 +79,11 @@
             <local:CropImageDisplay x:Name="CropPreview" Grid.Row="3"
                                     Height="120" Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
+
+            <!-- Histogram preview -->
+            <local:HistogramDisplay x:Name="HistogramPreview" Grid.Row="3"
+                                    Height="120" Margin="4,0,4,4"
+                                    Visibility="Collapsed"/>
         </Grid>
     </Border>
 </UserControl>

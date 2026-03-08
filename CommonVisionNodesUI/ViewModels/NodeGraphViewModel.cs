@@ -74,6 +74,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddFilterNode() => AddNode(new FilterNode(), (n, x, y) => new FilterNodeViewModel((FilterNode)n, x, y));
 
+    [RelayCommand]
+    private void AddHistogramNode() => AddNode(new HistogramNode(), (n, x, y) => new HistogramNodeViewModel((HistogramNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);
@@ -251,6 +254,8 @@ public partial class NodeGraphViewModel : ObservableObject
         foreach (var node in Nodes.OfType<ImageGeneratorNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<FilterNodeViewModel>())
+            node.RefreshPreview();
+        foreach (var node in Nodes.OfType<HistogramNodeViewModel>())
             node.RefreshPreview();
     }
 }

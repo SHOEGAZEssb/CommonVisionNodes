@@ -17,6 +17,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? MatrixTransformNodeTemplate { get; set; }
     public DataTemplate? ImageGeneratorNodeTemplate { get; set; }
     public DataTemplate? FilterNodeTemplate { get; set; }
+    public DataTemplate? HistogramNodeTemplate { get; set; }
 
     /// <summary>
     /// Returns the data template that matches the given node view model type.
@@ -35,6 +36,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             MatrixTransformNodeViewModel => MatrixTransformNodeTemplate,
             ImageGeneratorNodeViewModel => ImageGeneratorNodeTemplate,
             FilterNodeViewModel => FilterNodeTemplate,
+            HistogramNodeViewModel => HistogramNodeTemplate,
             _ => null
         };
     }

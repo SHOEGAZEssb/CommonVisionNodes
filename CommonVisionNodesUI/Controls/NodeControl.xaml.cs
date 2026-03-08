@@ -139,6 +139,15 @@ public sealed partial class NodeControl : UserControl
                     ImagePreview.SetImage(filterVM.PreviewImage);
             };
         }
+        else if (vm is HistogramNodeViewModel histVM)
+        {
+            HistogramPreview.Visibility = Visibility.Visible;
+            histVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(HistogramNodeViewModel.Bins))
+                    HistogramPreview.SetHistogram(histVM.Bins, histVM.Mean, histVM.StdDev);
+            };
+        }
     }
 
     /// <summary>
