@@ -56,5 +56,29 @@ namespace CommonVisionNodes
 
             IsInitialized = false;
         }
+
+        // Code generation
+
+        public override string CodeVariableName => "acquiredImage";
+
+        public override IReadOnlyList<string> RequiredUsings => ["Stemmer.Cvb.Driver"];
+
+        public override void EmitCode(CodeEmitContext context)
+        {
+            var deviceVar = context.GetUniqueVariable("device");
+            var streamVar = context.GetUniqueVariable("stream");
+            var waitVar = context.GetUniqueVariable("streamResult");
+            var imageVar = context.GetUniqueVariable(CodeVariableName);
+
+            var sb = context.Builder;
+            sb.AppendLine("// Acquire image from device");
+            sb.AppendLine($"using var {deviceVar} = DeviceFactory.Open(@\"{CodeEmitContext.EscapeVerbatim(AccessToken)}\", AcquisitionStack.GenTL) as GenICamDevice;");
+            sb.AppendLine($"using var {streamVar} = {deviceVar}!.GetStream<ImageStream>(0);");
+            sb.AppendLine($"{streamVar}.Start();");
+            sb.AppendLine($"using var {waitVar} = {streamVar}.WaitFor(TimeSpan.FromSeconds(3));");
+            sb.AppendLine($"using var {imageVar} = {waitVar}.Clone();");
+            sb.AppendLine($"{streamVar}.TryStop();");
+            context.RegisterOutput(ImageOutput, imageVar);
+        }
     }
 }

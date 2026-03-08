@@ -40,5 +40,17 @@ namespace CommonVisionNodes
             _cachedImage = null;
             IsInitialized = false;
         }
+
+        // Code generation
+
+        public override string CodeVariableName => "sourceImage";
+
+        public override void EmitCode(CodeEmitContext context)
+        {
+            var varName = context.GetUniqueVariable(CodeVariableName);
+            context.Builder.AppendLine("// Load image from file");
+            context.Builder.AppendLine($"using var {varName} = Image.FromFile(@\"{CodeEmitContext.EscapeVerbatim(FilePath)}\");");
+            context.RegisterOutput(ImageOutput, varName);
+        }
     }
 }

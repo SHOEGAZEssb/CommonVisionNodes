@@ -29,5 +29,15 @@ namespace CommonVisionNodes
         }
 
         public abstract void Execute();
+
+        // Code generation
+
+        public virtual string CodeVariableName => "result";
+
+        public virtual IReadOnlyList<string> RequiredUsings => [];
+
+        public virtual void EmitCode(CodeEmitContext context) { }
+
+        public virtual void EmitHelperMethods(StringBuilder sb) { }
     }
 }

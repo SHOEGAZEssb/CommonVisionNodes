@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using Stemmer.Cvb;
 
 namespace CommonVisionNodes
@@ -50,6 +51,50 @@ namespace CommonVisionNodes
             }
 
             ImageOutput.Value = _lastResult;
+        }
+
+        // Code generation
+
+        public override string CodeVariableName => "cropped";
+
+        public override IReadOnlyList<string> RequiredUsings => ["System.Runtime.InteropServices"];
+
+        public override void EmitCode(CodeEmitContext context)
+        {
+            var inputVar = context.ResolveInput(ImageInput);
+            if (inputVar == null) return;
+
+            var varName = context.GetUniqueVariable(CodeVariableName);
+            context.Builder.AppendLine($"// Crop image (x: {AreaX}, y: {AreaY}, w: {AreaWidth}, h: {AreaHeight})");
+            context.Builder.AppendLine($"using var {varName} = Crop({inputVar}, {AreaX}, {AreaY}, {AreaWidth}, {AreaHeight});");
+            context.RegisterOutput(ImageOutput, varName);
+        }
+
+        public override void EmitHelperMethods(StringBuilder sb)
+        {
+            sb.AppendLine("static Image Crop(Image source, int areaX, int areaY, int areaWidth, int areaHeight)");
+            sb.AppendLine("{");
+            sb.AppendLine("    int x = Math.Clamp(areaX, 0, Math.Max(0, source.Width - 1));");
+            sb.AppendLine("    int y = Math.Clamp(areaY, 0, Math.Max(0, source.Height - 1));");
+            sb.AppendLine("    int w = Math.Clamp(areaWidth, 1, source.Width - x);");
+            sb.AppendLine("    int h = Math.Clamp(areaHeight, 1, source.Height - y);");
+            sb.AppendLine("    var result = new Image(new Size2D(w, h), source.Planes.Count);");
+            sb.AppendLine("    for (int p = 0; p < source.Planes.Count; p++)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        var srcAccess = source.Planes[p].GetLinearAccess();");
+            sb.AppendLine("        var dstAccess = result.Planes[p].GetLinearAccess();");
+            sb.AppendLine("        for (int dy = 0; dy < h; dy++)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            for (int dx = 0; dx < w; dx++)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                var srcPtr = srcAccess.BasePtr + (nint)((y + dy) * srcAccess.YInc + (x + dx) * srcAccess.XInc);");
+            sb.AppendLine("                var dstPtr = dstAccess.BasePtr + (nint)(dy * dstAccess.YInc + dx * dstAccess.XInc);");
+            sb.AppendLine("                Marshal.WriteByte(dstPtr, Marshal.ReadByte(srcPtr));");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("    return result;");
+            sb.AppendLine("}");
         }
     }
 }
