@@ -190,14 +190,21 @@
             </Grid.ColumnDefinitions>
 
             <!-- Graph Canvas -->
-            <Canvas x:Name="GraphCanvas" Grid.Column="0"
-                    Background="#1E1E1E"
-                    PointerPressed="GraphCanvas_PointerPressed"
-                    PointerMoved="GraphCanvas_PointerMoved"
-                    PointerReleased="GraphCanvas_PointerReleased"
-                    KeyDown="GraphCanvas_KeyDown"
-                    IsTabStop="True"
-                    AllowFocusOnInteraction="True"/>
+            <Border x:Name="GraphCanvasContainer" Grid.Column="0" Background="#1E1E1E">
+                <Canvas x:Name="GraphCanvas"
+                        Background="Transparent"
+                        PointerPressed="GraphCanvas_PointerPressed"
+                        PointerMoved="GraphCanvas_PointerMoved"
+                        PointerReleased="GraphCanvas_PointerReleased"
+                        PointerWheelChanged="GraphCanvas_PointerWheelChanged"
+                        KeyDown="GraphCanvas_KeyDown"
+                        IsTabStop="True"
+                        AllowFocusOnInteraction="True">
+                    <Canvas.RenderTransform>
+                        <CompositeTransform x:Name="CanvasTransform"/>
+                    </Canvas.RenderTransform>
+                </Canvas>
+            </Border>
 
             <!-- Properties Panel -->
             <Border Grid.Column="1" Width="280" Background="#252525"

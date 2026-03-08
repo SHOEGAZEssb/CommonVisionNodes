@@ -7,6 +7,10 @@ using Microsoft.UI.Dispatching;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for the node graph. Manages nodes, connections,
+/// execution, continuous run loop, and FPS tracking.
+/// </summary>
 public partial class NodeGraphViewModel : ObservableObject
 {
     private readonly NodeGraph _graph = new();
@@ -33,6 +37,10 @@ public partial class NodeGraphViewModel : ObservableObject
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     }
 
+    /// <summary>
+    /// Selects a node, deselecting any previously selected node.
+    /// </summary>
+    /// <param name="node">The node to select, or <c>null</c> to clear the selection.</param>
     public void SelectNode(NodeViewModel? node)
     {
         if (SelectedNode != null)
@@ -73,6 +81,12 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Attempts to connect two ports. One must be an output and the other an input.
+    /// </summary>
+    /// <param name="portA">First port.</param>
+    /// <param name="portB">Second port.</param>
+    /// <returns><c>true</c> if the connection was created successfully.</returns>
     public bool TryConnect(PortViewModel portA, PortViewModel portB)
     {
         try
@@ -202,6 +216,10 @@ public partial class NodeGraphViewModel : ObservableObject
         Fps = 0;
     }
 
+    /// <summary>
+    /// Generates standalone C# source code that replicates the current graph.
+    /// </summary>
+    /// <returns>A C# code snippet as a string.</returns>
     public string GenerateCode() => CodeGenerator.Generate(_graph);
 
     private void RefreshPreviews()

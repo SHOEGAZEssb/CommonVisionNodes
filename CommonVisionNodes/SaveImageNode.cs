@@ -2,10 +2,19 @@
 
 namespace CommonVisionNodes
 {
+    /// <summary>
+    /// Saves the input image to a file.
+    /// </summary>
     public sealed class SaveImageNode : Node
     {
+        /// <summary>
+        /// Input port that receives the image to save.
+        /// </summary>
         public Port ImageInput { get; }
 
+        /// <summary>
+        /// Destination file path for the saved image.
+        /// </summary>
         public string FilePath { get; set; } = string.Empty;
 
         public SaveImageNode()
@@ -13,6 +22,7 @@ namespace CommonVisionNodes
             ImageInput = AddInput("Image", typeof(Image));
         }
 
+        /// <inheritdoc/>
         public override void Execute()
         {
             if (string.IsNullOrWhiteSpace(FilePath))
@@ -24,6 +34,7 @@ namespace CommonVisionNodes
 
         // Code generation
 
+        /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {
             var inputVar = context.ResolveInput(ImageInput);

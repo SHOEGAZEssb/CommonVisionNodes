@@ -4,6 +4,9 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace CommonVisionNodesUI.Helpers;
 
+/// <summary>
+/// Selects the appropriate properties panel template based on the node view model type.
+/// </summary>
 public class NodePropertiesTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ImageNodeTemplate { get; set; }
@@ -13,6 +16,11 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? SubImageNodeTemplate { get; set; }
     public DataTemplate? MatrixTransformNodeTemplate { get; set; }
 
+    /// <summary>
+    /// Returns the data template that matches the given node view model type.
+    /// </summary>
+    /// <param name="item">The node view model instance.</param>
+    /// <returns>The matching template, or <c>null</c> if no match is found.</returns>
     protected override DataTemplate? SelectTemplateCore(object item)
     {
         return item switch

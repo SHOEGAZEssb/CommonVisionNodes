@@ -5,8 +5,17 @@ using Stemmer.Cvb;
 
 namespace CommonVisionNodesUI.Helpers;
 
+/// <summary>
+/// Converts CVB <see cref="Stemmer.Cvb.Image"/> instances to WinUI <see cref="WriteableBitmap"/> for display.
+/// </summary>
 public static class CvbImageConverter
 {
+    /// <summary>
+    /// Converts a CVB image to a <see cref="WriteableBitmap"/>.
+    /// Supports mono (1-plane) and RGB (3+ plane) images.
+    /// </summary>
+    /// <param name="cvbImage">The CVB image to convert.</param>
+    /// <returns>A <see cref="WriteableBitmap"/> containing the pixel data.</returns>
     public static WriteableBitmap ConvertToWriteableBitmap(Stemmer.Cvb.Image cvbImage)
     {
         int width = cvbImage.Width;
@@ -28,6 +37,9 @@ public static class CvbImageConverter
         return bitmap;
     }
 
+    /// <summary>
+    /// Converts a single-plane (mono) image to BGRA pixel data using linear access.
+    /// </summary>
     private static void ConvertMono(Stemmer.Cvb.Image image, byte[] pixels, int width, int height)
     {
         var plane = image.Planes[0];
@@ -55,6 +67,9 @@ public static class CvbImageConverter
         }
     }
 
+    /// <summary>
+    /// Fallback mono conversion using per-pixel access when linear access is unavailable.
+    /// </summary>
     private static void ConvertMonoFallback(ImagePlane plane, byte[] pixels, int width, int height)
     {
         for (int y = 0; y < height; y++)
@@ -71,6 +86,9 @@ public static class CvbImageConverter
         }
     }
 
+    /// <summary>
+    /// Converts a 3+ plane (RGB) image to BGRA pixel data using linear access.
+    /// </summary>
     private static void ConvertRgb(Stemmer.Cvb.Image image, byte[] pixels, int width, int height)
     {
         var plane0 = image.Planes[0];
@@ -111,6 +129,9 @@ public static class CvbImageConverter
         }
     }
 
+    /// <summary>
+    /// Fallback RGB conversion using per-pixel access when linear access is unavailable.
+    /// </summary>
     private static void ConvertRgbFallback(Stemmer.Cvb.Image image, byte[] pixels, int width, int height)
     {
         for (int y = 0; y < height; y++)
@@ -131,6 +152,13 @@ public static class CvbImageConverter
         }
     }
 
+    /// <summary>
+    /// Reads a pixel value from memory and scales it to a byte (0–255),
+    /// handling 8-bit, 16-bit, and float data types.
+    /// </summary>
+    /// <param name="addr">Pointer to the pixel data.</param>
+    /// <param name="dataType">The pixel data type.</param>
+    /// <returns>Scaled byte value.</returns>
     private static byte ReadScaled(nint addr, DataType dataType)
     {
         if (dataType.BytesPerPixel == 1 && dataType.IsUnsignedInteger)

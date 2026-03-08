@@ -3,6 +3,9 @@ using CvbImage = Stemmer.Cvb.Image;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for <see cref="SubImageNode"/>. Manages crop area and image preview.
+/// </summary>
 public partial class SubImageNodeViewModel : NodeViewModel
 {
     private readonly SubImageNode _subImageNode;
@@ -24,6 +27,12 @@ public partial class SubImageNodeViewModel : NodeViewModel
 
     public override string? Summary => $"{AreaWidth}\u00D7{AreaHeight} @ ({AreaX},{AreaY})";
 
+    /// <summary>
+    /// Creates a new sub-image node view model.
+    /// </summary>
+    /// <param name="node">The underlying sub-image node.</param>
+    /// <param name="x">Initial X position.</param>
+    /// <param name="y">Initial Y position.</param>
     public SubImageNodeViewModel(SubImageNode node, double x, double y) : base(node, x, y)
     {
         _subImageNode = node;
@@ -57,6 +66,9 @@ public partial class SubImageNodeViewModel : NodeViewModel
         OnPropertyChanged(nameof(Summary));
     }
 
+    /// <summary>
+    /// Updates the preview image from the sub-image node's input.
+    /// </summary>
     public void RefreshPreview()
     {
         PreviewImage = _subImageNode.ImageInput.Value as CvbImage;

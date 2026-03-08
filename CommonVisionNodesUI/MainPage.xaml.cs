@@ -21,10 +21,28 @@ public sealed partial class MainPage : Page
     private Path? _pendingConnectionPath;
     private NodeControl? _selectedControl;
 
+    private bool _isPanning;
+    private bool _panHasMoved;
+    private Point _panStart;
+    private double _panStartTranslateX;
+    private double _panStartTranslateY;
+
+    private const double MinZoom = 0.1;
+    private const double MaxZoom = 3.0;
+    private const double ZoomFactor = 1.1;
+
     public MainPage()
     {
         this.InitializeComponent();
         DataContext = _viewModel;
+
+        GraphCanvasContainer.SizeChanged += (_, e) =>
+        {
+            GraphCanvasContainer.Clip = new RectangleGeometry
+            {
+                Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height)
+            };
+        };
 
         _viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
         {
@@ -113,17 +131,35 @@ public sealed partial class MainPage : Page
     private void GraphCanvas_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (e.OriginalSource == GraphCanvas)
-            _viewModel.Graph.SelectNode(null);
+        {
+            _isPanning = true;
+            _panHasMoved = false;
+            _panStart = e.GetCurrentPoint(this).Position;
+            _panStartTranslateX = CanvasTransform.TranslateX;
+            _panStartTranslateY = CanvasTransform.TranslateY;
+            GraphCanvas.CapturePointer(e.Pointer);
+        }
     }
 
     private void GraphCanvas_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
-        if (_connectionDragSource == null || _pendingConnectionPath == null) return;
-
-        var pos = e.GetCurrentPoint(GraphCanvas).Position;
-        UpdateBezierPath(_pendingConnectionPath,
-            _connectionDragSource.CenterX, _connectionDragSource.CenterY,
-            pos.X, pos.Y);
+        if (_connectionDragSource != null && _pendingConnectionPath != null)
+        {
+            var pos = e.GetCurrentPoint(GraphCanvas).Position;
+            UpdateBezierPath(_pendingConnectionPath,
+                _connectionDragSource.CenterX, _connectionDragSource.CenterY,
+                pos.X, pos.Y);
+        }
+        else if (_isPanning)
+        {
+            var current = e.GetCurrentPoint(this).Position;
+            var dx = current.X - _panStart.X;
+            var dy = current.Y - _panStart.Y;
+            if (Math.Abs(dx) > 2 || Math.Abs(dy) > 2)
+                _panHasMoved = true;
+            CanvasTransform.TranslateX = _panStartTranslateX + dx;
+            CanvasTransform.TranslateY = _panStartTranslateY + dy;
+        }
     }
 
     private void GraphCanvas_PointerReleased(object sender, PointerRoutedEventArgs e)
@@ -142,6 +178,11 @@ public sealed partial class MainPage : Page
             _pendingConnectionPath = null;
         }
         _connectionDragSource = null;
+
+        if (_isPanning && !_panHasMoved)
+            _viewModel.Graph.SelectNode(null);
+        _isPanning = false;
+
         GraphCanvas.ReleasePointerCaptures();
     }
 
@@ -214,6 +255,27 @@ public sealed partial class MainPage : Page
                 bezier.Point3 = new Point(x2, y2);
             }
         }
+    }
+
+    // --- Zoom ---
+
+    private void GraphCanvas_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(GraphCanvas);
+        var delta = point.Properties.MouseWheelDelta;
+        var factor = delta > 0 ? ZoomFactor : 1.0 / ZoomFactor;
+
+        var oldScale = CanvasTransform.ScaleX;
+        var newScale = Math.Clamp(oldScale * factor, MinZoom, MaxZoom);
+        var scaleDelta = newScale - oldScale;
+
+        var canvasPos = point.Position;
+        CanvasTransform.TranslateX -= canvasPos.X * scaleDelta;
+        CanvasTransform.TranslateY -= canvasPos.Y * scaleDelta;
+        CanvasTransform.ScaleX = newScale;
+        CanvasTransform.ScaleY = newScale;
+
+        e.Handled = true;
     }
 
     // --- Keyboard ---

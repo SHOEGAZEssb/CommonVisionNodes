@@ -5,6 +5,9 @@ using CvbImage = Stemmer.Cvb.Image;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Displays a CVB image with size/format info overlay.
+/// </summary>
 public sealed partial class CvbImageDisplay : UserControl
 {
     public CvbImageDisplay()
@@ -12,6 +15,10 @@ public sealed partial class CvbImageDisplay : UserControl
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Updates the displayed image and info overlay.
+    /// </summary>
+    /// <param name="cvbImage">The image to display, or <c>null</c> to show placeholder text.</param>
     public void SetImage(CvbImage? cvbImage)
     {
         if (cvbImage is null || cvbImage.IsDisposed)
@@ -31,6 +38,9 @@ public sealed partial class CvbImageDisplay : UserControl
         InfoText.Text = $"{cvbImage.Width} \u00D7 {cvbImage.Height}  {channels}  {bpp}bpp";
     }
 
+    /// <summary>
+    /// Clears the displayed image and shows the placeholder.
+    /// </summary>
     public void Clear()
     {
         DisplayImage.Source = null;

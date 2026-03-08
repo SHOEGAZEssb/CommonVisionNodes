@@ -8,6 +8,10 @@ using Windows.Foundation;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Visual control representing a single node on the graph canvas.
+/// Handles dragging, selection, port interaction, and preview rendering.
+/// </summary>
 public sealed partial class NodeControl : UserControl
 {
     private NodeViewModel? _viewModel;
@@ -17,10 +21,24 @@ public sealed partial class NodeControl : UserControl
     private double _startX;
     private double _startY;
 
+    /// <summary>
+    /// Raised when the node is dragged to a new position.
+    /// </summary>
     public event Action<NodeControl>? NodeMoved;
+
+    /// <summary>
+    /// Raised when a port circle is pressed (to start a connection drag).
+    /// </summary>
     public event Action<NodeControl, PortViewModel, PointerRoutedEventArgs>? PortPressed;
+
+    /// <summary>
+    /// Raised when the node header is clicked without dragging.
+    /// </summary>
     public event Action<NodeControl>? NodeSelected;
 
+    /// <summary>
+    /// The view model bound to this control.
+    /// </summary>
     public NodeViewModel? ViewModel => _viewModel;
 
     public NodeControl()
@@ -28,6 +46,10 @@ public sealed partial class NodeControl : UserControl
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Binds a node view model to this control, setting up header, ports, and preview.
+    /// </summary>
+    /// <param name="vm">The node view model to display.</param>
     public void SetViewModel(NodeViewModel vm)
     {
         _viewModel = vm;
@@ -101,6 +123,10 @@ public sealed partial class NodeControl : UserControl
         }
     }
 
+    /// <summary>
+    /// Updates the visual selection state (border color and thickness).
+    /// </summary>
+    /// <param name="selected">Whether the node is selected.</param>
     public void SetSelected(bool selected)
     {
         NodeBorder.BorderBrush = new SolidColorBrush(

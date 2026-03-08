@@ -5,8 +5,16 @@ using Stemmer.Cvb.Driver;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// Represents a camera device found during discovery.
+/// </summary>
+/// <param name="DisplayName">Human-readable device name.</param>
+/// <param name="AccessToken">Token used to open the device.</param>
 public record DiscoveredDevice(string DisplayName, string AccessToken);
 
+/// <summary>
+/// View model for <see cref="DeviceNode"/>. Manages device discovery, selection, and initialization.
+/// </summary>
 public partial class DeviceNodeViewModel : NodeViewModel
 {
     private readonly DeviceNode _deviceNode;
@@ -23,6 +31,12 @@ public partial class DeviceNodeViewModel : NodeViewModel
         ? "No device configured"
         : SelectedDevice?.DisplayName ?? AccessToken;
 
+    /// <summary>
+    /// Creates a new device node view model.
+    /// </summary>
+    /// <param name="node">The underlying device node.</param>
+    /// <param name="x">Initial X position.</param>
+    /// <param name="y">Initial Y position.</param>
     public DeviceNodeViewModel(DeviceNode node, double x, double y) : base(node, x, y)
     {
         _deviceNode = node;

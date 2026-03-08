@@ -4,18 +4,31 @@ using Stemmer.Cvb.GenApi;
 
 namespace CommonVisionNodes
 {
+    /// <summary>
+    /// Acquires images from a GenICam-compatible camera device.
+    /// </summary>
     public sealed class DeviceNode : Node, IInitializable
     {
         private GenICamDevice? _device;
         private ImageStream? _stream;
         private Image? _lastAcquiredImage;
 
+        /// <summary>
+        /// Output port that provides the most recently acquired image.
+        /// </summary>
         public Port ImageOutput { get; }
 
+        /// <summary>
+        /// Access token used to open the device (e.g. from device discovery).
+        /// </summary>
         public string AccessToken { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Serial number read from the device after initialization.
+        /// </summary>
         public string SerialNumber { get; private set; } = string.Empty;
 
+        /// <inheritdoc/>
         public bool IsInitialized { get; private set; }
 
         public DeviceNode()
@@ -23,6 +36,7 @@ namespace CommonVisionNodes
             ImageOutput = AddOutput("Image", typeof(Image));
         }
 
+        /// <inheritdoc/>
         public void Initialize()
         {
             Dispose();
@@ -36,6 +50,7 @@ namespace CommonVisionNodes
             IsInitialized = true;
         }
 
+        /// <inheritdoc/>
         public override void Execute()
         {
             if (!IsInitialized)
@@ -47,6 +62,7 @@ namespace CommonVisionNodes
             ImageOutput.Value = _lastAcquiredImage;
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (_stream != null)
@@ -67,10 +83,13 @@ namespace CommonVisionNodes
 
         // Code generation
 
+        /// <inheritdoc/>
         public override string CodeVariableName => "acquiredImage";
 
+        /// <inheritdoc/>
         public override IReadOnlyList<string> RequiredUsings => ["Stemmer.Cvb.Driver", "System.Linq"];
 
+        /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {
             var discoveryVar = context.GetUniqueVariable("discoveredDevice");

@@ -3,6 +3,9 @@ using CvbImage = Stemmer.Cvb.Image;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for <see cref="MatrixTransformNode"/>. Manages transform parameters and image preview.
+/// </summary>
 public partial class MatrixTransformNodeViewModel : NodeViewModel
 {
     private readonly MatrixTransformNode _transformNode;
@@ -29,6 +32,12 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
 
     public override bool IsEditableWhileRunning => true;
 
+    /// <summary>
+    /// Creates a new matrix transform node view model.
+    /// </summary>
+    /// <param name="node">The underlying transform node.</param>
+    /// <param name="x">Initial X position.</param>
+    /// <param name="y">Initial Y position.</param>
     public MatrixTransformNodeViewModel(MatrixTransformNode node, double x, double y) : base(node, x, y)
     {
         _transformNode = node;
@@ -67,6 +76,9 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
         _transformNode.TranslateY = value;
     }
 
+    /// <summary>
+    /// Updates the preview image from the transformed output.
+    /// </summary>
     public void RefreshPreview()
     {
         PreviewImage = _transformNode.ImageOutput.Value as CvbImage;

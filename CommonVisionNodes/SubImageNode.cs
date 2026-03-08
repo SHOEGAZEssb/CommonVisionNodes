@@ -4,16 +4,41 @@ using Stemmer.Cvb;
 
 namespace CommonVisionNodes
 {
+    /// <summary>
+    /// Crops a rectangular region from the input image.
+    /// </summary>
     public sealed class SubImageNode : Node
     {
         private Image? _lastResult;
 
+        /// <summary>
+        /// Input port that receives the source image.
+        /// </summary>
         public Port ImageInput { get; }
+
+        /// <summary>
+        /// Output port that provides the cropped image.
+        /// </summary>
         public Port ImageOutput { get; }
 
+        /// <summary>
+        /// X origin of the crop area in pixels.
+        /// </summary>
         public int AreaX { get; set; }
+
+        /// <summary>
+        /// Y origin of the crop area in pixels.
+        /// </summary>
         public int AreaY { get; set; }
+
+        /// <summary>
+        /// Width of the crop area in pixels.
+        /// </summary>
         public int AreaWidth { get; set; } = 64;
+
+        /// <summary>
+        /// Height of the crop area in pixels.
+        /// </summary>
         public int AreaHeight { get; set; } = 64;
 
         public SubImageNode()
@@ -22,6 +47,7 @@ namespace CommonVisionNodes
             ImageOutput = AddOutput("Image", typeof(Image));
         }
 
+        /// <inheritdoc/>
         public override void Execute()
         {
             var source = (Image)ImageInput.Value!;
@@ -55,10 +81,13 @@ namespace CommonVisionNodes
 
         // Code generation
 
+        /// <inheritdoc/>
         public override string CodeVariableName => "cropped";
 
+        /// <inheritdoc/>
         public override IReadOnlyList<string> RequiredUsings => ["System.Runtime.InteropServices"];
 
+        /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {
             var inputVar = context.ResolveInput(ImageInput);
@@ -70,6 +99,7 @@ namespace CommonVisionNodes
             context.RegisterOutput(ImageOutput, varName);
         }
 
+        /// <inheritdoc/>
         public override void EmitHelperMethods(StringBuilder sb)
         {
             sb.AppendLine("static Image Crop(Image source, int areaX, int areaY, int areaWidth, int areaHeight)");

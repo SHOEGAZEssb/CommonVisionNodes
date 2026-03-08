@@ -6,6 +6,10 @@ using CvbImage = Stemmer.Cvb.Image;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Displays a CVB image with an interactive crop rectangle overlay.
+/// Users can drag a rectangle to define a crop area.
+/// </summary>
 public sealed partial class CropImageDisplay : UserControl
 {
     private CvbImage? _currentImage;
@@ -15,6 +19,10 @@ public sealed partial class CropImageDisplay : UserControl
     private int _cropX, _cropY, _cropW, _cropH;
     private bool _hasCrop;
 
+    /// <summary>
+    /// Raised when the user finishes dragging a new crop rectangle.
+    /// Parameters are (x, y, width, height) in image coordinates.
+    /// </summary>
     public event Action<int, int, int, int>? CropAreaChanged;
 
     public CropImageDisplay()
@@ -23,6 +31,10 @@ public sealed partial class CropImageDisplay : UserControl
         this.SizeChanged += (_, _) => RedrawCropOverlay();
     }
 
+    /// <summary>
+    /// Updates the displayed image and redraws the crop overlay.
+    /// </summary>
+    /// <param name="cvbImage">The image to display, or <c>null</c> to show placeholder text.</param>
     public void SetImage(CvbImage? cvbImage)
     {
         _currentImage = cvbImage;
@@ -47,6 +59,13 @@ public sealed partial class CropImageDisplay : UserControl
         RedrawCropOverlay();
     }
 
+    /// <summary>
+    /// Sets the crop rectangle position and size in image coordinates and redraws it.
+    /// </summary>
+    /// <param name="x">X origin in pixels.</param>
+    /// <param name="y">Y origin in pixels.</param>
+    /// <param name="w">Width in pixels.</param>
+    /// <param name="h">Height in pixels.</param>
     public void UpdateCropOverlay(int x, int y, int w, int h)
     {
         _cropX = x;

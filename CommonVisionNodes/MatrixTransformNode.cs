@@ -4,17 +4,47 @@ using Stemmer.Cvb;
 
 namespace CommonVisionNodes
 {
+    /// <summary>
+    /// Applies an affine transformation (rotation, scale, translation) to the input image
+    /// using inverse mapping with bilinear interpolation.
+    /// </summary>
     public sealed class MatrixTransformNode : Node
     {
         private Image? _lastResult;
 
+        /// <summary>
+        /// Input port that receives the source image.
+        /// </summary>
         public Port ImageInput { get; }
+
+        /// <summary>
+        /// Output port that provides the transformed image.
+        /// </summary>
         public Port ImageOutput { get; }
 
+        /// <summary>
+        /// Rotation angle in degrees.
+        /// </summary>
         public double Angle { get; set; }
+
+        /// <summary>
+        /// Horizontal scale factor.
+        /// </summary>
         public double ScaleX { get; set; } = 1.0;
+
+        /// <summary>
+        /// Vertical scale factor.
+        /// </summary>
         public double ScaleY { get; set; } = 1.0;
+
+        /// <summary>
+        /// Horizontal translation in pixels.
+        /// </summary>
         public double TranslateX { get; set; }
+
+        /// <summary>
+        /// Vertical translation in pixels.
+        /// </summary>
         public double TranslateY { get; set; }
 
         public MatrixTransformNode()
@@ -23,6 +53,7 @@ namespace CommonVisionNodes
             ImageOutput = AddOutput("Image", typeof(Image));
         }
 
+        /// <inheritdoc/>
         public override void Execute()
         {
             var source = (Image)ImageInput.Value!;
@@ -73,6 +104,15 @@ namespace CommonVisionNodes
             ImageOutput.Value = _lastResult;
         }
 
+        /// <summary>
+        /// Samples a pixel value at fractional coordinates using bilinear interpolation.
+        /// </summary>
+        /// <param name="access">Linear access data for the source plane.</param>
+        /// <param name="x">Fractional x coordinate.</param>
+        /// <param name="y">Fractional y coordinate.</param>
+        /// <param name="w">Image width.</param>
+        /// <param name="h">Image height.</param>
+        /// <returns>Interpolated pixel value, or 0 if out of bounds.</returns>
         private static byte SampleBilinear(LinearAccessData access, double x, double y, int w, int h)
         {
             if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1)
@@ -101,10 +141,13 @@ namespace CommonVisionNodes
 
         // Code generation
 
+        /// <inheritdoc/>
         public override string CodeVariableName => "transformed";
 
+        /// <inheritdoc/>
         public override IReadOnlyList<string> RequiredUsings => ["System.Runtime.InteropServices"];
 
+        /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {
             var inputVar = context.ResolveInput(ImageInput);
@@ -116,6 +159,7 @@ namespace CommonVisionNodes
             context.RegisterOutput(ImageOutput, varName);
         }
 
+        /// <inheritdoc/>
         public override void EmitHelperMethods(StringBuilder sb)
         {
             sb.AppendLine("static Image AffineTransform(Image source, double angle, double scaleX, double scaleY, double translateX, double translateY)");

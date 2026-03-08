@@ -4,13 +4,27 @@ using Stemmer.Cvb;
 
 namespace CommonVisionNodes
 {
+    /// <summary>
+    /// Applies binary thresholding to an image. Pixels at or above
+    /// <see cref="Threshold"/> become white (255); all others become black (0).
+    /// </summary>
     public sealed class BinarizeNode : Node
     {
         private Image? _lastResult;
 
+        /// <summary>
+        /// Input port that receives the source image.
+        /// </summary>
         public Port ImageInput { get; }
+
+        /// <summary>
+        /// Output port that provides the binarized image.
+        /// </summary>
         public Port ImageOutput { get; }
 
+        /// <summary>
+        /// Threshold value (0–255) used for binarization.
+        /// </summary>
         public int Threshold { get; set; } = 128;
 
         public BinarizeNode()
@@ -19,6 +33,7 @@ namespace CommonVisionNodes
             ImageOutput = AddOutput("Image", typeof(Image));
         }
 
+        /// <inheritdoc/>
         public override void Execute()
         {
             var source = (Image)ImageInput.Value!;
@@ -47,10 +62,13 @@ namespace CommonVisionNodes
 
         // Code generation
 
+        /// <inheritdoc/>
         public override string CodeVariableName => "binarized";
 
+        /// <inheritdoc/>
         public override IReadOnlyList<string> RequiredUsings => ["System.Runtime.InteropServices"];
 
+        /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {
             var inputVar = context.ResolveInput(ImageInput);
@@ -62,6 +80,7 @@ namespace CommonVisionNodes
             context.RegisterOutput(ImageOutput, varName);
         }
 
+        /// <inheritdoc/>
         public override void EmitHelperMethods(StringBuilder sb)
         {
             sb.AppendLine("static Image Binarize(Image source, int threshold)");

@@ -6,6 +6,10 @@ using Windows.UI;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// Top-level view model for the main page. Coordinates the node graph,
+/// property panel, toolbar state, and status bar metrics.
+/// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private readonly DispatcherTimer _statusTimer;

@@ -12,6 +12,8 @@ public static class CodeGenerator
     /// Generates a C# code snippet that replicates the given node graph
     /// using only the Common Vision Blox SDK.
     /// </summary>
+    /// <param name="graph">The node graph to generate code for.</param>
+    /// <returns>A complete C# code snippet as a string.</returns>
     public static string Generate(NodeGraph graph)
     {
         var sorted = TopologicalSort(graph);

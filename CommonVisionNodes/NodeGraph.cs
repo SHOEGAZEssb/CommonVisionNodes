@@ -1,18 +1,38 @@
 ﻿namespace CommonVisionNodes
 {
+    /// <summary>
+    /// A directed acyclic graph of <see cref="Node"/> instances connected via <see cref="Port"/>s.
+    /// Supports initialization, execution, and disposal in topological order.
+    /// </summary>
     public sealed class NodeGraph : IDisposable
     {
         private readonly List<Node> _nodes = [];
         private readonly List<Connection> _connections = [];
 
+        /// <summary>
+        /// All nodes in the graph.
+        /// </summary>
         public IReadOnlyList<Node> Nodes => _nodes;
+
+        /// <summary>
+        /// All connections between node ports.
+        /// </summary>
         public IReadOnlyList<Connection> Connections => _connections;
 
+        /// <summary>
+        /// Adds a node to the graph.
+        /// </summary>
+        /// <param name="node">The node to add.</param>
         public void AddNode(Node node)
         {
             _nodes.Add(node);
         }
 
+        /// <summary>
+        /// Removes a node and all its connections from the graph.
+        /// If the node implements <see cref="IInitializable"/>, it is disposed.
+        /// </summary>
+        /// <param name="node">The node to remove.</param>
         public void RemoveNode(Node node)
         {
             _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
@@ -22,6 +42,12 @@
                 initializable.Dispose();
         }
 
+        /// <summary>
+        /// Connects an output port to an input port.
+        /// </summary>
+        /// <param name="output">The source output port.</param>
+        /// <param name="input">The destination input port.</param>
+        /// <exception cref="InvalidOperationException">Thrown when port directions or types are incompatible.</exception>
         public void Connect(Port output, Port input)
         {
             if (output.Direction != PortDirection.Output)
@@ -37,6 +63,10 @@
             _connections.Add(new Connection(output, input));
         }
 
+        /// <summary>
+        /// Initializes all <see cref="IInitializable"/> nodes that have not yet been initialized,
+        /// in topological order.
+        /// </summary>
         public void Initialize()
         {
             var sorted = TopologicalSort();
@@ -47,6 +77,9 @@
             }
         }
 
+        /// <summary>
+        /// Executes all nodes in topological order, propagating values along connections.
+        /// </summary>
         public void Execute()
         {
             var sorted = TopologicalSort();
@@ -63,6 +96,9 @@
             }
         }
 
+        /// <summary>
+        /// Disposes all <see cref="IInitializable"/> nodes in reverse topological order.
+        /// </summary>
         public void Dispose()
         {
             var sorted = TopologicalSort();
