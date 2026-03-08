@@ -100,6 +100,9 @@ namespace CommonVisionNodes.Test
             var code = CodeGenerator.Generate(graph);
 
             Assert.That(code, Does.Contain("using Stemmer.Cvb.Driver;"));
+            Assert.That(code, Does.Contain("using System.Linq;"));
+            Assert.That(code, Does.Contain("DeviceFactory.Discover(DiscoverFlags.IgnoreVins)"));
+            Assert.That(code, Does.Contain("DiscoveryProperties.DeviceSerialNumber"));
             Assert.That(code, Does.Contain("DeviceFactory.Open("));
             Assert.That(code, Does.Contain("GetStream<ImageStream>(0)"));
             Assert.That(code, Does.Contain(".Start()"));
