@@ -246,19 +246,22 @@
 
             <!-- Graph Canvas -->
             <Border x:Name="GraphCanvasContainer" Grid.Column="0" Background="#1E1E1E">
-                <Canvas x:Name="GraphCanvas"
-                        Background="Transparent"
-                        PointerPressed="GraphCanvas_PointerPressed"
-                        PointerMoved="GraphCanvas_PointerMoved"
-                        PointerReleased="GraphCanvas_PointerReleased"
-                        PointerWheelChanged="GraphCanvas_PointerWheelChanged"
-                        KeyDown="GraphCanvas_KeyDown"
-                        IsTabStop="True"
-                        AllowFocusOnInteraction="True">
-                    <Canvas.RenderTransform>
-                        <CompositeTransform x:Name="CanvasTransform"/>
-                    </Canvas.RenderTransform>
-                </Canvas>
+                <Grid>
+                    <Canvas x:Name="GridCanvas" IsHitTestVisible="False"/>
+                    <Canvas x:Name="GraphCanvas"
+                            Background="Transparent"
+                            PointerPressed="GraphCanvas_PointerPressed"
+                            PointerMoved="GraphCanvas_PointerMoved"
+                            PointerReleased="GraphCanvas_PointerReleased"
+                            PointerWheelChanged="GraphCanvas_PointerWheelChanged"
+                            KeyDown="GraphCanvas_KeyDown"
+                            IsTabStop="True"
+                            AllowFocusOnInteraction="True">
+                        <Canvas.RenderTransform>
+                            <CompositeTransform x:Name="CanvasTransform"/>
+                        </Canvas.RenderTransform>
+                    </Canvas>
+                </Grid>
             </Border>
 
             <!-- Properties Panel -->

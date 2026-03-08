@@ -31,6 +31,28 @@ public sealed partial class MainPage : Page
     private const double MaxZoom = 3.0;
     private const double ZoomFactor = 1.1;
 
+    private readonly Path _minorGridPath = new()
+    {
+        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 40, 40, 40)),
+        StrokeThickness = 1,
+        IsHitTestVisible = false
+    };
+    private readonly Path _majorGridPath = new()
+    {
+        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 50, 50)),
+        StrokeThickness = 1,
+        IsHitTestVisible = false
+    };
+    private readonly Path _originGridPath = new()
+    {
+        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 65, 65, 65)),
+        StrokeThickness = 1,
+        IsHitTestVisible = false
+    };
+
+    private const double MinorGridSpacing = 25;
+    private const double MajorGridSpacing = 100;
+
     public MainPage()
     {
         this.InitializeComponent();
@@ -42,7 +64,12 @@ public sealed partial class MainPage : Page
             {
                 Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height)
             };
+            RedrawGrid();
         };
+
+        GridCanvas.Children.Add(_minorGridPath);
+        GridCanvas.Children.Add(_majorGridPath);
+        GridCanvas.Children.Add(_originGridPath);
 
         _viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
         {
@@ -159,6 +186,7 @@ public sealed partial class MainPage : Page
                 _panHasMoved = true;
             CanvasTransform.TranslateX = _panStartTranslateX + dx;
             CanvasTransform.TranslateY = _panStartTranslateY + dy;
+            RedrawGrid();
         }
     }
 
@@ -275,7 +303,62 @@ public sealed partial class MainPage : Page
         CanvasTransform.ScaleX = newScale;
         CanvasTransform.ScaleY = newScale;
 
+        RedrawGrid();
         e.Handled = true;
+    }
+
+    // --- Grid background ---
+
+    private void RedrawGrid()
+    {
+        double scale = CanvasTransform.ScaleX;
+        double tx = CanvasTransform.TranslateX;
+        double ty = CanvasTransform.TranslateY;
+        double viewW = GraphCanvasContainer.ActualWidth;
+        double viewH = GraphCanvasContainer.ActualHeight;
+        if (viewW <= 0 || viewH <= 0 || scale <= 0) return;
+
+        var minorGeo = new PathGeometry();
+        var majorGeo = new PathGeometry();
+        var originGeo = new PathGeometry();
+
+        double screenMinorSpacing = MinorGridSpacing * scale;
+        bool showMinor = screenMinorSpacing >= 6;
+
+        double canvasLeft = -tx / scale;
+        double canvasTop = -ty / scale;
+        double canvasRight = (viewW - tx) / scale;
+        double canvasBottom = (viewH - ty) / scale;
+
+        double spacing = showMinor ? MinorGridSpacing : MajorGridSpacing;
+
+        double startX = Math.Floor(canvasLeft / spacing) * spacing;
+        for (double cx = startX; cx <= canvasRight; cx += spacing)
+        {
+            double sx = cx * scale + tx;
+            var geo = Math.Abs(cx) < 0.5 ? originGeo
+                    : (!showMinor || Math.Abs(cx % MajorGridSpacing) < 0.5) ? majorGeo
+                    : minorGeo;
+            var fig = new PathFigure { StartPoint = new Point(sx, 0) };
+            fig.Segments.Add(new LineSegment { Point = new Point(sx, viewH) });
+            geo.Figures.Add(fig);
+        }
+
+        double startY = Math.Floor(canvasTop / spacing) * spacing;
+        for (double cy = startY; cy <= canvasBottom; cy += spacing)
+        {
+            double sy = cy * scale + ty;
+            var geo = Math.Abs(cy) < 0.5 ? originGeo
+                    : (!showMinor || Math.Abs(cy % MajorGridSpacing) < 0.5) ? majorGeo
+                    : minorGeo;
+            var fig = new PathFigure { StartPoint = new Point(0, sy) };
+            fig.Segments.Add(new LineSegment { Point = new Point(viewW, sy) });
+            geo.Figures.Add(fig);
+        }
+
+        _minorGridPath.Data = minorGeo;
+        _majorGridPath.Data = majorGeo;
+        _originGridPath.Data = originGeo;
     }
 
     // --- Keyboard ---
