@@ -37,8 +37,8 @@ namespace CommonVisionNodes
 
         public HistogramNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The source image to analyze.");
+            ImageOutput = AddOutput("Image", typeof(Image), "The source image passed through unchanged.");
         }
 
         /// <inheritdoc/>

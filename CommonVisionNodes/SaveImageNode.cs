@@ -19,7 +19,7 @@ namespace CommonVisionNodes
 
         public SaveImageNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The image to save to disk.");
         }
 
         /// <inheritdoc/>

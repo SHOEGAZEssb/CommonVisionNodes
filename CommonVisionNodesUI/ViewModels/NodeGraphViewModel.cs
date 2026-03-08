@@ -77,6 +77,12 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddHistogramNode() => AddNode(new HistogramNode(), (n, x, y) => new HistogramNodeViewModel((HistogramNode)n, x, y));
 
+    [RelayCommand]
+    private void AddMorphologyNode() => AddNode(new MorphologyNode(), (n, x, y) => new MorphologyNodeViewModel((MorphologyNode)n, x, y));
+
+    [RelayCommand]
+    private void AddBlobNode() => AddNode(new BlobNode(), (n, x, y) => new BlobNodeViewModel((BlobNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);

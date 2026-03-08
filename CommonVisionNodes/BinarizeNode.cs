@@ -29,8 +29,8 @@ namespace CommonVisionNodes
 
         public BinarizeNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The source image to binarize.");
+            ImageOutput = AddOutput("Image", typeof(Image), "The binary image (black/white) after thresholding.");
         }
 
         /// <inheritdoc/>

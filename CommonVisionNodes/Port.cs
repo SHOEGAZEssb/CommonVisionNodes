@@ -41,6 +41,11 @@
         public PortDirection Direction { get; }
 
         /// <summary>
+        /// Human-readable description of what this port carries.
+        /// </summary>
+        public string Description { get; }
+
+        /// <summary>
         /// The current value held by this port.
         /// </summary>
         public object? Value { get; set; }
@@ -52,12 +57,14 @@
         /// <param name="name">Display name.</param>
         /// <param name="type">Data type carried by the port.</param>
         /// <param name="direction">Input or output.</param>
-        internal Port(Node node, string name, Type type, PortDirection direction)
+        /// <param name="description">Human-readable description of the port.</param>
+        internal Port(Node node, string name, Type type, PortDirection direction, string description = "")
         {
             Node = node;
             Name = name;
             Type = type;
             Direction = direction;
+            Description = description;
         }
     }
 }

@@ -70,7 +70,7 @@ namespace CommonVisionNodes
 
         public ImageGeneratorNode()
         {
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageOutput = AddOutput("Image", typeof(Image), "The generated test-pattern image.");
         }
 
         /// <inheritdoc/>

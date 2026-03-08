@@ -36,7 +36,8 @@
                 <ItemsControl x:Name="InputPortsList" Grid.Column="0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Padding="4,4">
+                            <StackPanel Orientation="Horizontal" Padding="4,4"
+                                        ToolTipService.ToolTip="{Binding Tooltip}">
                                 <Ellipse Width="12" Height="12" Fill="#4FC3F7"
                                          PointerPressed="Port_PointerPressed"/>
                                 <TextBlock Text="{Binding Port.Name}" Margin="6,0,0,0"
@@ -51,7 +52,8 @@
                 <ItemsControl x:Name="OutputPortsList" Grid.Column="1">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Padding="4,4">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Padding="4,4"
+                                        ToolTipService.ToolTip="{Binding Tooltip}">
                                 <TextBlock Text="{Binding Port.Name}" Margin="0,0,6,0"
                                            VerticalAlignment="Center" FontSize="12"
                                            Foreground="#CCCCCC"/>

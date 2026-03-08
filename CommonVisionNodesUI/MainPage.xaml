@@ -6,6 +6,9 @@
       Background="{ThemeResource BackgroundBrush}">
 
     <Page.Resources>
+        <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+        <helpers:EmptyToCollapsedConverter x:Key="EmptyToCollapsed"/>
+
         <DataTemplate x:Key="ImageNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -181,6 +184,42 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="MorphologyNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Operation" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableOperations}"
+                              SelectedItem="{Binding Operation, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Kernel Size" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableKernelSizes}"
+                              SelectedItem="{Binding KernelSize, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="BlobNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Foreground Threshold (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding ForegroundThreshold, Mode=TwoWay}" StepFrequency="1"/>
+                    <TextBlock Text="{Binding ForegroundThreshold}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Min Area (pixels)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding MinArea, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding BlobCount}" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="blob(s) found" FontSize="12" Foreground="#888888"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <helpers:NodePropertiesTemplateSelector x:Key="NodePropertiesSelector"
             ImageNodeTemplate="{StaticResource ImageNodePropertiesTemplate}"
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
@@ -190,7 +229,9 @@
             MatrixTransformNodeTemplate="{StaticResource MatrixTransformNodePropertiesTemplate}"
             ImageGeneratorNodeTemplate="{StaticResource ImageGeneratorNodePropertiesTemplate}"
             FilterNodeTemplate="{StaticResource FilterNodePropertiesTemplate}"
-            HistogramNodeTemplate="{StaticResource HistogramNodePropertiesTemplate}"/>
+            HistogramNodeTemplate="{StaticResource HistogramNodePropertiesTemplate}"
+            MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
+            BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -240,6 +281,14 @@
                     IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#EF6C00" Foreground="White" CornerRadius="4"/>
+            <Button Content="&#xE71C; Morphology" Command="{Binding Graph.AddMorphologyNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#795548" Foreground="White" CornerRadius="4"/>
+            <Button Content="&#xE8B1; Blob" Command="{Binding Graph.AddBlobNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#009688" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
@@ -323,6 +372,67 @@
                         </Grid>
 
                         <Border Margin="0,12,0,0"/>
+
+                        <!-- Port Info -->
+                        <StackPanel Spacing="4" Margin="0,0,0,12"
+                                    Visibility="{Binding Graph.SelectedNode, Converter={StaticResource NullToCollapsed}}">
+                            <TextBlock Text="Ports" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+
+                            <!-- Inputs -->
+                            <ItemsControl ItemsSource="{Binding Graph.SelectedNode.InputPorts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="6" Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#4FC3F7"
+                                                     VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="1">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding Port.Name}" FontSize="12"
+                                                               Foreground="White" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding TypeName}" FontSize="11"
+                                                               Foreground="#777777"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Port.Description}" FontSize="11"
+                                                           Foreground="#888888" TextWrapping="Wrap"
+                                                           Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Outputs -->
+                            <ItemsControl ItemsSource="{Binding Graph.SelectedNode.OutputPorts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="6" Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#FFB74D"
+                                                     VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="1">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding Port.Name}" FontSize="12"
+                                                               Foreground="White" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding TypeName}" FontSize="11"
+                                                               Foreground="#777777"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Port.Description}" FontSize="11"
+                                                           Foreground="#888888" TextWrapping="Wrap"
+                                                           Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
                         <ContentControl Content="{Binding Graph.SelectedNode}"
                                         ContentTemplateSelector="{StaticResource NodePropertiesSelector}"
                                         IsEnabled="{Binding IsPropertiesContentEnabled}"/>

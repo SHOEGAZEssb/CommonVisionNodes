@@ -42,8 +42,8 @@ namespace CommonVisionNodes
 
         public SubImageNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The source image to crop.");
+            ImageOutput = AddOutput("Image", typeof(Image), "The cropped sub-region of the input image.");
         }
 
         /// <inheritdoc/>

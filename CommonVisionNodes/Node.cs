@@ -39,10 +39,11 @@ namespace CommonVisionNodes
         /// </summary>
         /// <param name="name">Display name of the port.</param>
         /// <param name="type">The data type the port accepts.</param>
+        /// <param name="description">Human-readable description of the port.</param>
         /// <returns>The created input port.</returns>
-        protected Port AddInput(string name, Type type)
+        protected Port AddInput(string name, Type type, string description = "")
         {
-            var port = new Port(this, name, type, PortDirection.Input);
+            var port = new Port(this, name, type, PortDirection.Input, description);
             _inputs.Add(port);
             return port;
         }
@@ -52,10 +53,11 @@ namespace CommonVisionNodes
         /// </summary>
         /// <param name="name">Display name of the port.</param>
         /// <param name="type">The data type the port provides.</param>
+        /// <param name="description">Human-readable description of the port.</param>
         /// <returns>The created output port.</returns>
-        protected Port AddOutput(string name, Type type)
+        protected Port AddOutput(string name, Type type, string description = "")
         {
-            var port = new Port(this, name, type, PortDirection.Output);
+            var port = new Port(this, name, type, PortDirection.Output, description);
             _outputs.Add(port);
             return port;
         }

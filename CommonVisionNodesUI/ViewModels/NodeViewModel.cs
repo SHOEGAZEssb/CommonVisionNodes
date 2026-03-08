@@ -88,6 +88,8 @@ public abstract partial class NodeViewModel : ObservableObject
         ImageGeneratorNode => Color.FromArgb(255, 76, 175, 80),
         FilterNode => Color.FromArgb(255, 92, 107, 192),
         HistogramNode => Color.FromArgb(255, 239, 108, 0),
+        MorphologyNode => Color.FromArgb(255, 121, 85, 72),
+        BlobNode => Color.FromArgb(255, 0, 150, 136),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

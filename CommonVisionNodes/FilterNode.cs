@@ -96,8 +96,8 @@ namespace CommonVisionNodes
 
         public FilterNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The source image to filter.");
+            ImageOutput = AddOutput("Image", typeof(Image), "The filtered image.");
         }
 
         /// <inheritdoc/>

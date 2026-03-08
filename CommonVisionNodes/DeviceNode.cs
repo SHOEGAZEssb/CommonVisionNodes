@@ -33,7 +33,7 @@ namespace CommonVisionNodes
 
         public DeviceNode()
         {
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageOutput = AddOutput("Image", typeof(Image), "The most recently acquired camera image.");
         }
 
         /// <inheritdoc/>

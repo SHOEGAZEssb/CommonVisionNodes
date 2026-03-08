@@ -18,6 +18,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? ImageGeneratorNodeTemplate { get; set; }
     public DataTemplate? FilterNodeTemplate { get; set; }
     public DataTemplate? HistogramNodeTemplate { get; set; }
+    public DataTemplate? MorphologyNodeTemplate { get; set; }
+    public DataTemplate? BlobNodeTemplate { get; set; }
 
     /// <summary>
     /// Returns the data template that matches the given node view model type.
@@ -37,6 +39,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             ImageGeneratorNodeViewModel => ImageGeneratorNodeTemplate,
             FilterNodeViewModel => FilterNodeTemplate,
             HistogramNodeViewModel => HistogramNodeTemplate,
+            MorphologyNodeViewModel => MorphologyNodeTemplate,
+            BlobNodeViewModel => BlobNodeTemplate,
             _ => null
         };
     }

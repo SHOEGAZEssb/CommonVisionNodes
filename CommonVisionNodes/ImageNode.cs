@@ -29,7 +29,7 @@ namespace CommonVisionNodes
 
         public ImageNode()
         {
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageOutput = AddOutput("Image", typeof(Image), "The image loaded from the configured file path.");
         }
 
         /// <inheritdoc/>

@@ -48,8 +48,8 @@ namespace CommonVisionNodes
 
         public MatrixTransformNode()
         {
-            ImageInput = AddInput("Image", typeof(Image));
-            ImageOutput = AddOutput("Image", typeof(Image));
+            ImageInput = AddInput("Image", typeof(Image), "The source image to transform.");
+            ImageOutput = AddOutput("Image", typeof(Image), "The affine-transformed image.");
         }
 
         /// <inheritdoc/>

@@ -36,6 +36,23 @@ public partial class PortViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Friendly type name for display (e.g. "Image" instead of "Stemmer.Cvb.Image").
+    /// </summary>
+    public string TypeName => FormatTypeName(Port.Type);
+
+    /// <summary>
+    /// Tooltip text shown when hovering over the port, combining name, type, and description.
+    /// </summary>
+    public string Tooltip
+    {
+        get
+        {
+            var header = $"{Port.Name} ({TypeName})";
+            return string.IsNullOrEmpty(Port.Description) ? header : $"{header}\n{Port.Description}";
+        }
+    }
+
+    /// <summary>
     /// Center X coordinate of the port circle on the canvas.
     /// </summary>
     public double CenterX => Port.Direction == PortDirection.Input
@@ -55,5 +72,15 @@ public partial class PortViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CenterX));
         OnPropertyChanged(nameof(CenterY));
+    }
+
+    private static string FormatTypeName(Type type)
+    {
+        if (!type.IsGenericType)
+            return type.Name;
+
+        var baseName = type.Name[..type.Name.IndexOf('`')];
+        var args = string.Join(", ", type.GetGenericArguments().Select(FormatTypeName));
+        return $"{baseName}<{args}>";
     }
 }
