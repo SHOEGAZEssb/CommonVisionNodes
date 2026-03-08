@@ -68,6 +68,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddMatrixTransformNode() => AddNode(new MatrixTransformNode(), (n, x, y) => new MatrixTransformNodeViewModel((MatrixTransformNode)n, x, y));
 
+    [RelayCommand]
+    private void AddImageGeneratorNode() => AddNode(new ImageGeneratorNode(), (n, x, y) => new ImageGeneratorNodeViewModel((ImageGeneratorNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);
@@ -233,6 +236,8 @@ public partial class NodeGraphViewModel : ObservableObject
         foreach (var node in Nodes.OfType<SubImageNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<MatrixTransformNodeViewModel>())
+            node.RefreshPreview();
+        foreach (var node in Nodes.OfType<ImageGeneratorNodeViewModel>())
             node.RefreshPreview();
     }
 }

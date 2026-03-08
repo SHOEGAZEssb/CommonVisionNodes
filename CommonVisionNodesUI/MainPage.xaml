@@ -91,6 +91,34 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="ImageGeneratorNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Pattern" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailablePatterns}"
+                              SelectedItem="{Binding Pattern, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <Grid ColumnSpacing="8" RowSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding Width, Mode=TwoWay}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Height" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding Height, Mode=TwoWay}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding Speed, Mode=TwoWay}" Minimum="1" Maximum="50" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="DeviceNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -122,7 +150,8 @@
             DeviceNodeTemplate="{StaticResource DeviceNodePropertiesTemplate}"
             BinarizeNodeTemplate="{StaticResource BinarizeNodePropertiesTemplate}"
             SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"
-            MatrixTransformNodeTemplate="{StaticResource MatrixTransformNodePropertiesTemplate}"/>
+            MatrixTransformNodeTemplate="{StaticResource MatrixTransformNodePropertiesTemplate}"
+            ImageGeneratorNodeTemplate="{StaticResource ImageGeneratorNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -160,10 +189,14 @@
                     IsEnabled="{Binding IsEditingEnabled}"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#E91E63" Foreground="White" CornerRadius="4"/>
+            <Button Content="&#xE768; Generator" Command="{Binding Graph.AddImageGeneratorNodeCommand}"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" Background="#4CAF50" Foreground="White" CornerRadius="4"/>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
-            <Button Content="Initialize" Command="{Binding Graph.InitializeGraphCommand}"
+            <Button Content="Initialize"
                     IsEnabled="{Binding IsEditingEnabled}"
                     Padding="12,6" CornerRadius="4"/>
             <Button Content="Execute" Command="{Binding Graph.ExecuteGraphCommand}"

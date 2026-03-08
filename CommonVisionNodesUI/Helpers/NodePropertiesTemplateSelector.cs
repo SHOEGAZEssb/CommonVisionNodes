@@ -15,6 +15,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? BinarizeNodeTemplate { get; set; }
     public DataTemplate? SubImageNodeTemplate { get; set; }
     public DataTemplate? MatrixTransformNodeTemplate { get; set; }
+    public DataTemplate? ImageGeneratorNodeTemplate { get; set; }
 
     /// <summary>
     /// Returns the data template that matches the given node view model type.
@@ -31,6 +32,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             BinarizeNodeViewModel => BinarizeNodeTemplate,
             SubImageNodeViewModel => SubImageNodeTemplate,
             MatrixTransformNodeViewModel => MatrixTransformNodeTemplate,
+            ImageGeneratorNodeViewModel => ImageGeneratorNodeTemplate,
             _ => null
         };
     }
