@@ -130,6 +130,15 @@ public sealed partial class NodeControl : UserControl
                     ImagePreview.SetImage(genVM.PreviewImage);
             };
         }
+        else if (vm is FilterNodeViewModel filterVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            filterVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(FilterNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(filterVM.PreviewImage);
+            };
+        }
     }
 
     /// <summary>

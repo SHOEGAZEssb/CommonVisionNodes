@@ -80,6 +80,7 @@ public abstract partial class NodeViewModel : ObservableObject
         SubImageNode => Color.FromArgb(255, 0, 172, 193),
         MatrixTransformNode => Color.FromArgb(255, 233, 30, 99),
         ImageGeneratorNode => Color.FromArgb(255, 76, 175, 80),
+        FilterNode => Color.FromArgb(255, 92, 107, 192),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

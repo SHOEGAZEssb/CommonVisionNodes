@@ -71,6 +71,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddImageGeneratorNode() => AddNode(new ImageGeneratorNode(), (n, x, y) => new ImageGeneratorNodeViewModel((ImageGeneratorNode)n, x, y));
 
+    [RelayCommand]
+    private void AddFilterNode() => AddNode(new FilterNode(), (n, x, y) => new FilterNodeViewModel((FilterNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);
@@ -176,7 +179,15 @@ public partial class NodeGraphViewModel : ObservableObject
                 while (!ct.IsCancellationRequested)
                 {
                     await _refreshGate.WaitAsync(ct);
-                    _graph.Execute();
+                    try
+                    {
+                        _graph.Execute();
+                    }
+                    catch
+                    {
+                        _refreshGate.Release();
+                        throw;
+                    }
                     frameCount++;
 
                     double? fpsToReport = null;
@@ -238,6 +249,8 @@ public partial class NodeGraphViewModel : ObservableObject
         foreach (var node in Nodes.OfType<MatrixTransformNodeViewModel>())
             node.RefreshPreview();
         foreach (var node in Nodes.OfType<ImageGeneratorNodeViewModel>())
+            node.RefreshPreview();
+        foreach (var node in Nodes.OfType<FilterNodeViewModel>())
             node.RefreshPreview();
     }
 }

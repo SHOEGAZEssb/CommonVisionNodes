@@ -10,6 +10,9 @@
     <Reference Include="Stemmer.Cvb">
       <HintPath>..\..\..\..\Program Files\STEMMER IMAGING\Common Vision Blox\Lib\Net\Stemmer.Cvb.dll</HintPath>
     </Reference>
+    <Reference Include="Stemmer.Cvb.Foundation">
+      <HintPath>..\..\..\..\Program Files\STEMMER IMAGING\Common Vision Blox\Lib\Net\Stemmer.Cvb.Foundation.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
