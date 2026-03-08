@@ -37,7 +37,7 @@ public partial class HistogramNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the histogram data from the underlying node.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         Bins = _histogramNode.Bins;
         Mean = _histogramNode.Mean;

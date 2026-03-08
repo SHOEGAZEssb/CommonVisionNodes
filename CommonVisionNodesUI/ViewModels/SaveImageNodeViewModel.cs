@@ -42,7 +42,7 @@ public partial class SaveImageNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the node's input port.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _saveImageNode.ImageInput.Value as CvbImage;
     }

@@ -49,7 +49,7 @@ public partial class ImageNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the underlying node's cached image.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _imageNode.CachedImage;
     }

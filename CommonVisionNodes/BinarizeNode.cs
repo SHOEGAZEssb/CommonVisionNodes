@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 using Stemmer.Cvb;
 
@@ -39,20 +38,31 @@ namespace CommonVisionNodes
             var source = (Image)ImageInput.Value!;
             _lastResult?.Dispose();
             _lastResult = new Image(source.Size, source.Planes.Count);
+            int threshold = Threshold;
 
             for (int p = 0; p < source.Planes.Count; p++)
             {
                 var srcAccess = source.Planes[p].GetLinearAccess();
                 var dstAccess = _lastResult.Planes[p].GetLinearAccess();
 
-                for (int y = 0; y < source.Height; y++)
+                unsafe
                 {
-                    for (int x = 0; x < source.Width; x++)
+                    byte* srcBase = (byte*)srcAccess.BasePtr;
+                    byte* dstBase = (byte*)dstAccess.BasePtr;
+                    long srcYInc = srcAccess.YInc;
+                    long srcXInc = srcAccess.XInc;
+                    long dstYInc = dstAccess.YInc;
+                    long dstXInc = dstAccess.XInc;
+
+                    for (int y = 0; y < source.Height; y++)
                     {
-                        var srcPtr = srcAccess.BasePtr + (nint)(y * srcAccess.YInc + x * srcAccess.XInc);
-                        var dstPtr = dstAccess.BasePtr + (nint)(y * dstAccess.YInc + x * dstAccess.XInc);
-                        byte val = Marshal.ReadByte(srcPtr);
-                        Marshal.WriteByte(dstPtr, val >= Threshold ? (byte)255 : (byte)0);
+                        byte* srcRow = srcBase + y * srcYInc;
+                        byte* dstRow = dstBase + y * dstYInc;
+                        for (int x = 0; x < source.Width; x++)
+                        {
+                            byte val = *(srcRow + x * srcXInc);
+                            *(dstRow + x * dstXInc) = val >= threshold ? (byte)255 : (byte)0;
+                        }
                     }
                 }
             }

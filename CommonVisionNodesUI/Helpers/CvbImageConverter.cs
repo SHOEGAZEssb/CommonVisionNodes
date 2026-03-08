@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -21,20 +22,27 @@ public static class CvbImageConverter
         int width = cvbImage.Width;
         int height = cvbImage.Height;
         int planeCount = cvbImage.Planes.Count;
+        int bufferSize = width * height * 4;
 
-        var pixels = new byte[width * height * 4];
+        var pixels = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+            if (planeCount == 1)
+                ConvertMono(cvbImage, pixels, width, height);
+            else if (planeCount >= 3)
+                ConvertRgb(cvbImage, pixels, width, height);
 
-        if (planeCount == 1)
-            ConvertMono(cvbImage, pixels, width, height);
-        else if (planeCount >= 3)
-            ConvertRgb(cvbImage, pixels, width, height);
+            var bitmap = new WriteableBitmap(width, height);
+            using (var stream = bitmap.PixelBuffer.AsStream())
+                stream.Write(pixels, 0, bufferSize);
+            bitmap.Invalidate();
 
-        var bitmap = new WriteableBitmap(width, height);
-        using (var stream = bitmap.PixelBuffer.AsStream())
-            stream.Write(pixels, 0, pixels.Length);
-        bitmap.Invalidate();
-
-        return bitmap;
+            return bitmap;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+        }
     }
 
     /// <summary>

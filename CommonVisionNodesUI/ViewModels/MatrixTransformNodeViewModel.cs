@@ -79,7 +79,7 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the transformed output.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _transformNode.ImageOutput.Value as CvbImage;
     }

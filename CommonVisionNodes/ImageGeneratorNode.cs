@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 using Stemmer.Cvb;
 
@@ -92,22 +91,29 @@ namespace CommonVisionNodes
             double cx = width / 2.0;
             double cy = height / 2.0;
 
-            for (int y = 0; y < height; y++)
+            unsafe
             {
-                for (int x = 0; x < width; x++)
-                {
-                    byte val = pattern switch
-                    {
-                        TestPattern.GradientH => (byte)((x + frame * speed) % 256),
-                        TestPattern.GradientV => (byte)((y + frame * speed) % 256),
-                        TestPattern.Checkerboard => (byte)((((x + frame * speed) / 32) + ((y + frame * speed) / 32)) % 2 == 0 ? 255 : 0),
-                        TestPattern.Stripes => (byte)((x + y + frame * speed) % 64 < 32 ? 255 : 0),
-                        TestPattern.Rings => ComputeRings(x, y, cx, cy, frame, speed),
-                        _ => 0
-                    };
+                byte* basePtr = (byte*)access.BasePtr;
+                long yInc = access.YInc;
+                long xInc = access.XInc;
 
-                    var ptr = access.BasePtr + (nint)(y * access.YInc + x * access.XInc);
-                    Marshal.WriteByte(ptr, val);
+                for (int y = 0; y < height; y++)
+                {
+                    byte* row = basePtr + y * yInc;
+                    for (int x = 0; x < width; x++)
+                    {
+                        byte val = pattern switch
+                        {
+                            TestPattern.GradientH => (byte)((x + frame * speed) % 256),
+                            TestPattern.GradientV => (byte)((y + frame * speed) % 256),
+                            TestPattern.Checkerboard => (byte)((((x + frame * speed) / 32) + ((y + frame * speed) / 32)) % 2 == 0 ? 255 : 0),
+                            TestPattern.Stripes => (byte)((x + y + frame * speed) % 64 < 32 ? 255 : 0),
+                            TestPattern.Rings => ComputeRings(x, y, cx, cy, frame, speed),
+                            _ => 0
+                        };
+
+                        *(row + x * xInc) = val;
+                    }
                 }
             }
 

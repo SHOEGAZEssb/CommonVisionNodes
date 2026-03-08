@@ -65,7 +65,7 @@ public partial class FilterNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the filtered output.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _filterNode.ImageOutput.Value as CvbImage;
     }

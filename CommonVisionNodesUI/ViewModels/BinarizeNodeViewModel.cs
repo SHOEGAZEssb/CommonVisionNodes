@@ -41,7 +41,7 @@ public partial class BinarizeNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the binarized output.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _binarizeNode.ImageOutput.Value as CvbImage;
     }

@@ -145,7 +145,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private void InitializeGraph()
     {
         _graph.Initialize();
-        foreach (var node in Nodes.OfType<ImageNodeViewModel>())
+        foreach (var node in Nodes)
             node.RefreshPreview();
     }
 
@@ -241,21 +241,10 @@ public partial class NodeGraphViewModel : ObservableObject
 
     private void RefreshPreviews()
     {
-        foreach (var node in Nodes.OfType<ImageNodeViewModel>())
+        foreach (var node in Nodes)
+        {
+            node.RefreshExecutionTime();
             node.RefreshPreview();
-        foreach (var node in Nodes.OfType<SaveImageNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<BinarizeNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<SubImageNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<MatrixTransformNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<ImageGeneratorNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<FilterNodeViewModel>())
-            node.RefreshPreview();
-        foreach (var node in Nodes.OfType<HistogramNodeViewModel>())
-            node.RefreshPreview();
+        }
     }
 }

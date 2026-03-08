@@ -69,6 +69,13 @@
                        FontSize="11" Foreground="#999999"
                        TextTrimming="CharacterEllipsis"
                        Padding="8,0,8,6"/>
+
+            <!-- Execution time -->
+            <TextBlock x:Name="ExecutionTimeText" Grid.Row="2"
+                       Visibility="Collapsed"
+                       FontSize="10" Foreground="#777777"
+                       HorizontalAlignment="Right"
+                       Padding="8,0,8,6"/>
         
             <!-- Image preview -->
             <local:CvbImageDisplay x:Name="ImagePreview" Grid.Row="3"

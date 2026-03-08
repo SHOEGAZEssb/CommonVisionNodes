@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 using Stemmer.Cvb;
 
@@ -65,13 +64,23 @@ namespace CommonVisionNodes
                 var srcAccess = source.Planes[p].GetLinearAccess();
                 var dstAccess = _lastResult.Planes[p].GetLinearAccess();
 
-                for (int dy = 0; dy < h; dy++)
+                unsafe
                 {
-                    for (int dx = 0; dx < w; dx++)
+                    byte* srcBase = (byte*)srcAccess.BasePtr;
+                    byte* dstBase = (byte*)dstAccess.BasePtr;
+                    long srcYInc = srcAccess.YInc;
+                    long srcXInc = srcAccess.XInc;
+                    long dstYInc = dstAccess.YInc;
+                    long dstXInc = dstAccess.XInc;
+
+                    for (int dy = 0; dy < h; dy++)
                     {
-                        var srcPtr = srcAccess.BasePtr + (nint)((y + dy) * srcAccess.YInc + (x + dx) * srcAccess.XInc);
-                        var dstPtr = dstAccess.BasePtr + (nint)(dy * dstAccess.YInc + dx * dstAccess.XInc);
-                        Marshal.WriteByte(dstPtr, Marshal.ReadByte(srcPtr));
+                        byte* srcRow = srcBase + (y + dy) * srcYInc;
+                        byte* dstRow = dstBase + dy * dstYInc;
+                        for (int dx = 0; dx < w; dx++)
+                        {
+                            *(dstRow + dx * dstXInc) = *(srcRow + (x + dx) * srcXInc);
+                        }
                     }
                 }
             }

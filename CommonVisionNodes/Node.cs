@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace CommonVisionNodes
@@ -13,6 +14,12 @@ namespace CommonVisionNodes
         /// Unique identifier for this node instance.
         /// </summary>
         public Guid Id { get; } = Guid.NewGuid();
+
+        /// <summary>
+        /// Duration of the most recent <see cref="Execute"/> call.
+        /// Updated automatically by <see cref="NodeGraph.Execute"/>.
+        /// </summary>
+        public TimeSpan LastExecutionTime { get; internal set; }
 
         private readonly List<Port> _inputs = [];
         private readonly List<Port> _outputs = [];

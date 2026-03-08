@@ -1,4 +1,6 @@
-﻿namespace CommonVisionNodes
+﻿using System.Diagnostics;
+
+namespace CommonVisionNodes
 {
     /// <summary>
     /// A directed acyclic graph of <see cref="Node"/> instances connected via <see cref="Port"/>s.
@@ -8,6 +10,8 @@
     {
         private readonly List<Node> _nodes = [];
         private readonly List<Connection> _connections = [];
+        private List<Node>? _cachedSort;
+        private Dictionary<Port, Connection>? _connectionLookup;
 
         /// <summary>
         /// All nodes in the graph.
@@ -26,6 +30,7 @@
         public void AddNode(Node node)
         {
             _nodes.Add(node);
+            InvalidateCache();
         }
 
         /// <summary>
@@ -37,6 +42,7 @@
         {
             _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
             _nodes.Remove(node);
+            InvalidateCache();
 
             if (node is IInitializable initializable)
                 initializable.Dispose();
@@ -61,6 +67,7 @@
                 throw new InvalidOperationException("Incompatible port types");
 
             _connections.Add(new Connection(output, input));
+            InvalidateCache();
         }
 
         /// <summary>
@@ -82,17 +89,21 @@
         /// </summary>
         public void Execute()
         {
-            var sorted = TopologicalSort();
+            var sorted = _cachedSort ??= TopologicalSort();
+            var lookup = _connectionLookup ??= BuildConnectionLookup();
+
             foreach (var node in sorted)
             {
                 foreach (var input in node.Inputs)
                 {
-                    var connection = _connections.FirstOrDefault(c => c.Input == input);
-                    if (connection != null)
+                    if (lookup.TryGetValue(input, out var connection))
                         input.Value = connection.Output.Value;
                 }
 
+                var sw = Stopwatch.StartNew();
                 node.Execute();
+                sw.Stop();
+                node.LastExecutionTime = sw.Elapsed;
             }
         }
 
@@ -108,6 +119,20 @@
                 if (node is IInitializable initializable)
                     initializable.Dispose();
             }
+        }
+
+        private void InvalidateCache()
+        {
+            _cachedSort = null;
+            _connectionLookup = null;
+        }
+
+        private Dictionary<Port, Connection> BuildConnectionLookup()
+        {
+            var lookup = new Dictionary<Port, Connection>(_connections.Count);
+            foreach (var connection in _connections)
+                lookup[connection.Input] = connection;
+            return lookup;
         }
 
         private List<Node> TopologicalSort()

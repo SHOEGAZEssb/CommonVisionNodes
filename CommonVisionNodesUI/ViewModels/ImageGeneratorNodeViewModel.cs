@@ -81,7 +81,7 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the generator output.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _generatorNode.ImageOutput.Value as CvbImage;
     }

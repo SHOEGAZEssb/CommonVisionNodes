@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 using Stemmer.Cvb;
 
@@ -81,22 +80,27 @@ namespace CommonVisionNodes
                 var srcAccess = source.Planes[p].GetLinearAccess();
                 var dstAccess = _lastResult.Planes[p].GetLinearAccess();
 
-                for (int dy = 0; dy < srcH; dy++)
+                unsafe
                 {
-                    for (int dx = 0; dx < srcW; dx++)
+                    byte* dstBase = (byte*)dstAccess.BasePtr;
+                    long dstYInc = dstAccess.YInc;
+                    long dstXInc = dstAccess.XInc;
+
+                    for (int dy = 0; dy < srcH; dy++)
                     {
-                        // Undo translate, move to center-relative coords
-                        double rx = (dx - TranslateX - cx) * invSx;
-                        double ry = (dy - TranslateY - cy) * invSy;
+                        byte* dstRow = dstBase + dy * dstYInc;
+                        for (int dx = 0; dx < srcW; dx++)
+                        {
+                            // Undo translate, move to center-relative coords
+                            double rx = (dx - TranslateX - cx) * invSx;
+                            double ry = (dy - TranslateY - cy) * invSy;
 
-                        // Inverse rotation
-                        double sx = rx * cos + ry * sin + cx;
-                        double sy = -rx * sin + ry * cos + cy;
+                            // Inverse rotation
+                            double sx = rx * cos + ry * sin + cx;
+                            double sy = -rx * sin + ry * cos + cy;
 
-                        byte val = SampleBilinear(srcAccess, sx, sy, srcW, srcH);
-
-                        var dstPtr = dstAccess.BasePtr + (nint)(dy * dstAccess.YInc + dx * dstAccess.XInc);
-                        Marshal.WriteByte(dstPtr, val);
+                            *(dstRow + dx * dstXInc) = SampleBilinear(srcAccess, sx, sy, srcW, srcH);
+                        }
                     }
                 }
             }
@@ -113,7 +117,7 @@ namespace CommonVisionNodes
         /// <param name="w">Image width.</param>
         /// <param name="h">Image height.</param>
         /// <returns>Interpolated pixel value, or 0 if out of bounds.</returns>
-        private static byte SampleBilinear(LinearAccessData access, double x, double y, int w, int h)
+        private static unsafe byte SampleBilinear(LinearAccessData access, double x, double y, int w, int h)
         {
             if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1)
                 return 0;
@@ -126,10 +130,14 @@ namespace CommonVisionNodes
             double fx = x - x0;
             double fy = y - y0;
 
-            byte v00 = Marshal.ReadByte(access.BasePtr + (nint)(y0 * access.YInc + x0 * access.XInc));
-            byte v10 = Marshal.ReadByte(access.BasePtr + (nint)(y0 * access.YInc + x1 * access.XInc));
-            byte v01 = Marshal.ReadByte(access.BasePtr + (nint)(y1 * access.YInc + x0 * access.XInc));
-            byte v11 = Marshal.ReadByte(access.BasePtr + (nint)(y1 * access.YInc + x1 * access.XInc));
+            byte* basePtr = (byte*)access.BasePtr;
+            long yInc = access.YInc;
+            long xInc = access.XInc;
+
+            byte v00 = *(basePtr + y0 * yInc + x0 * xInc);
+            byte v10 = *(basePtr + y0 * yInc + x1 * xInc);
+            byte v01 = *(basePtr + y1 * yInc + x0 * xInc);
+            byte v11 = *(basePtr + y1 * yInc + x1 * xInc);
 
             double val = v00 * (1 - fx) * (1 - fy)
                        + v10 * fx * (1 - fy)

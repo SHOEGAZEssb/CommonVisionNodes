@@ -65,6 +65,8 @@ public sealed partial class NodeControl : UserControl
         {
             if (e.PropertyName == nameof(NodeViewModel.Summary))
                 UpdateSummary();
+            else if (e.PropertyName == nameof(NodeViewModel.ExecutionTime))
+                UpdateExecutionTime();
         };
         UpdateSummary();
 
@@ -174,6 +176,20 @@ public sealed partial class NodeControl : UserControl
         else
         {
             SummaryText.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateExecutionTime()
+    {
+        var time = _viewModel?.ExecutionTime;
+        if (!string.IsNullOrEmpty(time))
+        {
+            ExecutionTimeText.Text = time;
+            ExecutionTimeText.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ExecutionTimeText.Visibility = Visibility.Collapsed;
         }
     }
 

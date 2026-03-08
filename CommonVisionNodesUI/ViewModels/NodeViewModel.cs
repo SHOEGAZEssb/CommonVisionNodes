@@ -50,6 +50,12 @@ public abstract partial class NodeViewModel : ObservableObject
     public virtual string? Summary => null;
 
     /// <summary>
+    /// Formatted execution time of the last <see cref="Node.Execute"/> call.
+    /// </summary>
+    [ObservableProperty]
+    private string _executionTime = string.Empty;
+
+    /// <summary>
     /// Whether this node's properties can be changed while the graph is running.
     /// </summary>
     public virtual bool IsEditableWhileRunning => false;
@@ -102,6 +108,21 @@ public abstract partial class NodeViewModel : ObservableObject
 
     partial void OnXChanged(double value) => NotifyPortPositions();
     partial void OnYChanged(double value) => NotifyPortPositions();
+
+    /// <summary>
+    /// Updates the execution time display from the underlying node.
+    /// </summary>
+    public void RefreshExecutionTime()
+    {
+        var ms = Node.LastExecutionTime.TotalMilliseconds;
+        ExecutionTime = ms >= 1 ? $"{ms:F1} ms" : $"{ms * 1000:F0} µs";
+    }
+
+    /// <summary>
+    /// Updates the preview data from the underlying node's output.
+    /// Override in derived view models that display previews.
+    /// </summary>
+    public virtual void RefreshPreview() { }
 
     private void NotifyPortPositions()
     {

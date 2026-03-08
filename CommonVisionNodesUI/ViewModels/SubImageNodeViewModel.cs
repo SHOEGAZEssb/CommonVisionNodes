@@ -69,7 +69,7 @@ public partial class SubImageNodeViewModel : NodeViewModel
     /// <summary>
     /// Updates the preview image from the sub-image node's input.
     /// </summary>
-    public void RefreshPreview()
+    public override void RefreshPreview()
     {
         PreviewImage = _subImageNode.ImageInput.Value as CvbImage;
     }
