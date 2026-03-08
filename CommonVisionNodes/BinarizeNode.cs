@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics;
 using System.Text;
 using Stemmer.Cvb;
 
@@ -38,7 +39,9 @@ namespace CommonVisionNodes
             var source = (Image)ImageInput.Value!;
             _lastResult?.Dispose();
             _lastResult = new Image(source.Size, source.Planes.Count);
-            int threshold = Threshold;
+            byte threshold = (byte)Math.Clamp(Threshold, 0, 255);
+            int width = source.Width;
+            int height = source.Height;
 
             for (int p = 0; p < source.Planes.Count; p++)
             {
@@ -50,18 +53,46 @@ namespace CommonVisionNodes
                     byte* srcBase = (byte*)srcAccess.BasePtr;
                     byte* dstBase = (byte*)dstAccess.BasePtr;
                     long srcYInc = srcAccess.YInc;
-                    long srcXInc = srcAccess.XInc;
                     long dstYInc = dstAccess.YInc;
-                    long dstXInc = dstAccess.XInc;
 
-                    for (int y = 0; y < source.Height; y++)
+                    if (srcAccess.XInc == 1 && dstAccess.XInc == 1)
                     {
-                        byte* srcRow = srcBase + y * srcYInc;
-                        byte* dstRow = dstBase + y * dstYInc;
-                        for (int x = 0; x < source.Width; x++)
+                        var threshVec = Vector256.Create(threshold);
+                        int vecLen = Vector256<byte>.Count;
+
+                        for (int y = 0; y < height; y++)
                         {
-                            byte val = *(srcRow + x * srcXInc);
-                            *(dstRow + x * dstXInc) = val >= threshold ? (byte)255 : (byte)0;
+                            byte* srcRow = srcBase + y * srcYInc;
+                            byte* dstRow = dstBase + y * dstYInc;
+                            int x = 0;
+
+                            if (Vector256.IsHardwareAccelerated)
+                            {
+                                for (; x <= width - vecLen; x += vecLen)
+                                {
+                                    var v = Vector256.Load(srcRow + x);
+                                    Vector256.GreaterThanOrEqual(v, threshVec).Store(dstRow + x);
+                                }
+                            }
+
+                            for (; x < width; x++)
+                                dstRow[x] = srcRow[x] >= threshold ? (byte)255 : (byte)0;
+                        }
+                    }
+                    else
+                    {
+                        long srcXInc = srcAccess.XInc;
+                        long dstXInc = dstAccess.XInc;
+
+                        for (int y = 0; y < height; y++)
+                        {
+                            byte* srcRow = srcBase + y * srcYInc;
+                            byte* dstRow = dstBase + y * dstYInc;
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte val = *(srcRow + x * srcXInc);
+                                *(dstRow + x * dstXInc) = val >= threshold ? (byte)255 : (byte)0;
+                            }
                         }
                     }
                 }
