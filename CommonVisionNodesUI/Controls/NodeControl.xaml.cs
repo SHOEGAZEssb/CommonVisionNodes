@@ -34,6 +34,11 @@ public sealed partial class NodeControl : UserControl
     public event Action<NodeControl, PortViewModel, PointerRoutedEventArgs>? PortPressed;
 
     /// <summary>
+    /// Raised when a port circle is right-clicked (to disconnect all connections on that port).
+    /// </summary>
+    public event Action<NodeControl, PortViewModel>? PortRightTapped;
+
+    /// <summary>
     /// Raised when the node header is clicked without dragging.
     /// </summary>
     public event Action<NodeControl>? NodeSelected;
@@ -256,6 +261,13 @@ public sealed partial class NodeControl : UserControl
     {
         if (sender is Ellipse ellipse && ellipse.DataContext is PortViewModel port)
         {
+            if (e.GetCurrentPoint(null).Properties.IsRightButtonPressed)
+            {
+                PortRightTapped?.Invoke(this, port);
+                e.Handled = true;
+                return;
+            }
+
             IsConnectionDragging = true;
 
             if (ellipse.Parent is FrameworkElement parent

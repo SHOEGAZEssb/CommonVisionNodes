@@ -130,6 +130,22 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Removes all connections that involve the given port.
+    /// </summary>
+    /// <param name="port">The port whose connections should be removed.</param>
+    public void DisconnectPort(PortViewModel port)
+    {
+        var toRemove = Connections
+            .Where(c => c.Source == port || c.Target == port)
+            .ToList();
+        foreach (var c in toRemove)
+        {
+            _graph.Disconnect(c.Connection);
+            Connections.Remove(c);
+        }
+    }
+
     [RelayCommand]
     private void RemoveNode(NodeViewModel nodeVM)
     {

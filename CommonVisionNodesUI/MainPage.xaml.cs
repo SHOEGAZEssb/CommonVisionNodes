@@ -103,6 +103,7 @@ public sealed partial class MainPage : Page
         control.SetViewModel(nodeVM);
         control.NodeMoved += _ => RedrawConnections();
         control.PortPressed += OnPortPressed;
+        control.PortRightTapped += OnPortRightTapped;
         control.NodeSelected += OnNodeSelected;
         _nodeControls[nodeVM] = control;
         GraphCanvas.Children.Add(control);
@@ -155,6 +156,11 @@ public sealed partial class MainPage : Page
         GraphCanvas.Children.Add(_pendingConnectionPath);
 
         GraphCanvas.CapturePointer(e.Pointer);
+    }
+
+    private void OnPortRightTapped(NodeControl sender, PortViewModel port)
+    {
+        _viewModel.Graph.DisconnectPort(port);
     }
 
     private void GraphCanvas_PointerPressed(object sender, PointerRoutedEventArgs e)

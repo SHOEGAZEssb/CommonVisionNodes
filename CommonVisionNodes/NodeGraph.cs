@@ -49,6 +49,16 @@ namespace CommonVisionNodes
         }
 
         /// <summary>
+        /// Removes an existing connection from the graph.
+        /// </summary>
+        /// <param name="connection">The connection to remove.</param>
+        public void Disconnect(Connection connection)
+        {
+            _connections.Remove(connection);
+            InvalidateCache();
+        }
+
+        /// <summary>
         /// Connects an output port to an input port.
         /// </summary>
         /// <param name="output">The source output port.</param>
