@@ -21,6 +21,8 @@ public sealed partial class NodeControl : UserControl
     private double _startX;
     private double _startY;
 
+    internal static bool IsConnectionDragging;
+
     /// <summary>
     /// Raised when the node is dragged to a new position.
     /// </summary>
@@ -238,8 +240,22 @@ public sealed partial class NodeControl : UserControl
     {
         if (sender is Ellipse ellipse && ellipse.DataContext is PortViewModel port)
         {
+            IsConnectionDragging = true;
+
+            if (ellipse.Parent is FrameworkElement parent
+                && ToolTipService.GetToolTip(parent) is ToolTip tt)
+            {
+                tt.IsOpen = false;
+            }
+
             PortPressed?.Invoke(this, port, e);
             e.Handled = true;
         }
+    }
+
+    private void PortToolTip_Opened(object sender, RoutedEventArgs e)
+    {
+        if (IsConnectionDragging && sender is ToolTip tt)
+            tt.IsOpen = false;
     }
 }

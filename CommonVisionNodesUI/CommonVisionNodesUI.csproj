@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <Reference Include="Stemmer.Cvb">
-      <HintPath>..\..\..\..\Program Files\STEMMER IMAGING\Common Vision Blox\Lib\Net\Stemmer.Cvb.dll</HintPath>
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.dll</HintPath>
     </Reference>
   </ItemGroup>
 

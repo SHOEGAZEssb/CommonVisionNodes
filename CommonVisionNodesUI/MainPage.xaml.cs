@@ -206,6 +206,7 @@ public sealed partial class MainPage : Page
             _pendingConnectionPath = null;
         }
         _connectionDragSource = null;
+        NodeControl.IsConnectionDragging = false;
 
         if (_isPanning && !_panHasMoved)
             _viewModel.Graph.SelectNode(null);
