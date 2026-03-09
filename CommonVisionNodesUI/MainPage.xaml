@@ -277,6 +277,34 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="CSharpNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="C# Code" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Code, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             AcceptsReturn="True" 
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             Height="300"
+                             PlaceholderText="Write C# code to process inputImage..."/>
+                </StackPanel>
+                <StackPanel Visibility="{Binding HasCompilationError}">
+                    <TextBlock Text="Compilation Error" FontSize="12" Foreground="#FF5555" Margin="0,0,0,4"/>
+                    <Border Background="#331111" BorderBrush="#FF5555" BorderThickness="1" CornerRadius="4" Padding="8">
+                        <TextBox Text="{Binding CompilationError}" 
+                                 IsReadOnly="True" 
+                                 TextWrapping="Wrap"
+                                 FontFamily="Consolas"
+                                 FontSize="11"
+                                 Foreground="#FFAAAA"
+                                 Background="Transparent"
+                                 BorderThickness="0"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <helpers:NodePropertiesTemplateSelector x:Key="NodePropertiesSelector"
             ImageNodeTemplate="{StaticResource ImageNodePropertiesTemplate}"
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
@@ -291,7 +319,8 @@
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
             NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
             PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"
-            GenericVisualizerNodeTemplate="{StaticResource GenericVisualizerNodePropertiesTemplate}"/>
+            GenericVisualizerNodeTemplate="{StaticResource GenericVisualizerNodePropertiesTemplate}"
+            CSharpNodeTemplate="{StaticResource CSharpNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -393,6 +422,11 @@
                         <MenuFlyoutItem Text="Normalize" Command="{Binding Graph.AddNormalizeNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE793;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="C# Script" Command="{Binding Graph.AddCSharpNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE943;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
