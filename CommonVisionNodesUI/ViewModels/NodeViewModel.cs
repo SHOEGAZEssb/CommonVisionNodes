@@ -90,6 +90,7 @@ public abstract partial class NodeViewModel : ObservableObject
         HistogramNode => Color.FromArgb(255, 239, 108, 0),
         MorphologyNode => Color.FromArgb(255, 121, 85, 72),
         BlobNode => Color.FromArgb(255, 0, 150, 136),
+        NormalizeNode => Color.FromArgb(255, 255, 183, 77),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

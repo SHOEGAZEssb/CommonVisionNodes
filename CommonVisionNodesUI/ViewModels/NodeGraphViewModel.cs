@@ -83,6 +83,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddBlobNode() => AddNode(new BlobNode(), (n, x, y) => new BlobNodeViewModel((BlobNode)n, x, y));
 
+    [RelayCommand]
+    private void AddNormalizeNode() => AddNode(new NormalizeNode(), (n, x, y) => new NormalizeNodeViewModel((NormalizeNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);

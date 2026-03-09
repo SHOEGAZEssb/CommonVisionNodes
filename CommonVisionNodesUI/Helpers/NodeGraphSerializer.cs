@@ -68,6 +68,7 @@ public static class NodeGraphSerializer
         [nameof(HistogramNode)]        = (() => new HistogramNode(),        (n, x, y) => new HistogramNodeViewModel((HistogramNode)n, x, y)),
         [nameof(MorphologyNode)]       = (() => new MorphologyNode(),       (n, x, y) => new MorphologyNodeViewModel((MorphologyNode)n, x, y)),
         [nameof(BlobNode)]             = (() => new BlobNode(),             (n, x, y) => new BlobNodeViewModel((BlobNode)n, x, y)),
+        [nameof(NormalizeNode)]        = (() => new NormalizeNode(),        (n, x, y) => new NormalizeNodeViewModel((NormalizeNode)n, x, y)),
     };
 
     /// <summary>

@@ -20,6 +20,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? HistogramNodeTemplate { get; set; }
     public DataTemplate? MorphologyNodeTemplate { get; set; }
     public DataTemplate? BlobNodeTemplate { get; set; }
+    public DataTemplate? NormalizeNodeTemplate { get; set; }
 
     /// <summary>
     /// Returns the data template that matches the given node view model type.
@@ -41,6 +42,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             HistogramNodeViewModel => HistogramNodeTemplate,
             MorphologyNodeViewModel => MorphologyNodeTemplate,
             BlobNodeViewModel => BlobNodeTemplate,
+            NormalizeNodeViewModel => NormalizeNodeTemplate,
             _ => null
         };
     }

@@ -201,6 +201,21 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="NormalizeNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Output Min (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMin, Mode=TwoWay}" StepFrequency="1"/>
+                    <TextBlock Text="{Binding OutputMin}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Output Max (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMax, Mode=TwoWay}" StepFrequency="1"/>
+                    <TextBlock Text="{Binding OutputMax}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="BlobNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -231,7 +246,8 @@
             FilterNodeTemplate="{StaticResource FilterNodePropertiesTemplate}"
             HistogramNodeTemplate="{StaticResource HistogramNodePropertiesTemplate}"
             MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
-            BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"/>
+            BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
+            NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -323,6 +339,11 @@
                         <MenuFlyoutItem Text="Morphology" Command="{Binding Graph.AddMorphologyNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE71C;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Normalize" Command="{Binding Graph.AddNormalizeNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE793;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
