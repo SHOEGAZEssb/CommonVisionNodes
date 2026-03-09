@@ -16,7 +16,16 @@ public static class CodeGenerator
     /// <returns>A complete C# code snippet as a string.</returns>
     public static string Generate(NodeGraph graph)
     {
-        var sorted = TopologicalSort(graph);
+        var connectedPorts = new HashSet<Port>();
+        foreach (var c in graph.Connections)
+        {
+            connectedPorts.Add(c.Output);
+            connectedPorts.Add(c.Input);
+        }
+
+        var sorted = TopologicalSort(graph)
+            .Where(n => n.Inputs.Any(connectedPorts.Contains) || n.Outputs.Any(connectedPorts.Contains))
+            .ToList();
 
         // Collect required usings from nodes
         var usings = new HashSet<string> { "Stemmer.Cvb" };
