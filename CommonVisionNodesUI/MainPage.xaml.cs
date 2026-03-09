@@ -381,26 +381,31 @@ public sealed partial class MainPage : Page
     {
         var code = _viewModel.Graph.GenerateCode();
 
-        var codeBox = new TextBox
+        var codeBlock = new TextBlock
         {
             Text = code,
-            IsReadOnly = true,
-            AcceptsReturn = true,
+            IsTextSelectionEnabled = true,
             TextWrapping = TextWrapping.NoWrap,
             FontFamily = new FontFamily("Consolas"),
-            FontSize = 12,
-            Height = 400
+            FontSize = 12
         };
-        ScrollViewer.SetVerticalScrollBarVisibility(codeBox, ScrollBarVisibility.Auto);
-        ScrollViewer.SetHorizontalScrollBarVisibility(codeBox, ScrollBarVisibility.Auto);
+
+        var scrollViewer = new ScrollViewer
+        {
+            Content = codeBlock,
+            MaxHeight = 400,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
 
         var dialog = new ContentDialog
         {
             Title = "Generated CVB SDK Code",
-            Content = codeBox,
+            Content = scrollViewer,
             PrimaryButtonText = "Copy to Clipboard",
             CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
+            MaxWidth = 800
         };
 
         var result = await dialog.ShowAsync();
