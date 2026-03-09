@@ -240,6 +240,40 @@ public partial class NodeGraphViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Adds a pre-created node and its view model to the graph.
+    /// Used during deserialization to restore saved nodes.
+    /// </summary>
+    /// <param name="node">The domain node.</param>
+    /// <param name="vm">The corresponding view model.</param>
+    public void AddLoadedNode(Node node, NodeViewModel vm)
+    {
+        _graph.AddNode(node);
+        Nodes.Add(vm);
+    }
+
+    /// <summary>
+    /// Removes all nodes and connections, disposing the underlying graph.
+    /// </summary>
+    public void ClearGraph()
+    {
+        if (IsRunning)
+            ToggleRun();
+
+        SelectNode(null);
+        Connections.Clear();
+
+        // Remove nodes in reverse to avoid collection-modified issues
+        for (int i = Nodes.Count - 1; i >= 0; i--)
+        {
+            _graph.RemoveNode(Nodes[i].Node);
+            Nodes.RemoveAt(i);
+        }
+
+        _nextNodeX = 50;
+        _nextNodeY = 50;
+    }
+
+    /// <summary>
     /// Generates standalone C# source code that replicates the current graph.
     /// </summary>
     /// <returns>A C# code snippet as a string.</returns>

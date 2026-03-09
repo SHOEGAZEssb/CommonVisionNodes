@@ -371,6 +371,19 @@
                     Click="GenerateCodeButton_Click"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     Padding="12,6" Background="#7B1FA2" Foreground="White" CornerRadius="4"/>
+
+            <Border Width="1" Background="#555555" Margin="8,2"/>
+
+            <Button x:Name="SaveGraphButton" Content="&#xE74E; Save"
+                    Click="SaveGraphButton_Click"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" CornerRadius="4"/>
+            <Button x:Name="LoadGraphButton" Content="&#xE8E5; Load"
+                    Click="LoadGraphButton_Click"
+                    IsEnabled="{Binding IsEditingEnabled}"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    Padding="12,6" CornerRadius="4"/>
         </StackPanel>
 
         <!-- Main content: Canvas + Properties Panel -->

@@ -1,4 +1,5 @@
 using CommonVisionNodesUI.Controls;
+using CommonVisionNodesUI.Helpers;
 using CommonVisionNodesUI.ViewModels;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -8,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
+using Windows.Storage.Pickers;
 
 namespace CommonVisionNodesUI;
 
@@ -408,5 +410,49 @@ public sealed partial class MainPage : Page
             dataPackage.SetText(code);
             Clipboard.SetContent(dataPackage);
         }
+    }
+
+    // --- Save / Load ---
+
+    private async void SaveGraphButton_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileSavePicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+            SuggestedFileName = "NodeGraph"
+        };
+        picker.FileTypeChoices.Add("Node Graph", [".cvbgraph"]);
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+            ((App)Application.Current).MainWindow);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+            return;
+
+        var json = NodeGraphSerializer.Serialize(_viewModel.Graph);
+        await System.IO.File.WriteAllTextAsync(file.Path, json);
+    }
+
+    private async void LoadGraphButton_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+        };
+        picker.FileTypeFilter.Add(".cvbgraph");
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+            ((App)Application.Current).MainWindow);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+            return;
+
+        var json = await System.IO.File.ReadAllTextAsync(file.Path);
+        _viewModel.Graph.ClearGraph();
+        NodeGraphSerializer.Deserialize(json, _viewModel.Graph);
     }
 }
