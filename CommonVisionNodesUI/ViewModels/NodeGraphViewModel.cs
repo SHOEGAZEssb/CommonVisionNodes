@@ -277,6 +277,32 @@ public partial class NodeGraphViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Attempts to initialize every <see cref="IInitializable"/> node that was restored
+    /// during deserialization. Each node is tried independently so that a failure on one
+    /// (e.g. a missing image file or unavailable device) does not prevent the others from
+    /// being initialized. Previews are refreshed afterwards.
+    /// </summary>
+    public void InitializeAfterLoad()
+    {
+        foreach (var nodeVM in Nodes)
+        {
+            if (nodeVM.Node is IInitializable init && !init.IsInitialized)
+            {
+                try
+                {
+                    init.Initialize();
+                }
+                catch
+                {
+                    // Node remains uninitialized; the user can correct its
+                    // configuration and re-initialize manually.
+                }
+            }
+        }
+        RefreshPreviews();
+    }
+
+    /// <summary>
     /// Removes all nodes and connections, disposing the underlying graph.
     /// </summary>
     public void ClearGraph()

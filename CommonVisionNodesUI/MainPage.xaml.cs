@@ -465,5 +465,6 @@ public sealed partial class MainPage : Page
         var json = await System.IO.File.ReadAllTextAsync(file.Path);
         _viewModel.Graph.ClearGraph();
         NodeGraphSerializer.Deserialize(json, _viewModel.Graph);
+        _viewModel.Graph.InitializeAfterLoad();
     }
 }
