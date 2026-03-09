@@ -32,6 +32,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [ObservableProperty]
     private double _fps;
 
+    [ObservableProperty]
+    private string _lastExecutionTimeText = "—";
+
     public NodeGraphViewModel()
     {
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
@@ -183,7 +186,10 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void ExecuteGraph()
     {
+        var sw = Stopwatch.StartNew();
         _graph.Execute();
+        sw.Stop();
+        LastExecutionTimeText = FormatExecutionTime(sw.Elapsed);
         RefreshPreviews();
     }
 
@@ -213,6 +219,7 @@ public partial class NodeGraphViewModel : ObservableObject
                 while (!ct.IsCancellationRequested)
                 {
                     await _refreshGate.WaitAsync(ct);
+                    var execSw = Stopwatch.StartNew();
                     try
                     {
                         _graph.Execute();
@@ -222,6 +229,8 @@ public partial class NodeGraphViewModel : ObservableObject
                         _refreshGate.Release();
                         throw;
                     }
+                    execSw.Stop();
+                    var execTime = execSw.Elapsed;
                     frameCount++;
 
                     double? fpsToReport = null;
@@ -238,6 +247,7 @@ public partial class NodeGraphViewModel : ObservableObject
                         {
                             if (fpsToReport.HasValue)
                                 Fps = fpsToReport.Value;
+                            LastExecutionTimeText = FormatExecutionTime(execTime);
                             RefreshPreviews();
                         }
                         finally { _refreshGate.Release(); }
@@ -338,4 +348,7 @@ public partial class NodeGraphViewModel : ObservableObject
             node.RefreshPreview();
         }
     }
+
+    private static string FormatExecutionTime(TimeSpan t)
+        => t.TotalMilliseconds >= 1.0 ? $"{t.TotalMilliseconds:F1} ms" : $"{t.TotalMicroseconds:F0} µs";
 }

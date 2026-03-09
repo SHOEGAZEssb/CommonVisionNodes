@@ -599,6 +599,10 @@
                     <TextBlock Text="{Binding FpsText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="40"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="Exec:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Graph.LastExecutionTimeText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="60"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="CPU:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding CpuText}" Foreground="White" FontSize="12" VerticalAlignment="Center" MinWidth="50"/>
                 </StackPanel>
