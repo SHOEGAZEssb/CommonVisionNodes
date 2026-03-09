@@ -57,6 +57,37 @@
         }
 
         [Test]
+        public void Connect_ShouldThrowExceptionForSelfConnection()
+        {
+            // Arrange
+            var graph = new NodeGraph();
+            var node = new PassthroughNode();
+            graph.AddNode(node);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => graph.Connect(node.Output, node.Input));
+        }
+
+        [Test]
+        public void Connect_ShouldThrowExceptionForDuplicateConnection()
+        {
+            // Arrange
+            var graph = new NodeGraph();
+            var node1 = new ImageNode();
+            var node2 = new SaveImageNode();
+            graph.AddNode(node1);
+            graph.AddNode(node2);
+
+            var outputPort = node1.Outputs.First();
+            var inputPort = node2.Inputs.First();
+
+            graph.Connect(outputPort, inputPort);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => graph.Connect(outputPort, inputPort));
+        }
+
+        [Test]
         public void Execute_SingleNode_ShouldExecuteNode()
         {
             // Arrange

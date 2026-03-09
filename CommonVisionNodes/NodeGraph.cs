@@ -72,6 +72,12 @@ namespace CommonVisionNodes
             if (input.Direction != PortDirection.Input)
                 throw new InvalidOperationException("Target must be input");
 
+            if (output.Node == input.Node)
+                throw new InvalidOperationException("Cannot connect a node to itself");
+
+            if (_connections.Any(c => c.Output == output && c.Input == input))
+                throw new InvalidOperationException("Connection already exists");
+
             // todo possibly "manual" conversion for types later
             if (!input.Type.IsAssignableFrom(output.Type))
                 throw new InvalidOperationException("Incompatible port types");
