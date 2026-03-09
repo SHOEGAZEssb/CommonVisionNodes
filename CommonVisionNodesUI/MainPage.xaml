@@ -245,50 +245,112 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal"
                     Padding="8" Spacing="8"
                     Background="#333333">
-            <Button Content="&#xE710; Image" Command="{Binding Graph.AddImageNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#4A90D9" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE74E; Save Image" Command="{Binding Graph.AddSaveImageNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#66BB6A" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE714; Device" Command="{Binding Graph.AddDeviceNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#AB47BC" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE71C; Binarize" Command="{Binding Graph.AddBinarizeNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#FF9800" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE740; SubImage" Command="{Binding Graph.AddSubImageNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#00ACC1" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE809; Transform" Command="{Binding Graph.AddMatrixTransformNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#E91E63" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE768; Generator" Command="{Binding Graph.AddImageGeneratorNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#4CAF50" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE71C; Filter" Command="{Binding Graph.AddFilterNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#5C6BC0" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE9D9; Histogram" Command="{Binding Graph.AddHistogramNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#EF6C00" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE71C; Morphology" Command="{Binding Graph.AddMorphologyNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#795548" Foreground="White" CornerRadius="4"/>
-            <Button Content="&#xE8B1; Blob" Command="{Binding Graph.AddBlobNodeCommand}"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                    Padding="12,6" Background="#009688" Foreground="White" CornerRadius="4"/>
+            <!-- Input -->
+            <DropDownButton IsEnabled="{Binding IsEditingEnabled}"
+                            Padding="12,6" Background="#4A90D9" Foreground="White" CornerRadius="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE710;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                    <TextBlock Text="Input" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Image" Command="{Binding Graph.AddImageNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE710;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Device" Command="{Binding Graph.AddDeviceNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE714;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Generator" Command="{Binding Graph.AddImageGeneratorNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE768;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <!-- Output -->
+            <DropDownButton IsEnabled="{Binding IsEditingEnabled}"
+                            Padding="12,6" Background="#66BB6A" Foreground="White" CornerRadius="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE74E;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                    <TextBlock Text="Output" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Save Image" Command="{Binding Graph.AddSaveImageNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE74E;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <!-- Processing -->
+            <DropDownButton IsEnabled="{Binding IsEditingEnabled}"
+                            Padding="12,6" Background="#FF9800" Foreground="White" CornerRadius="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE71C;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                    <TextBlock Text="Processing" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Binarize" Command="{Binding Graph.AddBinarizeNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE71C;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="SubImage" Command="{Binding Graph.AddSubImageNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE740;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Transform" Command="{Binding Graph.AddMatrixTransformNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE809;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Filter" Command="{Binding Graph.AddFilterNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE71C;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Morphology" Command="{Binding Graph.AddMorphologyNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE71C;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <!-- Analysis -->
+            <DropDownButton IsEnabled="{Binding IsEditingEnabled}"
+                            Padding="12,6" Background="#009688" Foreground="White" CornerRadius="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE9D9;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                    <TextBlock Text="Analysis" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Histogram" Command="{Binding Graph.AddHistogramNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE9D9;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Blob" Command="{Binding Graph.AddBlobNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8B1;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
