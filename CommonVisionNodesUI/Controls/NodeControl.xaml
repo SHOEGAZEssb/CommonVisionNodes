@@ -97,6 +97,11 @@
             <local:HistogramDisplay x:Name="HistogramPreview" Grid.Row="3"
                                     Height="120" Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
+
+            <!-- Blob image preview with bounding boxes -->
+            <local:BlobImageDisplay x:Name="BlobPreview" Grid.Row="3"
+                                    Height="120" Margin="4,0,4,4"
+                                    Visibility="Collapsed"/>
         </Grid>
     </Border>
 </UserControl>

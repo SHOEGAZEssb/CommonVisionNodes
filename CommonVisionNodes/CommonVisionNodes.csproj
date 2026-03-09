@@ -14,6 +14,9 @@
     <Reference Include="Stemmer.Cvb.Foundation">
       <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Foundation.dll</HintPath>
     </Reference>
+    <Reference Include="Stemmer.Cvb.Polimago">
+      <HintPath>..\..\..\..\CVB\Lib\Net\Stemmer.Cvb.Polimago.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

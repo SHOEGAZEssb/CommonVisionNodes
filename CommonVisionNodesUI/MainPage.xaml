@@ -224,13 +224,46 @@
                     <TextBlock Text="{Binding ForegroundThreshold}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>
+                    <CheckBox Content="Invert Foreground" IsChecked="{Binding InvertForeground, Mode=TwoWay}" Foreground="White" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <CheckBox Content="8-Connectivity" IsChecked="{Binding Use8Connectivity, Mode=TwoWay}" Foreground="White" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
                     <TextBlock Text="Min Area (pixels)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <NumberBox Value="{Binding MinArea, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Max Area (0 = no limit)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding MaxArea, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Max Blob Count (0 = no limit)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding MaxBlobCount, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <TextBlock Text="{Binding BlobCount}" FontSize="16" FontWeight="Bold" Foreground="White"/>
                     <TextBlock Text="blob(s) found" FontSize="12" Foreground="#888888"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PolimagoClassifyNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="13" PlaceholderText="Path to .clf file"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Min Quality (0.0–1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding MinQuality, Mode=TwoWay}" StepFrequency="0.05"/>
+                    <TextBlock Text="{Binding MinQuality}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding ResultCount}" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="classification(s)" FontSize="12" Foreground="#888888"/>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
@@ -247,7 +280,8 @@
             HistogramNodeTemplate="{StaticResource HistogramNodePropertiesTemplate}"
             MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
-            NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"/>
+            NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
+            PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -367,6 +401,11 @@
                         <MenuFlyoutItem Text="Blob" Command="{Binding Graph.AddBlobNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE8B1;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Polimago Classify" Command="{Binding Graph.AddPolimagoClassifyNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8BA;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>

@@ -42,6 +42,12 @@
     <Reference Include="Stemmer.Cvb">
       <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.dll</HintPath>
     </Reference>
+    <Reference Include="Stemmer.Cvb.Foundation">
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Foundation.dll</HintPath>
+    </Reference>
+    <Reference Include="Stemmer.Cvb.Polimago">
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Polimago.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -69,7 +75,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Update="Controls\BlobImageDisplay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Controls\BlobImageDisplay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
 </Project>

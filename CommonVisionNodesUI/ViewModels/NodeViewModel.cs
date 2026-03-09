@@ -91,6 +91,7 @@ public abstract partial class NodeViewModel : ObservableObject
         MorphologyNode => Color.FromArgb(255, 121, 85, 72),
         BlobNode => Color.FromArgb(255, 0, 150, 136),
         NormalizeNode => Color.FromArgb(255, 255, 183, 77),
+        PolimagoClassifyNode => Color.FromArgb(255, 123, 31, 162),
         _ => Color.FromArgb(255, 128, 128, 128),
     };
 

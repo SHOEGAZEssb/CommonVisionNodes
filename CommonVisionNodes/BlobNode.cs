@@ -101,6 +101,28 @@ namespace CommonVisionNodes
         /// </summary>
         public int MinArea { get; set; } = 1;
 
+        /// <summary>
+        /// Blobs with more pixels than this value are ignored.
+        /// A value of 0 means no upper limit.
+        /// </summary>
+        public int MaxArea { get; set; }
+
+        /// <summary>
+        /// Maximum number of blobs to return (largest first).
+        /// A value of 0 means no limit.
+        /// </summary>
+        public int MaxBlobCount { get; set; }
+
+        /// <summary>
+        /// When <c>true</c>, pixels <em>below</em> the threshold are treated as foreground.
+        /// </summary>
+        public bool InvertForeground { get; set; }
+
+        /// <summary>
+        /// When <c>true</c>, 8-connectivity (including diagonals) is used instead of 4-connectivity.
+        /// </summary>
+        public bool Use8Connectivity { get; set; }
+
         public BlobNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The binary image to analyze for connected components.");
@@ -116,6 +138,8 @@ namespace CommonVisionNodes
             int height = source.Height;
             byte threshold = (byte)Math.Clamp(ForegroundThreshold, 0, 255);
 
+            bool invert = InvertForeground;
+
             // Read first plane into a bool grid
             bool[,] fg = new bool[height, width];
             var srcAccess = source.Planes[0].GetLinearAccess();
@@ -128,11 +152,16 @@ namespace CommonVisionNodes
                 {
                     byte* row = srcBase + y * srcYInc;
                     for (int x = 0; x < width; x++)
-                        fg[y, x] = *(row + x * srcXInc) >= threshold;
+                    {
+                        byte val = *(row + x * srcXInc);
+                        fg[y, x] = invert ? val < threshold : val >= threshold;
+                    }
                 }
             }
 
-            // Two-pass connected-component labeling (4-connectivity)
+            bool use8 = Use8Connectivity;
+
+            // Two-pass connected-component labeling
             int[,] labels = new int[height, width];
             int nextLabel = 1;
             int[] parent = new int[width * height + 1]; // union-find
@@ -164,26 +193,31 @@ namespace CommonVisionNodes
 
                     int above = y > 0 && fg[y - 1, x] ? labels[y - 1, x] : 0;
                     int left = x > 0 && fg[y, x - 1] ? labels[y, x - 1] : 0;
+                    int aboveLeft = use8 && y > 0 && x > 0 && fg[y - 1, x - 1] ? labels[y - 1, x - 1] : 0;
+                    int aboveRight = use8 && y > 0 && x < width - 1 && fg[y - 1, x + 1] ? labels[y - 1, x + 1] : 0;
 
-                    if (above == 0 && left == 0)
+                    // Collect all non-zero neighbor labels
+                    int minLabel = 0;
+                    foreach (int n in (ReadOnlySpan<int>)[above, left, aboveLeft, aboveRight])
+                    {
+                        if (n != 0)
+                            minLabel = minLabel == 0 ? n : Math.Min(minLabel, n);
+                    }
+
+                    if (minLabel == 0)
                     {
                         int lbl = nextLabel++;
                         parent[lbl] = lbl;
                         labels[y, x] = lbl;
                     }
-                    else if (above != 0 && left == 0)
-                    {
-                        labels[y, x] = above;
-                    }
-                    else if (above == 0 && left != 0)
-                    {
-                        labels[y, x] = left;
-                    }
                     else
                     {
-                        labels[y, x] = Math.Min(above, left);
-                        if (above != left)
-                            Union(above, left);
+                        labels[y, x] = minLabel;
+                        foreach (int n in (ReadOnlySpan<int>)[above, left, aboveLeft, aboveRight])
+                        {
+                            if (n != 0 && n != minLabel)
+                                Union(n, minLabel);
+                        }
                     }
                 }
             }
@@ -216,11 +250,13 @@ namespace CommonVisionNodes
             }
 
             // Build blob list
+            int maxArea = MaxArea;
             var blobs = new List<BlobInfo>();
             int blobIndex = 0;
             foreach (var (label, s) in stats)
             {
                 if (s.area < MinArea) continue;
+                if (maxArea > 0 && s.area > maxArea) continue;
                 blobIndex++;
                 blobs.Add(new BlobInfo
                 {
@@ -236,6 +272,11 @@ namespace CommonVisionNodes
             }
 
             blobs.Sort((a, b) => b.Area.CompareTo(a.Area));
+
+            int maxCount = MaxBlobCount;
+            if (maxCount > 0 && blobs.Count > maxCount)
+                blobs.RemoveRange(maxCount, blobs.Count - maxCount);
+
             Blobs = blobs;
             BlobCount = blobs.Count;
 
@@ -261,8 +302,8 @@ namespace CommonVisionNodes
 
             var varName = context.GetUniqueVariable(CodeVariableName);
             var sb = context.Builder;
-            sb.AppendLine($"// Blob analysis (threshold: {ForegroundThreshold}, minArea: {MinArea})");
-            sb.AppendLine($"var {varName} = FindBlobRects({inputVar}, {ForegroundThreshold}, {MinArea});");
+            sb.AppendLine($"// Blob analysis (threshold: {ForegroundThreshold}, invert: {InvertForeground}, connectivity: {(Use8Connectivity ? 8 : 4)}, minArea: {MinArea}, maxArea: {MaxArea}, maxCount: {MaxBlobCount})");
+            sb.AppendLine($"var {varName} = FindBlobRects({inputVar}, {ForegroundThreshold}, {InvertForeground.ToString().ToLowerInvariant()}, {Use8Connectivity.ToString().ToLowerInvariant()}, {MinArea}, {MaxArea}, {MaxBlobCount});");
             sb.AppendLine($"Console.WriteLine($\"Blobs found: {{{varName}.Count}}\");");
             sb.AppendLine($"foreach (var r in {varName})");
             sb.AppendLine($"    Console.WriteLine($\"  Rect=({{r.X}},{{r.Y}},{{r.Width}},{{r.Height}})\");");
@@ -275,7 +316,7 @@ namespace CommonVisionNodes
         {
             sb.AppendLine("readonly record struct BlobRect(int X, int Y, int Width, int Height);");
             sb.AppendLine();
-            sb.AppendLine("static List<BlobRect> FindBlobRects(Image source, int fgThreshold, int minArea)");
+            sb.AppendLine("static List<BlobRect> FindBlobRects(Image source, int fgThreshold, bool invert, bool use8, int minArea, int maxArea, int maxCount)");
             sb.AppendLine("{");
             sb.AppendLine("    int width = source.Width, height = source.Height;");
             sb.AppendLine("    byte threshold = (byte)Math.Clamp(fgThreshold, 0, 255);");
@@ -285,7 +326,8 @@ namespace CommonVisionNodes
             sb.AppendLine("        for (int x = 0; x < width; x++)");
             sb.AppendLine("        {");
             sb.AppendLine("            var ptr = srcAccess.BasePtr + (nint)(y * srcAccess.YInc + x * srcAccess.XInc);");
-            sb.AppendLine("            fg[y, x] = Marshal.ReadByte(ptr) >= threshold;");
+            sb.AppendLine("            byte val = Marshal.ReadByte(ptr);");
+            sb.AppendLine("            fg[y, x] = invert ? val < threshold : val >= threshold;");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("    int[,] labels = new int[height, width];");
@@ -300,10 +342,13 @@ namespace CommonVisionNodes
             sb.AppendLine("            if (!fg[y, x]) continue;");
             sb.AppendLine("            int above = y > 0 && fg[y - 1, x] ? labels[y - 1, x] : 0;");
             sb.AppendLine("            int left = x > 0 && fg[y, x - 1] ? labels[y, x - 1] : 0;");
-            sb.AppendLine("            if (above == 0 && left == 0) { int lbl = nextLabel++; parent[lbl] = lbl; labels[y, x] = lbl; }");
-            sb.AppendLine("            else if (above != 0 && left == 0) labels[y, x] = above;");
-            sb.AppendLine("            else if (above == 0 && left != 0) labels[y, x] = left;");
-            sb.AppendLine("            else { labels[y, x] = Math.Min(above, left); if (above != left) Union(above, left); }");
+            sb.AppendLine("            int aboveLeft = use8 && y > 0 && x > 0 && fg[y - 1, x - 1] ? labels[y - 1, x - 1] : 0;");
+            sb.AppendLine("            int aboveRight = use8 && y > 0 && x < width - 1 && fg[y - 1, x + 1] ? labels[y - 1, x + 1] : 0;");
+            sb.AppendLine("            int minLabel = 0;");
+            sb.AppendLine("            foreach (int n in new[] { above, left, aboveLeft, aboveRight })");
+            sb.AppendLine("                if (n != 0) minLabel = minLabel == 0 ? n : Math.Min(minLabel, n);");
+            sb.AppendLine("            if (minLabel == 0) { int lbl = nextLabel++; parent[lbl] = lbl; labels[y, x] = lbl; }");
+            sb.AppendLine("            else { labels[y, x] = minLabel; foreach (int n in new[] { above, left, aboveLeft, aboveRight }) if (n != 0 && n != minLabel) Union(n, minLabel); }");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("    var stats = new Dictionary<int, (long sumX, long sumY, int area, int minX, int minY, int maxX, int maxY)>();");
@@ -320,9 +365,11 @@ namespace CommonVisionNodes
             sb.AppendLine("    foreach (var (label, s) in stats)");
             sb.AppendLine("    {");
             sb.AppendLine("        if (s.area < minArea) continue;");
+            sb.AppendLine("        if (maxArea > 0 && s.area > maxArea) continue;");
             sb.AppendLine("        result.Add((s.area, new BlobRect(s.minX, s.minY, s.maxX - s.minX + 1, s.maxY - s.minY + 1)));");
             sb.AppendLine("    }");
             sb.AppendLine("    result.Sort((a, b) => b.area.CompareTo(a.area));");
+            sb.AppendLine("    if (maxCount > 0 && result.Count > maxCount) result.RemoveRange(maxCount, result.Count - maxCount);");
             sb.AppendLine("    return result.Select(r => r.rect).ToList();");
             sb.AppendLine("}");
         }
