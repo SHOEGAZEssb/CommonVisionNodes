@@ -429,9 +429,6 @@
 
             <Border Width="1" Background="#555555" Margin="8,2"/>
 
-            <Button Content="Initialize"
-                    IsEnabled="{Binding IsEditingEnabled}"
-                    Padding="12,6" CornerRadius="4"/>
             <Button Content="Execute" Command="{Binding Graph.ExecuteGraphCommand}"
                     IsEnabled="{Binding IsEditingEnabled}"
                     Padding="12,6" CornerRadius="4"/>
