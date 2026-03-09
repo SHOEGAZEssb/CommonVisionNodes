@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using CommonVisionNodesUI.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -13,6 +14,7 @@ namespace CommonVisionNodesUI.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly DispatcherTimer _statusTimer;
+    private readonly GpuMonitor _gpuMonitor = new();
     private DateTime _lastCpuCheck;
     private TimeSpan _lastCpuTime;
 
@@ -55,6 +57,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _memoryText = "0 MB";
 
+    [ObservableProperty]
+    private string _gpuText = "N/A";
+
     public MainViewModel()
     {
         Graph.PropertyChanged += OnGraphPropertyChanged;
@@ -94,6 +99,9 @@ public partial class MainViewModel : ObservableObject
 
         var memoryMb = process.WorkingSet64 / (1024.0 * 1024.0);
         MemoryText = $"{memoryMb:F0} MB";
+
+        var gpuUtil = _gpuMonitor.GetUtilization();
+        GpuText = gpuUtil.HasValue ? $"{gpuUtil.Value:F1}%" : "N/A";
     }
 
     private void OnGraphPropertyChanged(object? sender, PropertyChangedEventArgs e)
