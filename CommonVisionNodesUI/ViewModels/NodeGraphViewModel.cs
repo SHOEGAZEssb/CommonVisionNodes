@@ -89,6 +89,9 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void AddPolimagoClassifyNode() => AddNode(new PolimagoClassifyNode(), (n, x, y) => new PolimagoClassifyNodeViewModel((PolimagoClassifyNode)n, x, y));
 
+    [RelayCommand]
+    private void AddGenericVisualizerNode() => AddNode(new GenericVisualizerNode(), (n, x, y) => new GenericVisualizerNodeViewModel((GenericVisualizerNode)n, x, y));
+
     private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
     {
         _graph.AddNode(node);

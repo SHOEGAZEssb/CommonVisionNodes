@@ -22,6 +22,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? BlobNodeTemplate { get; set; }
     public DataTemplate? NormalizeNodeTemplate { get; set; }
     public DataTemplate? PolimagoClassifyNodeTemplate { get; set; }
+    public DataTemplate? GenericVisualizerNodeTemplate { get; set; }
 
     /// <summary>
     /// Returns the data template that matches the given node view model type.
@@ -45,6 +46,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             BlobNodeViewModel => BlobNodeTemplate,
             NormalizeNodeViewModel => NormalizeNodeTemplate,
             PolimagoClassifyNodeViewModel => PolimagoClassifyNodeTemplate,
+            GenericVisualizerNodeViewModel => GenericVisualizerNodeTemplate,
             _ => null
         };
     }

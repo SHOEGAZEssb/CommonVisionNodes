@@ -70,6 +70,7 @@ public static class NodeGraphSerializer
         [nameof(BlobNode)]             = (() => new BlobNode(),             (n, x, y) => new BlobNodeViewModel((BlobNode)n, x, y)),
         [nameof(NormalizeNode)]        = (() => new NormalizeNode(),        (n, x, y) => new NormalizeNodeViewModel((NormalizeNode)n, x, y)),
         [nameof(PolimagoClassifyNode)] = (() => new PolimagoClassifyNode(), (n, x, y) => new PolimagoClassifyNodeViewModel((PolimagoClassifyNode)n, x, y)),
+        [nameof(GenericVisualizerNode)] = (() => new GenericVisualizerNode(), (n, x, y) => new GenericVisualizerNodeViewModel((GenericVisualizerNode)n, x, y)),
     };
 
     /// <summary>

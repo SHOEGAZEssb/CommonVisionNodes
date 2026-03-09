@@ -173,6 +173,15 @@ public sealed partial class NodeControl : UserControl
                 }
             };
         }
+        else if (vm is GenericVisualizerNodeViewModel genericVM)
+        {
+            GenericVisualizerPreview.Visibility = Visibility.Visible;
+            genericVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.LastValue))
+                    GenericVisualizerPreview.SetValue(genericVM.LastValue);
+            };
+        }
     }
 
     /// <summary>

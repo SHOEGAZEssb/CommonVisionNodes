@@ -268,6 +268,15 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="GenericVisualizerNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Received Type" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding TypeDescription}" FontSize="13" Foreground="White" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <helpers:NodePropertiesTemplateSelector x:Key="NodePropertiesSelector"
             ImageNodeTemplate="{StaticResource ImageNodePropertiesTemplate}"
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
@@ -281,7 +290,8 @@
             MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
             NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
-            PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"/>
+            PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"
+            GenericVisualizerNodeTemplate="{StaticResource GenericVisualizerNodePropertiesTemplate}"/>
     </Page.Resources>
 
     <Grid>
@@ -335,6 +345,11 @@
                         <MenuFlyoutItem Text="Save Image" Command="{Binding Graph.AddSaveImageNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE74E;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Visualizer" Command="{Binding Graph.AddGenericVisualizerNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE7B3;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>

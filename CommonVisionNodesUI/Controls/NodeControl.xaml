@@ -102,6 +102,11 @@
             <local:BlobImageDisplay x:Name="BlobPreview" Grid.Row="3"
                                     Height="120" Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
+
+            <!-- Generic visualizer preview -->
+            <local:GenericVisualizerDisplay x:Name="GenericVisualizerPreview" Grid.Row="3"
+                                            Height="120" Margin="4,0,4,4"
+                                            Visibility="Collapsed"/>
         </Grid>
     </Border>
 </UserControl>
