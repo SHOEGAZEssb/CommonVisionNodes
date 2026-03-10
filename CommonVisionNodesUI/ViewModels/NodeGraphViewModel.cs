@@ -35,6 +35,24 @@ public partial class NodeGraphViewModel : ObservableObject
     [ObservableProperty]
     private string _lastExecutionTimeText = "—";
 
+    /// <summary>
+    /// Preview refresh rate (1–1000 FPS, or 1001 for unlimited).
+    /// </summary>
+    [ObservableProperty]
+    private int _previewRefreshRate = 1001;
+
+    /// <summary>
+    /// Display text for the current preview refresh rate.
+    /// </summary>
+    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "∞" : PreviewRefreshRate.ToString();
+
+    partial void OnPreviewRefreshRateChanged(int value)
+    {
+        OnPropertyChanged(nameof(PreviewRefreshRateText));
+    }
+
+    private int PreviewRefreshIntervalMs => _previewRefreshRate >= 1001 ? 0 : (int)Math.Ceiling(1000.0 / _previewRefreshRate);
+
     public NodeGraphViewModel()
     {
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
@@ -213,59 +231,70 @@ public partial class NodeGraphViewModel : ObservableObject
         var ct = _runCts.Token;
 
         Task.Run(async () =>
-        {
-            var fpsStopwatch = Stopwatch.StartNew();
-            int frameCount = 0;
-
-            try
             {
-                while (!ct.IsCancellationRequested)
+                var fpsStopwatch = Stopwatch.StartNew();
+                int frameCount = 0;
+                var previewTimer = Stopwatch.StartNew();
+
+                try
                 {
-                    await _refreshGate.WaitAsync(ct);
-                    var execSw = Stopwatch.StartNew();
-                    try
+                    while (!ct.IsCancellationRequested)
                     {
-                        _graph.Execute();
-                    }
-                    catch
-                    {
-                        _refreshGate.Release();
-                        throw;
-                    }
-                    execSw.Stop();
-                    var execTime = execSw.Elapsed;
-                    frameCount++;
-
-                    double? fpsToReport = null;
-                    if (fpsStopwatch.ElapsedMilliseconds >= 1000)
-                    {
-                        fpsToReport = frameCount * 1000.0 / fpsStopwatch.ElapsedMilliseconds;
-                        frameCount = 0;
-                        fpsStopwatch.Restart();
-                    }
-
-                    _dispatcherQueue.TryEnqueue(() =>
-                    {
+                        await _refreshGate.WaitAsync(ct);
+                        var execSw = Stopwatch.StartNew();
                         try
                         {
-                            if (fpsToReport.HasValue)
-                                Fps = fpsToReport.Value;
-                            LastExecutionTimeText = FormatExecutionTime(execTime);
-                            RefreshPreviews();
+                            _graph.Execute();
                         }
-                        finally { _refreshGate.Release(); }
-                    });
+                        catch
+                        {
+                            _refreshGate.Release();
+                            throw;
+                        }
+                        execSw.Stop();
+                        var execTime = execSw.Elapsed;
+                        frameCount++;
+
+                        double? fpsToReport = null;
+                        if (fpsStopwatch.ElapsedMilliseconds >= 1000)
+                        {
+                            fpsToReport = frameCount * 1000.0 / fpsStopwatch.ElapsedMilliseconds;
+                            frameCount = 0;
+                            fpsStopwatch.Restart();
+                        }
+
+                        var intervalMs = PreviewRefreshIntervalMs;
+                        bool doRefreshPreview = intervalMs == 0 || previewTimer.ElapsedMilliseconds >= intervalMs;
+                        if (doRefreshPreview)
+                            previewTimer.Restart();
+
+                        _dispatcherQueue.TryEnqueue(() =>
+                        {
+                            try
+                            {
+                                if (fpsToReport.HasValue)
+                                    Fps = fpsToReport.Value;
+                                LastExecutionTimeText = FormatExecutionTime(execTime);
+                                foreach (var node in Nodes)
+                                {
+                                    node.RefreshExecutionTime();
+                                    if (doRefreshPreview)
+                                        node.RefreshPreview();
+                                }
+                            }
+                            finally { _refreshGate.Release(); }
+                        });
+                    }
                 }
-            }
-            catch (Exception) when (ct.IsCancellationRequested)
-            {
-                // Expected on cancellation
-            }
-            catch (Exception)
-            {
-                _dispatcherQueue.TryEnqueue(Stop);
-            }
-        }, ct);
+                catch (Exception) when (ct.IsCancellationRequested)
+                {
+                    // Expected on cancellation
+                }
+                catch (Exception)
+                {
+                    _dispatcherQueue.TryEnqueue(Stop);
+                }
+            }, ct);
     }
 
     private void Stop()
