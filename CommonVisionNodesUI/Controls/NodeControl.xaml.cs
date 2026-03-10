@@ -173,6 +173,22 @@ public sealed partial class NodeControl : UserControl
                 }
             };
         }
+        else if (vm is PolimagoClassifyNodeViewModel polimagoVM)
+        {
+            PolimagoPreview.Visibility = Visibility.Visible;
+            polimagoVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.PreviewImage))
+                {
+                    PolimagoPreview.SetImage(polimagoVM.PreviewImage);
+                    PolimagoPreview.SetResults(polimagoVM.Results);
+                }
+                else if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.Results))
+                {
+                    PolimagoPreview.SetResults(polimagoVM.Results);
+                }
+            };
+        }
         else if (vm is GenericVisualizerNodeViewModel genericVM)
         {
             GenericVisualizerPreview.Visibility = Visibility.Visible;

@@ -96,4 +96,10 @@
     </Page>
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Update="Controls\PolimagoImageDisplay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
 </Project>

@@ -1,5 +1,6 @@
 using CommonVisionNodes;
 using System.IO;
+using CvbImage = Stemmer.Cvb.Image;
 
 namespace CommonVisionNodesUI.ViewModels;
 
@@ -22,6 +23,9 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 
     [ObservableProperty]
     private IReadOnlyList<PolimagoClassifyResultItem> _results = [];
+
+    [ObservableProperty]
+    private CvbImage? _previewImage;
 
     /// <inheritdoc/>
     public override string? Summary => string.IsNullOrEmpty(ClassifierPath)
@@ -68,6 +72,7 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
     {
         ResultCount = _classifyNode.ResultCount;
         Results = _classifyNode.Results;
+        PreviewImage = _classifyNode.ImageOutput.Value as CvbImage;
         OnPropertyChanged(nameof(Summary));
     }
 }
