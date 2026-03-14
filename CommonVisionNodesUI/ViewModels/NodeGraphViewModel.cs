@@ -1,26 +1,33 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using CommonVisionNodes;
+using System.Globalization;
+using CommonVisionNodes.Contracts;
+using CommonVisionNodesUI.Services;
 using Microsoft.UI.Dispatching;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for the node graph. Manages nodes, connections,
-/// execution, continuous run loop, and FPS tracking.
-/// </summary>
 public partial class NodeGraphViewModel : ObservableObject
 {
-    private readonly NodeGraph _graph = new();
+    private readonly IBackendClient _backendClient;
     private readonly DispatcherQueue _dispatcherQueue;
-    private readonly SemaphoreSlim _refreshGate = new(1, 1);
-    private CancellationTokenSource? _runCts;
+    private readonly Dictionary<string, NodeDefinitionDto> _nodeDefinitions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, NodeViewModel> _nodesById = new(StringComparer.OrdinalIgnoreCase);
+    private readonly string _clientId = Guid.NewGuid().ToString("N");
+    private CancellationTokenSource? _listenerCts;
+    private Task? _listenerTask;
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
+    private bool _initialized;
+
+    public NodeGraphViewModel(IBackendClient backendClient)
+    {
+        _backendClient = backendClient;
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+    }
 
     public ObservableCollection<NodeViewModel> Nodes { get; } = [];
+
     public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
 
     [ObservableProperty]
@@ -33,94 +40,295 @@ public partial class NodeGraphViewModel : ObservableObject
     private double _fps;
 
     [ObservableProperty]
-    private string _lastExecutionTimeText = "—";
+    private string _lastExecutionTimeText = "-";
 
-    /// <summary>
-    /// Preview refresh rate (1–1000 FPS, or 1001 for unlimited).
-    /// </summary>
     [ObservableProperty]
-    private int _previewRefreshRate = 1001;
+    private int _previewRefreshRate = 30;
 
-    /// <summary>
-    /// Display text for the current preview refresh rate.
-    /// </summary>
-    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "∞" : PreviewRefreshRate.ToString();
+    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+
+    public async Task InitializeAsync()
+    {
+        if (_initialized)
+            return;
+
+        await RefreshNodeDefinitionsAsync();
+
+        _listenerCts = new CancellationTokenSource();
+        _listenerTask = Task.Run(() => _backendClient.ListenAsync(_clientId, HandleExecutionMessageAsync, _listenerCts.Token));
+        _initialized = true;
+    }
+
+    public async Task RefreshNodeDefinitionsAsync()
+    {
+        var definitions = await _backendClient.GetNodeDefinitionsAsync();
+        _nodeDefinitions.Clear();
+        foreach (var definition in definitions)
+            _nodeDefinitions[definition.Type] = definition;
+
+        foreach (var node in Nodes)
+        {
+            if (_nodeDefinitions.TryGetValue(node.Node.Type, out var updatedDefinition))
+                node.RefreshDefinition(updatedDefinition);
+        }
+    }
+
+    public void SelectNode(NodeViewModel? node)
+    {
+        if (SelectedNode is not null)
+            SelectedNode.IsSelected = false;
+
+        SelectedNode = node;
+        if (node is not null)
+            node.IsSelected = true;
+    }
+
+    public GraphDto ToGraphDto()
+        => new()
+        {
+            Nodes = Nodes.Select(node => node.ToNodeDtoClone()).ToList(),
+            Connections = Connections.Select(connection => new ConnectionDto
+            {
+                OutputNodeId = connection.Connection.OutputNodeId,
+                OutputPortName = connection.Connection.OutputPortName,
+                InputNodeId = connection.Connection.InputNodeId,
+                InputPortName = connection.Connection.InputPortName
+            }).ToList()
+        };
+
+    public async Task LoadGraphAsync(GraphDto graph)
+    {
+        await InitializeAsync();
+        ClearGraph();
+
+        foreach (var node in graph.Nodes)
+        {
+            if (!_nodeDefinitions.TryGetValue(node.Type, out var definition))
+                continue;
+
+            var viewModel = NodeViewModelFactory.Create(node, definition, RefreshNodeDefinitionsAsync);
+            AddLoadedNode(viewModel);
+        }
+
+        foreach (var connection in graph.Connections)
+        {
+            if (!_nodesById.TryGetValue(connection.OutputNodeId, out var outputNode) ||
+                !_nodesById.TryGetValue(connection.InputNodeId, out var inputNode))
+                continue;
+
+            var outputPort = outputNode.OutputPorts.FirstOrDefault(port => port.Port.Name == connection.OutputPortName);
+            var inputPort = inputNode.InputPorts.FirstOrDefault(port => port.Port.Name == connection.InputPortName);
+            if (outputPort is not null && inputPort is not null)
+                TryConnect(outputPort, inputPort);
+        }
+    }
+
+    public bool TryConnect(PortViewModel portA, PortViewModel portB)
+    {
+        var outputPort = portA.Port.Direction == PortDirectionDto.Output ? portA : portB;
+        var inputPort = portA.Port.Direction == PortDirectionDto.Input ? portA : portB;
+
+        if (outputPort.Port.Direction != PortDirectionDto.Output ||
+            inputPort.Port.Direction != PortDirectionDto.Input)
+            return false;
+
+        if (ReferenceEquals(outputPort.ParentNode, inputPort.ParentNode))
+            return false;
+
+        if (!AreTypesCompatible(outputPort.Port.Type, inputPort.Port.Type))
+            return false;
+
+        if (Connections.Any(connection => connection.Target == inputPort))
+            DisconnectPort(inputPort);
+
+        if (Connections.Any(connection => connection.Source == outputPort && connection.Target == inputPort))
+            return false;
+
+        Connections.Add(new ConnectionViewModel(
+            new ConnectionDto
+            {
+                OutputNodeId = outputPort.ParentNode.Node.Id,
+                OutputPortName = outputPort.Port.Name,
+                InputNodeId = inputPort.ParentNode.Node.Id,
+                InputPortName = inputPort.Port.Name
+            },
+            outputPort,
+            inputPort));
+
+        return true;
+    }
+
+    public void DisconnectPort(PortViewModel port)
+    {
+        var toRemove = Connections
+            .Where(connection => connection.Source == port || connection.Target == port)
+            .ToList();
+
+        foreach (var connection in toRemove)
+            Connections.Remove(connection);
+    }
+
+    [RelayCommand]
+    private void AddImageNode() => AddNode("ImageNode");
+
+    [RelayCommand]
+    private void AddSaveImageNode() => AddNode("SaveImageNode");
+
+    [RelayCommand]
+    private void AddDeviceNode() => AddNode("DeviceNode");
+
+    [RelayCommand]
+    private void AddBinarizeNode() => AddNode("BinarizeNode");
+
+    [RelayCommand]
+    private void AddSubImageNode() => AddNode("SubImageNode");
+
+    [RelayCommand]
+    private void AddMatrixTransformNode() => AddNode("MatrixTransformNode");
+
+    [RelayCommand]
+    private void AddImageGeneratorNode() => AddNode("ImageGeneratorNode");
+
+    [RelayCommand]
+    private void AddFilterNode() => AddNode("FilterNode");
+
+    [RelayCommand]
+    private void AddHistogramNode() => AddNode("HistogramNode");
+
+    [RelayCommand]
+    private void AddMorphologyNode() => AddNode("MorphologyNode");
+
+    [RelayCommand]
+    private void AddBlobNode() => AddNode("BlobNode");
+
+    [RelayCommand]
+    private void AddNormalizeNode() => AddNode("NormalizeNode");
+
+    [RelayCommand]
+    private void AddPolimagoClassifyNode() => AddNode("PolimagoClassifyNode");
+
+    [RelayCommand]
+    private void AddGenericVisualizerNode() => AddNode("GenericVisualizerNode");
+
+    [RelayCommand]
+    private void AddCSharpNode() => AddNode("CSharpNode");
+
+    [RelayCommand]
+    private void RemoveNode(NodeViewModel nodeViewModel)
+    {
+        var connectionsToRemove = Connections
+            .Where(connection => connection.Source.ParentNode == nodeViewModel || connection.Target.ParentNode == nodeViewModel)
+            .ToList();
+
+        foreach (var connection in connectionsToRemove)
+            Connections.Remove(connection);
+
+        Nodes.Remove(nodeViewModel);
+        _nodesById.Remove(nodeViewModel.Node.Id);
+
+        if (SelectedNode == nodeViewModel)
+            SelectNode(null);
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedNode()
+    {
+        if (SelectedNode is not null)
+            RemoveNode(SelectedNode);
+    }
+
+    [RelayCommand]
+    private async Task ExecuteGraphAsync()
+    {
+        await InitializeAsync();
+
+        await _backendClient.ExecuteAsync(new ExecutionRequestDto
+        {
+            ClientId = _clientId,
+            Graph = ToGraphDto(),
+            Mode = ExecutionModeDto.Single,
+            PreviewRefreshRate = PreviewRefreshRate
+        });
+    }
+
+    [RelayCommand]
+    private async Task ToggleRunAsync()
+    {
+        await InitializeAsync();
+
+        if (IsRunning)
+        {
+            await _backendClient.StopAsync(_clientId);
+            return;
+        }
+
+        await _backendClient.ExecuteAsync(new ExecutionRequestDto
+        {
+            ClientId = _clientId,
+            Graph = ToGraphDto(),
+            Mode = ExecutionModeDto.Continuous,
+            PreviewRefreshRate = PreviewRefreshRate
+        });
+    }
+
+    public void ClearGraph()
+    {
+        SelectNode(null);
+        Connections.Clear();
+        Nodes.Clear();
+        _nodesById.Clear();
+        _nextNodeX = 50;
+        _nextNodeY = 50;
+    }
+
+    public Task<string> GenerateCodeAsync() => _backendClient.GenerateCodeAsync(ToGraphDto());
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_listenerCts is not null)
+        {
+            _listenerCts.Cancel();
+            if (_listenerTask is not null)
+            {
+                try
+                {
+                    await _listenerTask;
+                }
+                catch
+                {
+                    // Ignore listener shutdown failures.
+                }
+            }
+            _listenerCts.Dispose();
+            _listenerCts = null;
+        }
+    }
 
     partial void OnPreviewRefreshRateChanged(int value)
     {
         OnPropertyChanged(nameof(PreviewRefreshRateText));
     }
 
-    private int PreviewRefreshIntervalMs => _previewRefreshRate >= 1001 ? 0 : (int)Math.Ceiling(1000.0 / _previewRefreshRate);
-
-    public NodeGraphViewModel()
+    private void AddNode(string type)
     {
-        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
-    }
+        if (!_nodeDefinitions.TryGetValue(type, out var definition))
+            return;
 
-    /// <summary>
-    /// Selects a node, deselecting any previously selected node.
-    /// </summary>
-    /// <param name="node">The node to select, or <c>null</c> to clear the selection.</param>
-    public void SelectNode(NodeViewModel? node)
-    {
-        if (SelectedNode != null)
-            SelectedNode.IsSelected = false;
-        SelectedNode = node;
-        if (node != null)
-            node.IsSelected = true;
-    }
+        var node = new NodeDto
+        {
+            Type = type,
+            X = _nextNodeX,
+            Y = _nextNodeY,
+            Properties = definition.Properties.Select(property => new NodePropertyDto
+            {
+                Name = property.Name,
+                Value = property.DefaultValue
+            }).ToList()
+        };
 
-    [RelayCommand]
-    private void AddImageNode() => AddNode(new ImageNode(), (n, x, y) => new ImageNodeViewModel((ImageNode)n, x, y));
+        var viewModel = NodeViewModelFactory.Create(node, definition, RefreshNodeDefinitionsAsync);
+        AddLoadedNode(viewModel);
 
-    [RelayCommand]
-    private void AddSaveImageNode() => AddNode(new SaveImageNode(), (n, x, y) => new SaveImageNodeViewModel((SaveImageNode)n, x, y));
-
-    [RelayCommand]
-    private void AddDeviceNode() => AddNode(new DeviceNode(), (n, x, y) => new DeviceNodeViewModel((DeviceNode)n, x, y));
-
-    [RelayCommand]
-    private void AddBinarizeNode() => AddNode(new BinarizeNode(), (n, x, y) => new BinarizeNodeViewModel((BinarizeNode)n, x, y));
-
-    [RelayCommand]
-    private void AddSubImageNode() => AddNode(new SubImageNode(), (n, x, y) => new SubImageNodeViewModel((SubImageNode)n, x, y));
-
-    [RelayCommand]
-    private void AddMatrixTransformNode() => AddNode(new MatrixTransformNode(), (n, x, y) => new MatrixTransformNodeViewModel((MatrixTransformNode)n, x, y));
-
-    [RelayCommand]
-    private void AddImageGeneratorNode() => AddNode(new ImageGeneratorNode(), (n, x, y) => new ImageGeneratorNodeViewModel((ImageGeneratorNode)n, x, y));
-
-    [RelayCommand]
-    private void AddFilterNode() => AddNode(new FilterNode(), (n, x, y) => new FilterNodeViewModel((FilterNode)n, x, y));
-
-    [RelayCommand]
-    private void AddHistogramNode() => AddNode(new HistogramNode(), (n, x, y) => new HistogramNodeViewModel((HistogramNode)n, x, y));
-
-    [RelayCommand]
-    private void AddMorphologyNode() => AddNode(new MorphologyNode(), (n, x, y) => new MorphologyNodeViewModel((MorphologyNode)n, x, y));
-
-    [RelayCommand]
-    private void AddBlobNode() => AddNode(new BlobNode(), (n, x, y) => new BlobNodeViewModel((BlobNode)n, x, y));
-
-    [RelayCommand]
-    private void AddNormalizeNode() => AddNode(new NormalizeNode(), (n, x, y) => new NormalizeNodeViewModel((NormalizeNode)n, x, y));
-
-    [RelayCommand]
-    private void AddPolimagoClassifyNode() => AddNode(new PolimagoClassifyNode(), (n, x, y) => new PolimagoClassifyNodeViewModel((PolimagoClassifyNode)n, x, y));
-
-    [RelayCommand]
-    private void AddGenericVisualizerNode() => AddNode(new GenericVisualizerNode(), (n, x, y) => new GenericVisualizerNodeViewModel((GenericVisualizerNode)n, x, y));
-
-    [RelayCommand]
-    private void AddCSharpNode() => AddNode(new CSharpNode(), (n, x, y) => new CSharpNodeViewModel((CSharpNode)n, x, y));
-
-    private void AddNode(Node node, Func<Node, double, double, NodeViewModel> createVM)
-    {
-        _graph.AddNode(node);
-        var vm = createVM(node, _nextNodeX, _nextNodeY);
-        Nodes.Add(vm);
         _nextNodeX += 60;
         if (_nextNodeX > 500)
         {
@@ -129,258 +337,101 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Attempts to connect two ports. One must be an output and the other an input.
-    /// </summary>
-    /// <param name="portA">First port.</param>
-    /// <param name="portB">Second port.</param>
-    /// <returns><c>true</c> if the connection was created successfully.</returns>
-    public bool TryConnect(PortViewModel portA, PortViewModel portB)
+    private void AddLoadedNode(NodeViewModel viewModel)
     {
-        try
+        Nodes.Add(viewModel);
+        _nodesById[viewModel.Node.Id] = viewModel;
+    }
+
+    private async Task HandleExecutionMessageAsync(ExecutionMessageDto message)
+    {
+        await EnqueueAsync(() => ApplyExecutionMessage(message));
+    }
+
+    private void ApplyExecutionMessage(ExecutionMessageDto message)
+    {
+        switch (message.MessageType)
         {
-            var outputPort = portA.Port.Direction == PortDirection.Output ? portA : portB;
-            var inputPort = portA.Port.Direction == PortDirection.Input ? portA : portB;
-
-            if (outputPort.Port.Direction != PortDirection.Output ||
-                inputPort.Port.Direction != PortDirection.Input)
-                return false;
-
-            _graph.Connect(outputPort.Port, inputPort.Port);
-            var connection = _graph.Connections[^1];
-            Connections.Add(new ConnectionViewModel(connection, outputPort, inputPort));
-            return true;
+            case ExecutionMessageTypeDto.ExecutionState:
+            case ExecutionMessageTypeDto.Completed:
+            case ExecutionMessageTypeDto.Failure:
+                ApplyExecutionState(message.ExecutionState);
+                break;
+            case ExecutionMessageTypeDto.NodeUpdate:
+                if (message.NodeUpdate is not null && _nodesById.TryGetValue(message.NodeUpdate.NodeId, out var node))
+                    node.ApplyExecutionUpdate(message.NodeUpdate);
+                break;
+            case ExecutionMessageTypeDto.ImagePreview:
+                if (message.ImagePreview is not null && _nodesById.TryGetValue(message.ImagePreview.NodeId, out var imageNode))
+                    imageNode.ApplyImagePreview(message.ImagePreview);
+                break;
+            case ExecutionMessageTypeDto.HistogramPreview:
+                if (message.HistogramPreview is not null && _nodesById.TryGetValue(message.HistogramPreview.NodeId, out var histogramNode))
+                    histogramNode.ApplyHistogramPreview(message.HistogramPreview);
+                break;
+            case ExecutionMessageTypeDto.BlobPreview:
+                if (message.BlobPreview is not null && _nodesById.TryGetValue(message.BlobPreview.NodeId, out var blobNode))
+                    blobNode.ApplyBlobPreview(message.BlobPreview);
+                break;
+            case ExecutionMessageTypeDto.ClassificationPreview:
+                if (message.ClassificationPreview is not null && _nodesById.TryGetValue(message.ClassificationPreview.NodeId, out var classifyNode))
+                    classifyNode.ApplyClassificationPreview(message.ClassificationPreview);
+                break;
+            case ExecutionMessageTypeDto.TextPreview:
+                if (message.TextPreview is not null && _nodesById.TryGetValue(message.TextPreview.NodeId, out var textNode))
+                    textNode.ApplyTextPreview(message.TextPreview);
+                break;
         }
-        catch
+    }
+
+    private void ApplyExecutionState(ExecutionStateDto? state)
+    {
+        if (state is null)
+            return;
+
+        IsRunning = state.Status is ExecutionStatusDto.Starting or ExecutionStatusDto.Initializing or ExecutionStatusDto.Running;
+        Fps = IsRunning ? state.FramesPerSecond ?? Fps : 0;
+        LastExecutionTimeText = state.LastExecutionDurationMs.HasValue
+            ? FormatExecutionTime(state.LastExecutionDurationMs.Value)
+            : "-";
+    }
+
+    private Task EnqueueAsync(Action action)
+    {
+        if (_dispatcherQueue.HasThreadAccess)
         {
-            return false;
+            action();
+            return Task.CompletedTask;
         }
-    }
 
-    /// <summary>
-    /// Removes all connections that involve the given port.
-    /// </summary>
-    /// <param name="port">The port whose connections should be removed.</param>
-    public void DisconnectPort(PortViewModel port)
-    {
-        var toRemove = Connections
-            .Where(c => c.Source == port || c.Target == port)
-            .ToList();
-        foreach (var c in toRemove)
-        {
-            _graph.Disconnect(c.Connection);
-            Connections.Remove(c);
-        }
-    }
-
-    [RelayCommand]
-    private void RemoveNode(NodeViewModel nodeVM)
-    {
-        var toRemove = Connections
-            .Where(c => c.Source.ParentNode == nodeVM || c.Target.ParentNode == nodeVM)
-            .ToList();
-        foreach (var c in toRemove)
-            Connections.Remove(c);
-
-        _graph.RemoveNode(nodeVM.Node);
-        Nodes.Remove(nodeVM);
-
-        if (SelectedNode == nodeVM)
-            SelectNode(null);
-    }
-
-    [RelayCommand]
-    private void RemoveSelectedNode()
-    {
-        if (SelectedNode is { } node)
-            RemoveNode(node);
-    }
-
-    [RelayCommand]
-    private void InitializeGraph()
-    {
-        _graph.Initialize();
-        foreach (var node in Nodes)
-            node.RefreshPreview();
-    }
-
-    [RelayCommand]
-    private void ExecuteGraph()
-    {
-        var sw = Stopwatch.StartNew();
-        _graph.Execute();
-        sw.Stop();
-        LastExecutionTimeText = FormatExecutionTime(sw.Elapsed);
-        RefreshPreviews();
-    }
-
-    [RelayCommand]
-    private void ToggleRun()
-    {
-        if (IsRunning)
-            Stop();
-        else
-            Start();
-    }
-
-    private void Start()
-    {
-        if (IsRunning) return;
-        _runCts = new CancellationTokenSource();
-        IsRunning = true;
-        var ct = _runCts.Token;
-
-        Task.Run(async () =>
-            {
-                var fpsStopwatch = Stopwatch.StartNew();
-                int frameCount = 0;
-                var previewTimer = Stopwatch.StartNew();
-
-                try
-                {
-                    while (!ct.IsCancellationRequested)
-                    {
-                        await _refreshGate.WaitAsync(ct);
-                        var execSw = Stopwatch.StartNew();
-                        try
-                        {
-                            _graph.Execute();
-                        }
-                        catch
-                        {
-                            _refreshGate.Release();
-                            throw;
-                        }
-                        execSw.Stop();
-                        var execTime = execSw.Elapsed;
-                        frameCount++;
-
-                        double? fpsToReport = null;
-                        if (fpsStopwatch.ElapsedMilliseconds >= 1000)
-                        {
-                            fpsToReport = frameCount * 1000.0 / fpsStopwatch.ElapsedMilliseconds;
-                            frameCount = 0;
-                            fpsStopwatch.Restart();
-                        }
-
-                        var intervalMs = PreviewRefreshIntervalMs;
-                        bool doRefreshPreview = intervalMs == 0 || previewTimer.ElapsedMilliseconds >= intervalMs;
-                        if (doRefreshPreview)
-                            previewTimer.Restart();
-
-                        _dispatcherQueue.TryEnqueue(() =>
-                        {
-                            try
-                            {
-                                if (fpsToReport.HasValue)
-                                    Fps = fpsToReport.Value;
-                                LastExecutionTimeText = FormatExecutionTime(execTime);
-                                foreach (var node in Nodes)
-                                {
-                                    node.RefreshExecutionTime();
-                                    if (doRefreshPreview)
-                                        node.RefreshPreview();
-                                }
-                            }
-                            finally { _refreshGate.Release(); }
-                        });
-                    }
-                }
-                catch (Exception) when (ct.IsCancellationRequested)
-                {
-                    // Expected on cancellation
-                }
-                catch (Exception)
-                {
-                    _dispatcherQueue.TryEnqueue(Stop);
-                }
-            }, ct);
-    }
-
-    private void Stop()
-    {
-        _runCts?.Cancel();
-        _runCts?.Dispose();
-        _runCts = null;
-        IsRunning = false;
-        Fps = 0;
-    }
-
-    /// <summary>
-    /// Adds a pre-created node and its view model to the graph.
-    /// Used during deserialization to restore saved nodes.
-    /// </summary>
-    /// <param name="node">The domain node.</param>
-    /// <param name="vm">The corresponding view model.</param>
-    public void AddLoadedNode(Node node, NodeViewModel vm)
-    {
-        _graph.AddNode(node);
-        Nodes.Add(vm);
-    }
-
-    /// <summary>
-    /// Attempts to initialize every <see cref="IInitializable"/> node that was restored
-    /// during deserialization. Each node is tried independently so that a failure on one
-    /// (e.g. a missing image file or unavailable device) does not prevent the others from
-    /// being initialized. Previews are refreshed afterwards.
-    /// </summary>
-    public void InitializeAfterLoad()
-    {
-        foreach (var nodeVM in Nodes)
-        {
-            if (nodeVM.Node is IInitializable init && !init.IsInitialized)
+        var completionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!_dispatcherQueue.TryEnqueue(() =>
             {
                 try
                 {
-                    init.Initialize();
+                    action();
+                    completionSource.SetResult();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Node remains uninitialized; the user can correct its
-                    // configuration and re-initialize manually.
+                    completionSource.SetException(ex);
                 }
-            }
-        }
-        RefreshPreviews();
-    }
-
-    /// <summary>
-    /// Removes all nodes and connections, disposing the underlying graph.
-    /// </summary>
-    public void ClearGraph()
-    {
-        if (IsRunning)
-            ToggleRun();
-
-        SelectNode(null);
-        Connections.Clear();
-
-        // Remove nodes in reverse to avoid collection-modified issues
-        for (int i = Nodes.Count - 1; i >= 0; i--)
+            }))
         {
-            _graph.RemoveNode(Nodes[i].Node);
-            Nodes.RemoveAt(i);
+            completionSource.SetException(new InvalidOperationException("Unable to dispatch work to the UI thread."));
         }
 
-        _nextNodeX = 50;
-        _nextNodeY = 50;
+        return completionSource.Task;
     }
 
-    /// <summary>
-    /// Generates standalone C# source code that replicates the current graph.
-    /// </summary>
-    /// <returns>A C# code snippet as a string.</returns>
-    public string GenerateCode() => CodeGenerator.Generate(_graph);
+    private static bool AreTypesCompatible(string outputType, string inputType)
+        => string.Equals(outputType, inputType, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(inputType, "Any", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(outputType, "Any", StringComparison.OrdinalIgnoreCase);
 
-    private void RefreshPreviews()
-    {
-        foreach (var node in Nodes)
-        {
-            node.RefreshExecutionTime();
-            node.RefreshPreview();
-        }
-    }
-
-    private static string FormatExecutionTime(TimeSpan t)
-        => t.TotalMilliseconds >= 1.0 ? $"{t.TotalMilliseconds:F1} ms" : $"{t.TotalMicroseconds:F0} µs";
+    private static string FormatExecutionTime(double executionDurationMs)
+        => executionDurationMs >= 1.0
+            ? $"{executionDurationMs:F1} ms"
+            : $"{executionDurationMs * 1000:F0} us";
 }
+

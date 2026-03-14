@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseBuiltRuntimeReferences)' != 'true'">
+    <ProjectReference Include="..\CommonVisionNodes.Contracts\CommonVisionNodes.Contracts.csproj" />
+    <ProjectReference Include="..\CommonVisionNodes.Runtime\CommonVisionNodes.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseBuiltRuntimeReferences)' == 'true'">
+    <Reference Include="CommonVisionNodes.Contracts">
+      <HintPath>..\CommonVisionNodes.Contracts\bin\Debug\net10.0\CommonVisionNodes.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="CommonVisionNodes.Runtime">
+      <HintPath>..\CommonVisionNodes.Runtime\bin\Debug\net10.0\CommonVisionNodes.Runtime.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

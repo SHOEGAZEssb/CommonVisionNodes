@@ -8,6 +8,13 @@
     }
   },
   "profiles": {
+    "CommonVisionNodesUI (WebAssembly)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:8080",
+      "compatibleTargetFramework": "browserwasm"
+    },
     "CommonVisionNodesUI (Desktop)": {
       "commandName": "Project",
       "compatibleTargetFramework": "desktop"

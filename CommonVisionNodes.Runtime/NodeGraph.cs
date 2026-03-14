@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace CommonVisionNodes
 {
@@ -13,31 +13,16 @@ namespace CommonVisionNodes
         private List<Node>? _cachedSort;
         private Dictionary<Port, Connection>? _connectionLookup;
 
-        /// <summary>
-        /// All nodes in the graph.
-        /// </summary>
         public IReadOnlyList<Node> Nodes => _nodes;
 
-        /// <summary>
-        /// All connections between node ports.
-        /// </summary>
         public IReadOnlyList<Connection> Connections => _connections;
 
-        /// <summary>
-        /// Adds a node to the graph.
-        /// </summary>
-        /// <param name="node">The node to add.</param>
         public void AddNode(Node node)
         {
             _nodes.Add(node);
             InvalidateCache();
         }
 
-        /// <summary>
-        /// Removes a node and all its connections from the graph.
-        /// If the node implements <see cref="IInitializable"/>, it is disposed.
-        /// </summary>
-        /// <param name="node">The node to remove.</param>
         public void RemoveNode(Node node)
         {
             _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
@@ -48,22 +33,12 @@ namespace CommonVisionNodes
                 initializable.Dispose();
         }
 
-        /// <summary>
-        /// Removes an existing connection from the graph.
-        /// </summary>
-        /// <param name="connection">The connection to remove.</param>
         public void Disconnect(Connection connection)
         {
             _connections.Remove(connection);
             InvalidateCache();
         }
 
-        /// <summary>
-        /// Connects an output port to an input port.
-        /// </summary>
-        /// <param name="output">The source output port.</param>
-        /// <param name="input">The destination input port.</param>
-        /// <exception cref="InvalidOperationException">Thrown when port directions or types are incompatible.</exception>
         public void Connect(Port output, Port input)
         {
             if (output.Direction != PortDirection.Output)
@@ -78,7 +53,6 @@ namespace CommonVisionNodes
             if (_connections.Any(c => c.Output == output && c.Input == input))
                 throw new InvalidOperationException("Connection already exists");
 
-            // todo possibly "manual" conversion for types later
             if (!input.Type.IsAssignableFrom(output.Type))
                 throw new InvalidOperationException("Incompatible port types");
 
@@ -86,10 +60,6 @@ namespace CommonVisionNodes
             InvalidateCache();
         }
 
-        /// <summary>
-        /// Initializes all <see cref="IInitializable"/> nodes that have not yet been initialized,
-        /// in topological order.
-        /// </summary>
         public void Initialize()
         {
             var sorted = TopologicalSort();
@@ -100,16 +70,15 @@ namespace CommonVisionNodes
             }
         }
 
-        /// <summary>
-        /// Executes all nodes in topological order, propagating values along connections.
-        /// </summary>
-        public void Execute()
+        public void Execute(Action<Node>? beforeExecute = null, Action<Node>? afterExecute = null)
         {
             var sorted = _cachedSort ??= TopologicalSort();
             var lookup = _connectionLookup ??= BuildConnectionLookup();
 
             foreach (var node in sorted)
             {
+                beforeExecute?.Invoke(node);
+
                 foreach (var input in node.Inputs)
                 {
                     if (lookup.TryGetValue(input, out var connection))
@@ -117,15 +86,23 @@ namespace CommonVisionNodes
                 }
 
                 var sw = Stopwatch.StartNew();
-                node.Execute();
+                try
+                {
+                    node.Execute();
+                }
+                catch (Exception ex)
+                {
+                    sw.Stop();
+                    node.LastExecutionTime = sw.Elapsed;
+                    throw new NodeExecutionException(node, ex);
+                }
+
                 sw.Stop();
                 node.LastExecutionTime = sw.Elapsed;
+                afterExecute?.Invoke(node);
             }
         }
 
-        /// <summary>
-        /// Disposes all <see cref="IInitializable"/> nodes in reverse topological order.
-        /// </summary>
         public void Dispose()
         {
             var sorted = TopologicalSort();

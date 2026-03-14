@@ -1,59 +1,54 @@
-using CommonVisionNodes;
-using CvbImage = Stemmer.Cvb.Image;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="CSharpNode"/>. Manages C# code editing and compilation status.
-/// </summary>
 public partial class CSharpNodeViewModel : NodeViewModel
 {
-    private readonly CSharpNode _csharpNode;
+    public CSharpNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+        _code = GetString("Code");
+    }
 
     [ObservableProperty]
     private string _code = string.Empty;
 
     [ObservableProperty]
-    private CvbImage? _previewImage;
+    private ImagePreviewDto? _previewImage;
 
     [ObservableProperty]
-    private string? _compilationError;
+    private string _compilationError = string.Empty;
 
-    [ObservableProperty]
-    private bool _hasCompilationError;
+    public bool HasCompilationError => !string.IsNullOrWhiteSpace(CompilationError);
 
-    /// <inheritdoc/>
-    public override string? Summary => HasCompilationError ? "⚠ Error" : "✓ Ready";
-
-    /// <inheritdoc/>
-    public override bool IsEditableWhileRunning => false;
-
-    /// <summary>
-    /// Creates a new C# node view model.
-    /// </summary>
-    /// <param name="node">The underlying C# node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public CSharpNodeViewModel(CSharpNode node, double x, double y) : base(node, x, y)
-    {
-        _csharpNode = node;
-        _code = node.Code;
-    }
+    public override string? Summary => HasCompilationError ? "Script error" : "Custom image code";
 
     partial void OnCodeChanged(string value)
     {
-        if (!IsSelected) { _code = _csharpNode.Code; return; }
-        _csharpNode.Code = value;
+        SetString("Code", value);
+        CompilationError = string.Empty;
+        OnPropertyChanged(nameof(HasCompilationError));
+        RaiseSummaryChanged();
     }
 
-    /// <summary>
-    /// Updates the preview image from the output and checks for compilation errors.
-    /// </summary>
-    public override void RefreshPreview()
+    protected override void OnExecutionUpdate(NodeExecutionUpdateDto update)
     {
-        PreviewImage = _csharpNode.ImageOutput.Value as CvbImage;
-        CompilationError = _csharpNode.LastCompilationError;
-        HasCompilationError = !string.IsNullOrEmpty(CompilationError);
-        OnPropertyChanged(nameof(Summary));
+        if (update.Status == NodeExecutionStatusDto.Failed && !string.IsNullOrWhiteSpace(update.Message))
+        {
+            CompilationError = update.Message;
+            OnPropertyChanged(nameof(HasCompilationError));
+            RaiseSummaryChanged();
+        }
+        else if (update.Status == NodeExecutionStatusDto.Succeeded && !string.IsNullOrWhiteSpace(CompilationError))
+        {
+            CompilationError = string.Empty;
+            OnPropertyChanged(nameof(HasCompilationError));
+            RaiseSummaryChanged();
+        }
+    }
+
+    public override void ApplyImagePreview(ImagePreviewDto? preview)
+    {
+        PreviewImage = preview;
     }
 }

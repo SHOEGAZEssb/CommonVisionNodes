@@ -1,78 +1,54 @@
-using CommonVisionNodes;
 using System.IO;
-using CvbImage = Stemmer.Cvb.Image;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="PolimagoClassifyNode"/>. Manages classifier path,
-/// quality threshold, and classification results display.
-/// </summary>
 public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 {
-    private readonly PolimagoClassifyNode _classifyNode;
+    public PolimagoClassifyNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+        _classifierPath = GetString("ClassifierPath");
+        _minQuality = GetDouble("MinQuality", 0.5);
+    }
 
     [ObservableProperty]
     private string _classifierPath = string.Empty;
 
     [ObservableProperty]
-    private double _minQuality = 0.5;
+    private double _minQuality;
 
     [ObservableProperty]
-    private int _resultCount;
+    private IReadOnlyList<ClassificationResultDto> _results = [];
 
     [ObservableProperty]
-    private IReadOnlyList<PolimagoClassifyResultItem> _results = [];
+    private ImagePreviewDto? _previewImage;
 
-    [ObservableProperty]
-    private CvbImage? _previewImage;
+    public int ResultCount => Results.Count;
 
-    /// <inheritdoc/>
     public override string? Summary => string.IsNullOrEmpty(ClassifierPath)
         ? "No classifier loaded"
         : $"{Path.GetFileName(ClassifierPath)} ({ResultCount} result(s))";
 
-    /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
-
-    /// <summary>
-    /// Creates a new Polimago classify node view model.
-    /// </summary>
-    /// <param name="node">The underlying classify node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public PolimagoClassifyNodeViewModel(PolimagoClassifyNode node, double x, double y) : base(node, x, y)
-    {
-        _classifyNode = node;
-        _classifierPath = node.ClassifierPath;
-        _minQuality = node.MinQuality;
-    }
 
     partial void OnClassifierPathChanged(string value)
     {
-        _classifyNode.ClassifierPath = value;
-        OnPropertyChanged(nameof(Summary));
-
-        if (!string.IsNullOrEmpty(value) && File.Exists(value))
-        {
-            _classifyNode.Initialize();
-        }
+        SetString("ClassifierPath", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnMinQualityChanged(double value)
     {
-        _classifyNode.MinQuality = value;
-        OnPropertyChanged(nameof(Summary));
+        SetDouble("MinQuality", value);
+        RaiseSummaryChanged();
     }
 
-    /// <summary>
-    /// Updates classification results from the underlying node.
-    /// </summary>
-    public override void RefreshPreview()
+    public override void ApplyClassificationPreview(ClassificationPreviewDto preview)
     {
-        ResultCount = _classifyNode.ResultCount;
-        Results = _classifyNode.Results;
-        PreviewImage = _classifyNode.ImageOutput.Value as CvbImage;
-        OnPropertyChanged(nameof(Summary));
+        PreviewImage = preview.Image;
+        Results = preview.Results.ToList();
+        OnPropertyChanged(nameof(ResultCount));
+        RaiseSummaryChanged();
     }
 }

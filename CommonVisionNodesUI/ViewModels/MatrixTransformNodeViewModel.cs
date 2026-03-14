@@ -1,23 +1,27 @@
-using CommonVisionNodes;
-using CvbImage = Stemmer.Cvb.Image;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="MatrixTransformNode"/>. Manages transform parameters and image preview.
-/// </summary>
 public partial class MatrixTransformNodeViewModel : NodeViewModel
 {
-    private readonly MatrixTransformNode _transformNode;
+    public MatrixTransformNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+        _angle = GetDouble("Angle", 0);
+        _scaleX = GetDouble("ScaleX", 1.0);
+        _scaleY = GetDouble("ScaleY", 1.0);
+        _translateX = GetDouble("TranslateX", 0);
+        _translateY = GetDouble("TranslateY", 0);
+    }
 
     [ObservableProperty]
     private double _angle;
 
     [ObservableProperty]
-    private double _scaleX = 1.0;
+    private double _scaleX;
 
     [ObservableProperty]
-    private double _scaleY = 1.0;
+    private double _scaleY;
 
     [ObservableProperty]
     private double _translateX;
@@ -26,61 +30,44 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
     private double _translateY;
 
     [ObservableProperty]
-    private CvbImage? _previewImage;
+    private ImagePreviewDto? _previewImage;
 
-    public override string? Summary => $"R:{Angle:F1}\u00B0  S:{ScaleX:F2}\u00D7{ScaleY:F2}";
+    public override string? Summary => $"{Angle:F1}°  {ScaleX:F2}x/{ScaleY:F2}x";
 
     public override bool IsEditableWhileRunning => true;
 
-    /// <summary>
-    /// Creates a new matrix transform node view model.
-    /// </summary>
-    /// <param name="node">The underlying transform node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public MatrixTransformNodeViewModel(MatrixTransformNode node, double x, double y) : base(node, x, y)
-    {
-        _transformNode = node;
-        _angle = node.Angle;
-        _scaleX = node.ScaleX;
-        _scaleY = node.ScaleY;
-        _translateX = node.TranslateX;
-        _translateY = node.TranslateY;
-    }
-
     partial void OnAngleChanged(double value)
     {
-        _transformNode.Angle = value;
-        OnPropertyChanged(nameof(Summary));
+        SetDouble("Angle", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnScaleXChanged(double value)
     {
-        _transformNode.ScaleX = value;
-        OnPropertyChanged(nameof(Summary));
+        SetDouble("ScaleX", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnScaleYChanged(double value)
     {
-        _transformNode.ScaleY = value;
-        OnPropertyChanged(nameof(Summary));
+        SetDouble("ScaleY", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnTranslateXChanged(double value)
     {
-        _transformNode.TranslateX = value;
+        SetDouble("TranslateX", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnTranslateYChanged(double value)
     {
-        _transformNode.TranslateY = value;
+        SetDouble("TranslateY", value);
+        RaiseSummaryChanged();
     }
 
-    /// <summary>
-    /// Updates the preview image from the transformed output.
-    /// </summary>
-    public override void RefreshPreview()
+    public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
-        PreviewImage = _transformNode.ImageOutput.Value as CvbImage;
+        PreviewImage = preview;
     }
 }

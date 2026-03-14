@@ -1,23 +1,21 @@
 using System.Collections.ObjectModel;
-using CommonVisionNodes;
-using Stemmer.Cvb;
-using Stemmer.Cvb.Driver;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// Represents a camera device found during discovery.
-/// </summary>
-/// <param name="DisplayName">Human-readable device name.</param>
-/// <param name="AccessToken">Token used to open the device.</param>
 public record DiscoveredDevice(string DisplayName, string AccessToken);
 
-/// <summary>
-/// View model for <see cref="DeviceNode"/>. Manages device discovery, selection, and initialization.
-/// </summary>
 public partial class DeviceNodeViewModel : NodeViewModel
 {
-    private readonly DeviceNode _deviceNode;
+    private readonly Func<Task>? _refreshDevicesAsync;
+
+    public DeviceNodeViewModel(NodeDto node, NodeDefinitionDto definition, Func<Task>? refreshDevicesAsync = null)
+        : base(node, definition)
+    {
+        _refreshDevicesAsync = refreshDevicesAsync;
+        _accessToken = GetString("AccessToken");
+        RefreshDiscoveredDevices();
+    }
 
     [ObservableProperty]
     private string _accessToken = string.Empty;
@@ -31,46 +29,33 @@ public partial class DeviceNodeViewModel : NodeViewModel
         ? "No device configured"
         : SelectedDevice?.DisplayName ?? AccessToken;
 
-    /// <summary>
-    /// Creates a new device node view model.
-    /// </summary>
-    /// <param name="node">The underlying device node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public DeviceNodeViewModel(DeviceNode node, double x, double y) : base(node, x, y)
-    {
-        _deviceNode = node;
-        _accessToken = node.AccessToken;
-    }
-
     partial void OnAccessTokenChanged(string value)
     {
-        _deviceNode.AccessToken = value;
-        OnPropertyChanged(nameof(Summary));
+        SetString("AccessToken", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnSelectedDeviceChanged(DiscoveredDevice? value)
     {
         if (value is not null)
-        {
             AccessToken = value.AccessToken;
-            _deviceNode.Initialize();
-        }
     }
 
+    protected override void OnDefinitionUpdated() => RefreshDiscoveredDevices();
+
     [RelayCommand]
-    private void DiscoverDevices()
+    private async Task DiscoverDevicesAsync()
+    {
+        if (_refreshDevicesAsync is not null)
+            await _refreshDevicesAsync();
+    }
+
+    private void RefreshDiscoveredDevices()
     {
         DiscoveredDevices.Clear();
-        foreach (var info in DeviceFactory.Discover(DiscoverFlags.IgnoreVins | DiscoverFlags.IncludeMockTL))
-        {
-            var displayName = info.TryGetProperty(DiscoveryProperties.DeviceModel, out var model)
-                ? model
-                : info.AccessToken;
-            DiscoveredDevices.Add(new DiscoveredDevice(displayName, info.AccessToken));
-        }
+        foreach (var option in GetOptions("AccessToken"))
+            DiscoveredDevices.Add(new DiscoveredDevice(option.Label, option.Value));
 
-        if (DiscoveredDevices.Count > 0 && SelectedDevice is null)
-            SelectedDevice = DiscoveredDevices[0];
+        SelectedDevice = DiscoveredDevices.FirstOrDefault(device => device.AccessToken == AccessToken);
     }
 }
