@@ -1,5 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Controls;
-using CommonVisionNodesUI.Helpers;
 using CommonVisionNodesUI.ViewModels;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -9,13 +11,20 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
+using Windows.Storage;
 using Windows.Storage.Pickers;
 
 namespace CommonVisionNodesUI;
 
 public sealed partial class MainPage : Page
 {
-    private readonly MainViewModel _viewModel = new();
+    private static readonly JsonSerializerOptions GraphJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private readonly MainViewModel _viewModel;
     private readonly List<Path> _connectionPaths = [];
     private readonly Dictionary<NodeViewModel, NodeControl> _nodeControls = [];
 
@@ -32,6 +41,8 @@ public sealed partial class MainPage : Page
     private const double MinZoom = 0.1;
     private const double MaxZoom = 3.0;
     private const double ZoomFactor = 1.1;
+    private const double MinorGridSpacing = 25;
+    private const double MajorGridSpacing = 100;
 
     private readonly Path _minorGridPath = new()
     {
@@ -52,13 +63,18 @@ public sealed partial class MainPage : Page
         IsHitTestVisible = false
     };
 
-    private const double MinorGridSpacing = 25;
-    private const double MajorGridSpacing = 100;
+    static MainPage()
+    {
+        GraphJsonOptions.Converters.Add(new JsonStringEnumConverter());
+    }
 
     public MainPage()
     {
         this.InitializeComponent();
+        _viewModel = ((App)Application.Current).Host!.Services.GetRequiredService<MainViewModel>();
         DataContext = _viewModel;
+
+        Loaded += async (_, _) => await _viewModel.Graph.InitializeAsync();
 
         GraphCanvasContainer.SizeChanged += (_, e) =>
         {
@@ -75,15 +91,16 @@ public sealed partial class MainPage : Page
 
         _viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
         {
-            if (e.NewItems != null)
+            if (e.NewItems is not null)
             {
-                foreach (NodeViewModel nodeVM in e.NewItems)
-                    AddNodeControl(nodeVM);
+                foreach (NodeViewModel nodeViewModel in e.NewItems)
+                    AddNodeControl(nodeViewModel);
             }
-            if (e.OldItems != null)
+
+            if (e.OldItems is not null)
             {
-                foreach (NodeViewModel nodeVM in e.OldItems)
-                    RemoveNodeControl(nodeVM);
+                foreach (NodeViewModel nodeViewModel in e.OldItems)
+                    RemoveNodeControl(nodeViewModel);
             }
         };
 
@@ -95,30 +112,26 @@ public sealed partial class MainPage : Page
         };
     }
 
-    // --- Node control management ---
-
-    private void AddNodeControl(NodeViewModel nodeVM)
+    private void AddNodeControl(NodeViewModel nodeViewModel)
     {
         var control = new NodeControl();
-        control.SetViewModel(nodeVM);
+        control.SetViewModel(nodeViewModel);
         control.NodeMoved += _ => RedrawConnections();
         control.PortPressed += OnPortPressed;
         control.PortRightTapped += OnPortRightTapped;
         control.NodeSelected += OnNodeSelected;
-        _nodeControls[nodeVM] = control;
+        _nodeControls[nodeViewModel] = control;
         GraphCanvas.Children.Add(control);
     }
 
-    private void RemoveNodeControl(NodeViewModel nodeVM)
+    private void RemoveNodeControl(NodeViewModel nodeViewModel)
     {
-        if (_nodeControls.TryGetValue(nodeVM, out var control))
+        if (_nodeControls.TryGetValue(nodeViewModel, out var control))
         {
             GraphCanvas.Children.Remove(control);
-            _nodeControls.Remove(nodeVM);
+            _nodeControls.Remove(nodeViewModel);
         }
     }
-
-    // --- Selection visual ---
 
     private void OnNodeSelected(NodeControl control)
     {
@@ -140,8 +153,6 @@ public sealed partial class MainPage : Page
             _selectedControl = null;
         }
     }
-
-    // --- Connection drag ---
 
     private void OnPortPressed(NodeControl sender, PortViewModel port, PointerRoutedEventArgs e)
     {
@@ -226,9 +237,9 @@ public sealed partial class MainPage : Page
     private PortViewModel? HitTestPort(Point point)
     {
         const double hitRadius = 15;
-        foreach (var nodeVM in _viewModel.Graph.Nodes)
+        foreach (var nodeViewModel in _viewModel.Graph.Nodes)
         {
-            foreach (var port in nodeVM.InputPorts.Concat(nodeVM.OutputPorts))
+            foreach (var port in nodeViewModel.InputPorts.Concat(nodeViewModel.OutputPorts))
             {
                 var dx = point.X - port.CenterX;
                 var dy = point.Y - port.CenterY;
@@ -236,10 +247,9 @@ public sealed partial class MainPage : Page
                     return port;
             }
         }
+
         return null;
     }
-
-    // --- Connection drawing ---
 
     private void RedrawConnections()
     {
@@ -247,11 +257,11 @@ public sealed partial class MainPage : Page
             GraphCanvas.Children.Remove(path);
         _connectionPaths.Clear();
 
-        foreach (var conn in _viewModel.Graph.Connections)
+        foreach (var connection in _viewModel.Graph.Connections)
         {
             var path = CreateBezierPath(
-                conn.Source.CenterX, conn.Source.CenterY,
-                conn.Target.CenterX, conn.Target.CenterY,
+                connection.Source.CenterX, connection.Source.CenterY,
+                connection.Target.CenterX, connection.Target.CenterY,
                 new SolidColorBrush(Windows.UI.Color.FromArgb(255, 144, 164, 174)));
             _connectionPaths.Add(path);
             GraphCanvas.Children.Insert(0, path);
@@ -281,9 +291,9 @@ public sealed partial class MainPage : Page
     private static void UpdateBezierPath(Path path, double x1, double y1, double x2, double y2)
     {
         var offset = Math.Max(50, Math.Abs(x2 - x1) * 0.4);
-        if (path.Data is PathGeometry geo && geo.Figures.Count > 0)
+        if (path.Data is PathGeometry geometry && geometry.Figures.Count > 0)
         {
-            var figure = geo.Figures[0];
+            var figure = geometry.Figures[0];
             figure.StartPoint = new Point(x1, y1);
             if (figure.Segments.Count > 0 && figure.Segments[0] is BezierSegment bezier)
             {
@@ -293,8 +303,6 @@ public sealed partial class MainPage : Page
             }
         }
     }
-
-    // --- Zoom ---
 
     private void GraphCanvas_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
@@ -316,35 +324,31 @@ public sealed partial class MainPage : Page
         e.Handled = true;
     }
 
-    // --- Grid background ---
-
     private void RedrawGrid()
     {
-        double scale = CanvasTransform.ScaleX;
-        double tx = CanvasTransform.TranslateX;
-        double ty = CanvasTransform.TranslateY;
-        double viewW = GraphCanvasContainer.ActualWidth;
-        double viewH = GraphCanvasContainer.ActualHeight;
+        var scale = CanvasTransform.ScaleX;
+        var tx = CanvasTransform.TranslateX;
+        var ty = CanvasTransform.TranslateY;
+        var viewW = GraphCanvasContainer.ActualWidth;
+        var viewH = GraphCanvasContainer.ActualHeight;
         if (viewW <= 0 || viewH <= 0 || scale <= 0) return;
 
         var minorGeo = new PathGeometry();
         var majorGeo = new PathGeometry();
         var originGeo = new PathGeometry();
 
-        double screenMinorSpacing = MinorGridSpacing * scale;
-        bool showMinor = screenMinorSpacing >= 6;
+        var screenMinorSpacing = MinorGridSpacing * scale;
+        var showMinor = screenMinorSpacing >= 6;
+        var canvasLeft = -tx / scale;
+        var canvasTop = -ty / scale;
+        var canvasRight = (viewW - tx) / scale;
+        var canvasBottom = (viewH - ty) / scale;
+        var spacing = showMinor ? MinorGridSpacing : MajorGridSpacing;
 
-        double canvasLeft = -tx / scale;
-        double canvasTop = -ty / scale;
-        double canvasRight = (viewW - tx) / scale;
-        double canvasBottom = (viewH - ty) / scale;
-
-        double spacing = showMinor ? MinorGridSpacing : MajorGridSpacing;
-
-        double startX = Math.Floor(canvasLeft / spacing) * spacing;
-        for (double cx = startX; cx <= canvasRight; cx += spacing)
+        var startX = Math.Floor(canvasLeft / spacing) * spacing;
+        for (var cx = startX; cx <= canvasRight; cx += spacing)
         {
-            double sx = cx * scale + tx;
+            var sx = cx * scale + tx;
             var geo = Math.Abs(cx) < 0.5 ? originGeo
                     : (!showMinor || Math.Abs(cx % MajorGridSpacing) < 0.5) ? majorGeo
                     : minorGeo;
@@ -353,10 +357,10 @@ public sealed partial class MainPage : Page
             geo.Figures.Add(fig);
         }
 
-        double startY = Math.Floor(canvasTop / spacing) * spacing;
-        for (double cy = startY; cy <= canvasBottom; cy += spacing)
+        var startY = Math.Floor(canvasTop / spacing) * spacing;
+        for (var cy = startY; cy <= canvasBottom; cy += spacing)
         {
-            double sy = cy * scale + ty;
+            var sy = cy * scale + ty;
             var geo = Math.Abs(cy) < 0.5 ? originGeo
                     : (!showMinor || Math.Abs(cy % MajorGridSpacing) < 0.5) ? majorGeo
                     : minorGeo;
@@ -370,8 +374,6 @@ public sealed partial class MainPage : Page
         _originGridPath.Data = originGeo;
     }
 
-    // --- Keyboard ---
-
     private void GraphCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == Windows.System.VirtualKey.Delete && _viewModel.IsEditingEnabled)
@@ -381,11 +383,9 @@ public sealed partial class MainPage : Page
         }
     }
 
-    // --- Code generation ---
-
     private async void GenerateCodeButton_Click(object sender, RoutedEventArgs e)
     {
-        var code = _viewModel.Graph.GenerateCode();
+        var code = await _viewModel.Graph.GenerateCodeAsync();
 
         var codeBlock = new TextBlock
         {
@@ -410,7 +410,7 @@ public sealed partial class MainPage : Page
             Content = scrollViewer,
             PrimaryButtonText = "Copy to Clipboard",
             CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot,
+            XamlRoot = XamlRoot,
             MaxWidth = 800
         };
 
@@ -423,8 +423,6 @@ public sealed partial class MainPage : Page
         }
     }
 
-    // --- Save / Load ---
-
     private async void SaveGraphButton_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FileSavePicker
@@ -433,17 +431,14 @@ public sealed partial class MainPage : Page
             SuggestedFileName = "NodeGraph"
         };
         picker.FileTypeChoices.Add("Node Graph", [".cvbgraph"]);
-
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
-            ((App)Application.Current).MainWindow);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        InitializePicker(picker);
 
         var file = await picker.PickSaveFileAsync();
         if (file is null)
             return;
 
-        var json = NodeGraphSerializer.Serialize(_viewModel.Graph);
-        await System.IO.File.WriteAllTextAsync(file.Path, json);
+        var json = JsonSerializer.Serialize(_viewModel.Graph.ToGraphDto(), GraphJsonOptions);
+        await FileIO.WriteTextAsync(file, json);
     }
 
     private async void LoadGraphButton_Click(object sender, RoutedEventArgs e)
@@ -453,18 +448,32 @@ public sealed partial class MainPage : Page
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary
         };
         picker.FileTypeFilter.Add(".cvbgraph");
-
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
-            ((App)Application.Current).MainWindow);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        InitializePicker(picker);
 
         var file = await picker.PickSingleFileAsync();
         if (file is null)
             return;
 
-        var json = await System.IO.File.ReadAllTextAsync(file.Path);
-        _viewModel.Graph.ClearGraph();
-        NodeGraphSerializer.Deserialize(json, _viewModel.Graph);
-        _viewModel.Graph.InitializeAfterLoad();
+        var json = await FileIO.ReadTextAsync(file);
+        var graph = JsonSerializer.Deserialize<GraphDto>(json, GraphJsonOptions);
+        if (graph is not null)
+            await _viewModel.Graph.LoadGraphAsync(graph);
+    }
+
+    private static void InitializePicker(object picker)
+    {
+        try
+        {
+            var app = (App)Application.Current;
+            if (app.MainWindow is null)
+                return;
+
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(app.MainWindow);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        }
+        catch
+        {
+            // Picker initialization is only needed on certain desktop targets.
+        }
     }
 }

@@ -1,14 +1,17 @@
-using CommonVisionNodes;
-using CvbImage = Stemmer.Cvb.Image;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="SubImageNode"/>. Manages crop area and image preview.
-/// </summary>
 public partial class SubImageNodeViewModel : NodeViewModel
 {
-    private readonly SubImageNode _subImageNode;
+    public SubImageNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+        _areaX = GetInt("AreaX", 0);
+        _areaY = GetInt("AreaY", 0);
+        _areaWidth = GetInt("AreaWidth", 64);
+        _areaHeight = GetInt("AreaHeight", 64);
+    }
 
     [ObservableProperty]
     private int _areaX;
@@ -17,60 +20,42 @@ public partial class SubImageNodeViewModel : NodeViewModel
     private int _areaY;
 
     [ObservableProperty]
-    private int _areaWidth = 64;
+    private int _areaWidth;
 
     [ObservableProperty]
-    private int _areaHeight = 64;
+    private int _areaHeight;
 
     [ObservableProperty]
-    private CvbImage? _previewImage;
+    private ImagePreviewDto? _previewImage;
 
-    public override string? Summary => $"{AreaWidth}\u00D7{AreaHeight} @ ({AreaX},{AreaY})";
-
-    /// <summary>
-    /// Creates a new sub-image node view model.
-    /// </summary>
-    /// <param name="node">The underlying sub-image node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public SubImageNodeViewModel(SubImageNode node, double x, double y) : base(node, x, y)
-    {
-        _subImageNode = node;
-        _areaX = node.AreaX;
-        _areaY = node.AreaY;
-        _areaWidth = node.AreaWidth;
-        _areaHeight = node.AreaHeight;
-    }
+    public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
 
     partial void OnAreaXChanged(int value)
     {
-        _subImageNode.AreaX = value;
-        OnPropertyChanged(nameof(Summary));
+        SetInt("AreaX", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnAreaYChanged(int value)
     {
-        _subImageNode.AreaY = value;
-        OnPropertyChanged(nameof(Summary));
+        SetInt("AreaY", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnAreaWidthChanged(int value)
     {
-        _subImageNode.AreaWidth = value;
-        OnPropertyChanged(nameof(Summary));
+        SetInt("AreaWidth", value);
+        RaiseSummaryChanged();
     }
 
     partial void OnAreaHeightChanged(int value)
     {
-        _subImageNode.AreaHeight = value;
-        OnPropertyChanged(nameof(Summary));
+        SetInt("AreaHeight", value);
+        RaiseSummaryChanged();
     }
 
-    /// <summary>
-    /// Updates the preview image from the sub-image node's input.
-    /// </summary>
-    public override void RefreshPreview()
+    public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
-        PreviewImage = _subImageNode.ImageInput.Value as CvbImage;
+        PreviewImage = preview;
     }
 }

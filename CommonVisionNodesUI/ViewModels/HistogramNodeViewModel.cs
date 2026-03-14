@@ -1,13 +1,13 @@
-using CommonVisionNodes;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="HistogramNode"/>. Exposes histogram bin data and statistics.
-/// </summary>
 public partial class HistogramNodeViewModel : NodeViewModel
 {
-    private readonly HistogramNode _histogramNode;
+    public HistogramNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+    }
 
     [ObservableProperty]
     private long[] _bins = [];
@@ -18,30 +18,15 @@ public partial class HistogramNodeViewModel : NodeViewModel
     [ObservableProperty]
     private double _stdDev;
 
-    /// <inheritdoc/>
     public override string? Summary => Bins.Length > 0
-        ? $"\u03BC {Mean:F1}  \u03C3 {StdDev:F1}"
+        ? $"u {Mean:F1}  s {StdDev:F1}"
         : "No data";
 
-    /// <summary>
-    /// Creates a new histogram node view model.
-    /// </summary>
-    /// <param name="node">The underlying histogram node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public HistogramNodeViewModel(HistogramNode node, double x, double y) : base(node, x, y)
+    public override void ApplyHistogramPreview(HistogramPreviewDto preview)
     {
-        _histogramNode = node;
-    }
-
-    /// <summary>
-    /// Updates the histogram data from the underlying node.
-    /// </summary>
-    public override void RefreshPreview()
-    {
-        Bins = _histogramNode.Bins;
-        Mean = _histogramNode.Mean;
-        StdDev = _histogramNode.StdDev;
-        OnPropertyChanged(nameof(Summary));
+        Bins = preview.Bins.ToArray();
+        Mean = preview.Mean;
+        StdDev = preview.StdDev;
+        RaiseSummaryChanged();
     }
 }

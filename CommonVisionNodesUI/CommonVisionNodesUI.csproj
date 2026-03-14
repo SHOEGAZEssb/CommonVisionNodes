@@ -1,26 +1,18 @@
-﻿<Project Sdk="Uno.Sdk">
+<Project Sdk="Uno.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net10.0-desktop;net10.0</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
     <UnoSingleProject>true</UnoSingleProject>
 
-    <!-- Display name -->
     <ApplicationTitle>CommonVisionNodesUI</ApplicationTitle>
-    <!-- App Identifier -->
     <ApplicationId>com.companyname.CommonVisionNodesUI</ApplicationId>
-    <!-- Versions -->
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
-    <!-- Package Publisher -->
     <ApplicationPublisher>timst</ApplicationPublisher>
-    <!-- Package Description -->
     <Description>CommonVisionNodesUI powered by Uno Platform.</Description>
 
-    <!--
-      UnoFeatures are used to quickly add and manage features enabled for your app.
-      https://aka.platform.uno/singleproject-features
-    -->
     <UnoFeatures>
       Material;
       Hosting;
@@ -35,71 +27,32 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CommonVisionNodes\CommonVisionNodes.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Stemmer.Cvb">
-      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.dll</HintPath>
-    </Reference>
-    <Reference Include="Stemmer.Cvb.Foundation">
-      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Foundation.dll</HintPath>
-    </Reference>
-    <Reference Include="Stemmer.Cvb.Polimago">
-      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Polimago.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\CommonVisionNodes.Contracts\CommonVisionNodes.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Page Update="Controls\NodeControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\CvbImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\CropImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\HistogramDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\BlobImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Page Update="Controls\BlobImageDisplay.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\GenericVisualizerDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
     <Page Update="Controls\PolimagoImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
-
 </Project>
+
+

@@ -8,10 +8,6 @@ using Windows.Foundation;
 
 namespace CommonVisionNodesUI.Controls;
 
-/// <summary>
-/// Visual control representing a single node on the graph canvas.
-/// Handles dragging, selection, port interaction, and preview rendering.
-/// </summary>
 public sealed partial class NodeControl : UserControl
 {
     private NodeViewModel? _viewModel;
@@ -23,29 +19,11 @@ public sealed partial class NodeControl : UserControl
 
     internal static bool IsConnectionDragging;
 
-    /// <summary>
-    /// Raised when the node is dragged to a new position.
-    /// </summary>
     public event Action<NodeControl>? NodeMoved;
-
-    /// <summary>
-    /// Raised when a port circle is pressed (to start a connection drag).
-    /// </summary>
     public event Action<NodeControl, PortViewModel, PointerRoutedEventArgs>? PortPressed;
-
-    /// <summary>
-    /// Raised when a port circle is right-clicked (to disconnect all connections on that port).
-    /// </summary>
     public event Action<NodeControl, PortViewModel>? PortRightTapped;
-
-    /// <summary>
-    /// Raised when the node header is clicked without dragging.
-    /// </summary>
     public event Action<NodeControl>? NodeSelected;
 
-    /// <summary>
-    /// The view model bound to this control.
-    /// </summary>
     public NodeViewModel? ViewModel => _viewModel;
 
     public NodeControl()
@@ -53,10 +31,6 @@ public sealed partial class NodeControl : UserControl
         this.InitializeComponent();
     }
 
-    /// <summary>
-    /// Binds a node view model to this control, setting up header, ports, and preview.
-    /// </summary>
-    /// <param name="vm">The node view model to display.</param>
     public void SetViewModel(NodeViewModel vm)
     {
         _viewModel = vm;
@@ -93,6 +67,15 @@ public sealed partial class NodeControl : UserControl
             {
                 if (e.PropertyName == nameof(SaveImageNodeViewModel.PreviewImage))
                     ImagePreview.SetImage(saveVM.PreviewImage);
+            };
+        }
+        else if (vm is BinarizeNodeViewModel binarizeVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            binarizeVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(BinarizeNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(binarizeVM.PreviewImage);
             };
         }
         else if (vm is SubImageNodeViewModel subVM)
@@ -148,6 +131,24 @@ public sealed partial class NodeControl : UserControl
                     ImagePreview.SetImage(filterVM.PreviewImage);
             };
         }
+        else if (vm is MorphologyNodeViewModel morphVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            morphVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MorphologyNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(morphVM.PreviewImage);
+            };
+        }
+        else if (vm is NormalizeNodeViewModel normalizeVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            normalizeVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(NormalizeNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(normalizeVM.PreviewImage);
+            };
+        }
         else if (vm is HistogramNodeViewModel histVM)
         {
             HistogramPreview.Visibility = Visibility.Visible;
@@ -163,14 +164,9 @@ public sealed partial class NodeControl : UserControl
             blobVM.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(BlobNodeViewModel.PreviewImage))
-                {
                     BlobPreview.SetImage(blobVM.PreviewImage);
-                    BlobPreview.SetBlobs(blobVM.Blobs);
-                }
                 else if (e.PropertyName == nameof(BlobNodeViewModel.Blobs))
-                {
                     BlobPreview.SetBlobs(blobVM.Blobs);
-                }
             };
         }
         else if (vm is PolimagoClassifyNodeViewModel polimagoVM)
@@ -179,14 +175,9 @@ public sealed partial class NodeControl : UserControl
             polimagoVM.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.PreviewImage))
-                {
                     PolimagoPreview.SetImage(polimagoVM.PreviewImage);
-                    PolimagoPreview.SetResults(polimagoVM.Results);
-                }
                 else if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.Results))
-                {
                     PolimagoPreview.SetResults(polimagoVM.Results);
-                }
             };
         }
         else if (vm is GenericVisualizerNodeViewModel genericVM)
@@ -194,16 +185,23 @@ public sealed partial class NodeControl : UserControl
             GenericVisualizerPreview.Visibility = Visibility.Visible;
             genericVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.LastValue))
-                    GenericVisualizerPreview.SetValue(genericVM.LastValue);
+                if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.PreviewImage))
+                    GenericVisualizerPreview.SetImagePreview(genericVM.PreviewImage);
+                else if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.DisplayText))
+                    GenericVisualizerPreview.SetText(genericVM.DisplayText);
+            };
+        }
+        else if (vm is CSharpNodeViewModel csharpVM)
+        {
+            ImagePreview.Visibility = Visibility.Visible;
+            csharpVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(CSharpNodeViewModel.PreviewImage))
+                    ImagePreview.SetImage(csharpVM.PreviewImage);
             };
         }
     }
 
-    /// <summary>
-    /// Updates the visual selection state (border color and thickness).
-    /// </summary>
-    /// <param name="selected">Whether the node is selected.</param>
     public void SetSelected(bool selected)
     {
         NodeBorder.BorderBrush = new SolidColorBrush(
@@ -246,7 +244,7 @@ public sealed partial class NodeControl : UserControl
         if (_viewModel == null) return;
         _isDragging = true;
         _hasMoved = false;
-        var canvas = this.Parent as UIElement;
+        var canvas = Parent as UIElement;
         if (canvas == null) return;
         _dragStart = e.GetCurrentPoint(canvas).Position;
         _startX = _viewModel.X;
@@ -258,7 +256,7 @@ public sealed partial class NodeControl : UserControl
     private void Header_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (!_isDragging || _viewModel == null) return;
-        var canvas = this.Parent as UIElement;
+        var canvas = Parent as UIElement;
         if (canvas == null) return;
         var current = e.GetCurrentPoint(canvas).Position;
         _viewModel.X = _startX + (current.X - _dragStart.X);
@@ -295,11 +293,8 @@ public sealed partial class NodeControl : UserControl
 
             IsConnectionDragging = true;
 
-            if (ellipse.Parent is FrameworkElement parent
-                && ToolTipService.GetToolTip(parent) is ToolTip tt)
-            {
-                tt.IsOpen = false;
-            }
+            if (ellipse.Parent is FrameworkElement parent && ToolTipService.GetToolTip(parent) is ToolTip tooltip)
+                tooltip.IsOpen = false;
 
             PortPressed?.Invoke(this, port, e);
             e.Handled = true;
@@ -308,7 +303,7 @@ public sealed partial class NodeControl : UserControl
 
     private void PortToolTip_Opened(object sender, RoutedEventArgs e)
     {
-        if (IsConnectionDragging && sender is ToolTip tt)
-            tt.IsOpen = false;
+        if (IsConnectionDragging && sender is ToolTip tooltip)
+            tooltip.IsOpen = false;
     }
 }

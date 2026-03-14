@@ -1,50 +1,38 @@
-using CommonVisionNodes;
-using Stemmer.Cvb;
+using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// View model for <see cref="GenericVisualizerNode"/>.
-/// Exposes the last received value and a human-readable description of its runtime type.
-/// </summary>
 public partial class GenericVisualizerNodeViewModel : NodeViewModel
 {
-    private readonly GenericVisualizerNode _node;
+    public GenericVisualizerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
+        : base(node, definition)
+    {
+    }
 
     [ObservableProperty]
-    private object? _lastValue;
+    private ImagePreviewDto? _previewImage;
 
     [ObservableProperty]
     private string _typeDescription = "No data";
 
-    /// <inheritdoc/>
+    [ObservableProperty]
+    private string _displayText = string.Empty;
+
     public override string? Summary => TypeDescription;
 
-    /// <summary>
-    /// Creates a new generic visualizer node view model.
-    /// </summary>
-    /// <param name="node">The underlying visualizer node.</param>
-    /// <param name="x">Initial X position.</param>
-    /// <param name="y">Initial Y position.</param>
-    public GenericVisualizerNodeViewModel(GenericVisualizerNode node, double x, double y)
-        : base(node, x, y)
+    public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
-        _node = node;
+        PreviewImage = preview;
+        TypeDescription = preview is null ? "No data" : $"Image ({preview.Width}x{preview.Height})";
+        DisplayText = string.Empty;
+        RaiseSummaryChanged();
     }
 
-    /// <inheritdoc/>
-    public override void RefreshPreview()
+    public override void ApplyTextPreview(TextPreviewDto preview)
     {
-        LastValue = _node.LastValue;
-        TypeDescription = _node.LastValue switch
-        {
-            null => "No data",
-            Image img when !img.IsDisposed => $"Image ({img.Width}×{img.Height})",
-            IReadOnlyList<BlobInfo> blobs => $"BlobInfo × {blobs.Count}",
-            IReadOnlyList<BlobRect> rects => $"BlobRect × {rects.Count}",
-            IReadOnlyList<PolimagoClassifyResultItem> results => $"ClassifyResult × {results.Count}",
-            _ => _node.LastValue.GetType().Name
-        };
-        OnPropertyChanged(nameof(Summary));
+        PreviewImage = null;
+        TypeDescription = preview.TypeDescription;
+        DisplayText = preview.DisplayText;
+        RaiseSummaryChanged();
     }
 }

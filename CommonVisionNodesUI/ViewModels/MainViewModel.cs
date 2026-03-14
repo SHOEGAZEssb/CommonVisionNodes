@@ -7,10 +7,6 @@ using Windows.UI;
 
 namespace CommonVisionNodesUI.ViewModels;
 
-/// <summary>
-/// Top-level view model for the main page. Coordinates the node graph,
-/// property panel, toolbar state, and status bar metrics.
-/// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private readonly DispatcherTimer _statusTimer;
@@ -18,9 +14,30 @@ public partial class MainViewModel : ObservableObject
     private DateTime _lastCpuCheck;
     private TimeSpan _lastCpuTime;
 
-    public NodeGraphViewModel Graph { get; } = new();
+    public MainViewModel(NodeGraphViewModel graph)
+    {
+        Graph = graph;
+        Graph.PropertyChanged += OnGraphPropertyChanged;
 
-    // Properties panel
+        try
+        {
+            var process = Process.GetCurrentProcess();
+            _lastCpuCheck = DateTime.UtcNow;
+            _lastCpuTime = process.TotalProcessorTime;
+        }
+        catch
+        {
+            _lastCpuCheck = DateTime.UtcNow;
+            _lastCpuTime = TimeSpan.Zero;
+        }
+
+        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _statusTimer.Tick += OnStatusTimerTick;
+        _statusTimer.Start();
+    }
+
+    public NodeGraphViewModel Graph { get; }
+
     [ObservableProperty]
     private string _selectedNodeTitle = string.Empty;
 
@@ -36,69 +53,61 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPropertiesContentEnabled = true;
 
-    // Toolbar
     [ObservableProperty]
     private bool _isEditingEnabled = true;
 
-    // Run button
     [ObservableProperty]
     private string _runButtonText = "\uE768 Run";
 
     [ObservableProperty]
     private SolidColorBrush _runButtonBackground = new(Color.FromArgb(255, 56, 142, 60));
 
-    // Status bar
     [ObservableProperty]
-    private string _fpsText = "—";
+    private string _fpsText = "-";
 
     [ObservableProperty]
-    private string _cpuText = "0.0%";
+    private string _cpuText = "N/A";
 
     [ObservableProperty]
-    private string _memoryText = "0 MB";
+    private string _memoryText = "N/A";
 
     [ObservableProperty]
     private string _gpuText = "N/A";
 
-    public MainViewModel()
-    {
-        Graph.PropertyChanged += OnGraphPropertyChanged;
-
-        var process = Process.GetCurrentProcess();
-        _lastCpuCheck = DateTime.UtcNow;
-        _lastCpuTime = process.TotalProcessorTime;
-
-        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _statusTimer.Tick += OnStatusTimerTick;
-        _statusTimer.Start();
-    }
-
     private void OnStatusTimerTick(object? sender, object e)
     {
         UpdateCpuAndMemory();
-        FpsText = Graph.IsRunning ? Graph.Fps.ToString("F1") : "—";
+        FpsText = Graph.IsRunning ? Graph.Fps.ToString("F1") : "-";
     }
 
     private void UpdateCpuAndMemory()
     {
-        var process = Process.GetCurrentProcess();
-        var now = DateTime.UtcNow;
-        var currentCpuTime = process.TotalProcessorTime;
-
-        var elapsed = (now - _lastCpuCheck).TotalMilliseconds;
-        var cpuDelta = (currentCpuTime - _lastCpuTime).TotalMilliseconds;
-
-        _lastCpuCheck = now;
-        _lastCpuTime = currentCpuTime;
-
-        if (elapsed > 0)
+        try
         {
-            var cpuPercent = cpuDelta / elapsed / Environment.ProcessorCount * 100.0;
-            CpuText = $"{cpuPercent:F1}%";
-        }
+            var process = Process.GetCurrentProcess();
+            var now = DateTime.UtcNow;
+            var currentCpuTime = process.TotalProcessorTime;
 
-        var memoryMb = process.WorkingSet64 / (1024.0 * 1024.0);
-        MemoryText = $"{memoryMb:F0} MB";
+            var elapsed = (now - _lastCpuCheck).TotalMilliseconds;
+            var cpuDelta = (currentCpuTime - _lastCpuTime).TotalMilliseconds;
+
+            _lastCpuCheck = now;
+            _lastCpuTime = currentCpuTime;
+
+            if (elapsed > 0)
+            {
+                var cpuPercent = cpuDelta / elapsed / Environment.ProcessorCount * 100.0;
+                CpuText = $"{cpuPercent:F1}%";
+            }
+
+            var memoryMb = process.WorkingSet64 / (1024.0 * 1024.0);
+            MemoryText = $"{memoryMb:F0} MB";
+        }
+        catch
+        {
+            CpuText = "N/A";
+            MemoryText = "N/A";
+        }
 
         var gpuUtil = _gpuMonitor.GetUtilization();
         GpuText = gpuUtil.HasValue ? $"{gpuUtil.Value:F1}%" : "N/A";
@@ -123,7 +132,7 @@ public partial class MainViewModel : ObservableObject
         if (selected != null)
         {
             SelectedNodeTitle = selected.Title;
-            SelectedNodeTypeName = selected.Node.GetType().Name;
+            SelectedNodeTypeName = selected.Node.Type;
             PropertiesPanelVisibility = Visibility.Visible;
             NoSelectionVisibility = Visibility.Collapsed;
         }
@@ -140,7 +149,7 @@ public partial class MainViewModel : ObservableObject
 
     private void OnRunningStateChanged()
     {
-        bool running = Graph.IsRunning;
+        var running = Graph.IsRunning;
         IsEditingEnabled = !running;
         RunButtonText = running ? "\uE71A Stop" : "\uE768 Run";
         RunButtonBackground = new SolidColorBrush(running
