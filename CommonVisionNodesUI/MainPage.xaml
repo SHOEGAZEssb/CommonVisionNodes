@@ -31,7 +31,7 @@
             <StackPanel Spacing="12">
                 <StackPanel>
                     <TextBlock Text="Threshold (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="0" Maximum="255" Value="{Binding Threshold, Mode=TwoWay}" StepFrequency="1"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding Threshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="1"/>
                     <TextBlock Text="{Binding Threshold}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
@@ -53,13 +53,13 @@
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding AreaX, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding AreaX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="0" Grid.Column="3" Value="{Binding AreaY, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="0" Grid.Column="3" Value="{Binding AreaY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="W" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding AreaWidth, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding AreaWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="1" Grid.Column="2" Text="H" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="1" Grid.Column="3" Value="{Binding AreaHeight, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="1" Grid.Column="3" Value="{Binding AreaHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </Grid>
             </StackPanel>
         </DataTemplate>
@@ -68,7 +68,7 @@
             <StackPanel Spacing="12">
                 <StackPanel>
                     <TextBlock Text="Rotation (°)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="-180" Maximum="180" Value="{Binding Angle, Mode=TwoWay}" StepFrequency="0.5"/>
+                    <Slider Minimum="-180" Maximum="180" Value="{Binding Angle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.5"/>
                     <TextBlock Text="{Binding Angle}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <Grid ColumnSpacing="8" RowSpacing="6">
@@ -83,13 +83,13 @@
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Scale X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ScaleX, Mode=TwoWay}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ScaleX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Scale Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ScaleY, Mode=TwoWay}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ScaleY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Translate X" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding TranslateX, Mode=TwoWay}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding TranslateX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="Translate Y" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="3" Grid.Column="1" Value="{Binding TranslateY, Mode=TwoWay}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="3" Grid.Column="1" Value="{Binding TranslateY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </Grid>
             </StackPanel>
         </DataTemplate>
@@ -99,7 +99,7 @@
                 <StackPanel>
                     <TextBlock Text="Pattern" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <ComboBox ItemsSource="{Binding AvailablePatterns}"
-                              SelectedItem="{Binding Pattern, Mode=TwoWay}"
+                              SelectedItem="{Binding Pattern, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
                 <Grid ColumnSpacing="8" RowSpacing="6">
@@ -113,11 +113,11 @@
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding Width, Mode=TwoWay}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding Width, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Height" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding Height, Mode=TwoWay}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding Speed, Mode=TwoWay}" Minimum="1" Maximum="50" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding Speed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="50" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </Grid>
             </StackPanel>
         </DataTemplate>
@@ -133,7 +133,7 @@
                         </Grid.ColumnDefinitions>
                         <ComboBox Grid.Column="0"
                                   ItemsSource="{Binding DiscoveredDevices}"
-                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                   DisplayMemberPath="DisplayName"
                                   PlaceholderText="No devices found"
                                   HorizontalAlignment="Stretch"/>
@@ -152,13 +152,13 @@
                 <StackPanel>
                     <TextBlock Text="Filter" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <ComboBox ItemsSource="{Binding AvailableFilterTypes}"
-                              SelectedItem="{Binding FilterType, Mode=TwoWay}"
+                              SelectedItem="{Binding FilterType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Kernel Size" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <ComboBox ItemsSource="{Binding AvailableKernelSizes}"
-                              SelectedItem="{Binding KernelSize, Mode=TwoWay}"
+                              SelectedItem="{Binding KernelSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
             </StackPanel>
@@ -189,13 +189,13 @@
                 <StackPanel>
                     <TextBlock Text="Operation" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <ComboBox ItemsSource="{Binding AvailableOperations}"
-                              SelectedItem="{Binding Operation, Mode=TwoWay}"
+                              SelectedItem="{Binding Operation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Kernel Size" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <ComboBox ItemsSource="{Binding AvailableKernelSizes}"
-                              SelectedItem="{Binding KernelSize, Mode=TwoWay}"
+                              SelectedItem="{Binding KernelSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
             </StackPanel>
@@ -205,12 +205,12 @@
             <StackPanel Spacing="12">
                 <StackPanel>
                     <TextBlock Text="Output Min (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMin, Mode=TwoWay}" StepFrequency="1"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMin, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="1"/>
                     <TextBlock Text="{Binding OutputMin}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Output Max (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMax, Mode=TwoWay}" StepFrequency="1"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding OutputMax, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="1"/>
                     <TextBlock Text="{Binding OutputMax}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
@@ -220,26 +220,26 @@
             <StackPanel Spacing="12">
                 <StackPanel>
                     <TextBlock Text="Foreground Threshold (0–255)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="0" Maximum="255" Value="{Binding ForegroundThreshold, Mode=TwoWay}" StepFrequency="1"/>
+                    <Slider Minimum="0" Maximum="255" Value="{Binding ForegroundThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="1"/>
                     <TextBlock Text="{Binding ForegroundThreshold}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>
-                    <CheckBox Content="Invert Foreground" IsChecked="{Binding InvertForeground, Mode=TwoWay}" Foreground="White" FontSize="13"/>
+                    <CheckBox Content="Invert Foreground" IsChecked="{Binding InvertForeground, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="White" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
-                    <CheckBox Content="8-Connectivity" IsChecked="{Binding Use8Connectivity, Mode=TwoWay}" Foreground="White" FontSize="13"/>
+                    <CheckBox Content="8-Connectivity" IsChecked="{Binding Use8Connectivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="White" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Min Area (pixels)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <NumberBox Value="{Binding MinArea, Mode=TwoWay}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Value="{Binding MinArea, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Max Area (0 = no limit)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <NumberBox Value="{Binding MaxArea, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Value="{Binding MaxArea, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Max Blob Count (0 = no limit)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <NumberBox Value="{Binding MaxBlobCount, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Value="{Binding MaxBlobCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
@@ -257,7 +257,7 @@
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Min Quality (0.0–1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <Slider Minimum="0" Maximum="1" Value="{Binding MinQuality, Mode=TwoWay}" StepFrequency="0.05"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding MinQuality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.05"/>
                     <TextBlock Text="{Binding MinQuality}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>

@@ -4,21 +4,24 @@ namespace CommonVisionNodesUI.ViewModels;
 
 public partial class MorphologyNodeViewModel : NodeViewModel
 {
+    private readonly IReadOnlyList<string> _availableOperations;
+    private readonly IReadOnlyList<string> _availableKernelSizes;
+
     public MorphologyNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _operation = GetString("Operation", GetOptions("Operation").FirstOrDefault()?.Value ?? string.Empty);
-        _kernelSize = GetString("KernelSize", GetOptions("KernelSize").FirstOrDefault()?.Value ?? string.Empty);
+        _availableOperations = GetOptions("Operation").Select(option => option.Value).ToList();
+        _availableKernelSizes = GetOptions("KernelSize").Select(option => option.Value).ToList();
+        _operation = GetString("Operation", _availableOperations.FirstOrDefault() ?? string.Empty);
+        _kernelSize = GetString("KernelSize", _availableKernelSizes.FirstOrDefault() ?? string.Empty);
     }
 
-    public IReadOnlyList<string> AvailableOperations => GetOptions("Operation").Select(option => option.Value).ToList();
+    public IReadOnlyList<string> AvailableOperations => _availableOperations;
 
-    public IReadOnlyList<string> AvailableKernelSizes => GetOptions("KernelSize").Select(option => option.Value).ToList();
+    public IReadOnlyList<string> AvailableKernelSizes => _availableKernelSizes;
 
-    [ObservableProperty]
     private string _operation = string.Empty;
 
-    [ObservableProperty]
     private string _kernelSize = string.Empty;
 
     [ObservableProperty]
@@ -30,16 +33,38 @@ public partial class MorphologyNodeViewModel : NodeViewModel
 
     public override bool IsEditableWhileRunning => true;
 
-    partial void OnOperationChanged(string value)
+    public string Operation
     {
-        SetString("Operation", value);
-        RaiseSummaryChanged();
+        get => _operation;
+        set
+        {
+            var nextValue = value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(nextValue) && !string.IsNullOrWhiteSpace(_operation))
+                return;
+
+            if (SetProperty(ref _operation, nextValue))
+            {
+                SetString("Operation", nextValue);
+                RaiseSummaryChanged();
+            }
+        }
     }
 
-    partial void OnKernelSizeChanged(string value)
+    public string KernelSize
     {
-        SetString("KernelSize", value);
-        RaiseSummaryChanged();
+        get => _kernelSize;
+        set
+        {
+            var nextValue = value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(nextValue) && !string.IsNullOrWhiteSpace(_kernelSize))
+                return;
+
+            if (SetProperty(ref _kernelSize, nextValue))
+            {
+                SetString("KernelSize", nextValue);
+                RaiseSummaryChanged();
+            }
+        }
     }
 
     public override void ApplyImagePreview(ImagePreviewDto? preview)

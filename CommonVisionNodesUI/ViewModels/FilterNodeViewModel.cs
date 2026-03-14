@@ -4,21 +4,24 @@ namespace CommonVisionNodesUI.ViewModels;
 
 public partial class FilterNodeViewModel : NodeViewModel
 {
+    private readonly IReadOnlyList<string> _availableFilterTypes;
+    private readonly IReadOnlyList<string> _availableKernelSizes;
+
     public FilterNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _filterType = GetString("FilterType", GetOptions("FilterType").FirstOrDefault()?.Value ?? string.Empty);
-        _kernelSize = GetString("KernelSize", GetOptions("KernelSize").FirstOrDefault()?.Value ?? string.Empty);
+        _availableFilterTypes = GetOptions("FilterType").Select(option => option.Value).ToList();
+        _availableKernelSizes = GetOptions("KernelSize").Select(option => option.Value).ToList();
+        _filterType = GetString("FilterType", _availableFilterTypes.FirstOrDefault() ?? string.Empty);
+        _kernelSize = GetString("KernelSize", _availableKernelSizes.FirstOrDefault() ?? string.Empty);
     }
 
-    public IReadOnlyList<string> AvailableFilterTypes => GetOptions("FilterType").Select(option => option.Value).ToList();
+    public IReadOnlyList<string> AvailableFilterTypes => _availableFilterTypes;
 
-    public IReadOnlyList<string> AvailableKernelSizes => GetOptions("KernelSize").Select(option => option.Value).ToList();
+    public IReadOnlyList<string> AvailableKernelSizes => _availableKernelSizes;
 
-    [ObservableProperty]
     private string _filterType = string.Empty;
 
-    [ObservableProperty]
     private string _kernelSize = string.Empty;
 
     [ObservableProperty]
@@ -30,16 +33,38 @@ public partial class FilterNodeViewModel : NodeViewModel
 
     public override bool IsEditableWhileRunning => true;
 
-    partial void OnFilterTypeChanged(string value)
+    public string FilterType
     {
-        SetString("FilterType", value);
-        RaiseSummaryChanged();
+        get => _filterType;
+        set
+        {
+            var nextValue = value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(nextValue) && !string.IsNullOrWhiteSpace(_filterType))
+                return;
+
+            if (SetProperty(ref _filterType, nextValue))
+            {
+                SetString("FilterType", nextValue);
+                RaiseSummaryChanged();
+            }
+        }
     }
 
-    partial void OnKernelSizeChanged(string value)
+    public string KernelSize
     {
-        SetString("KernelSize", value);
-        RaiseSummaryChanged();
+        get => _kernelSize;
+        set
+        {
+            var nextValue = value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(nextValue) && !string.IsNullOrWhiteSpace(_kernelSize))
+                return;
+
+            if (SetProperty(ref _kernelSize, nextValue))
+            {
+                SetString("KernelSize", nextValue);
+                RaiseSummaryChanged();
+            }
+        }
     }
 
     public override void ApplyImagePreview(ImagePreviewDto? preview)

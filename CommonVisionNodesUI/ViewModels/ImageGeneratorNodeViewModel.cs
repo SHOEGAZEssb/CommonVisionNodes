@@ -4,16 +4,19 @@ namespace CommonVisionNodesUI.ViewModels;
 
 public partial class ImageGeneratorNodeViewModel : NodeViewModel
 {
+    private readonly IReadOnlyList<string> _availablePatterns;
+
     public ImageGeneratorNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
+        _availablePatterns = GetOptions("Pattern").Select(option => option.Value).ToList();
         _width = GetInt("Width", 640);
         _height = GetInt("Height", 480);
-        _pattern = GetString("Pattern", GetOptions("Pattern").FirstOrDefault()?.Value ?? string.Empty);
+        _pattern = GetString("Pattern", _availablePatterns.FirstOrDefault() ?? string.Empty);
         _speed = GetInt("Speed", 2);
     }
 
-    public IReadOnlyList<string> AvailablePatterns => GetOptions("Pattern").Select(option => option.Value).ToList();
+    public IReadOnlyList<string> AvailablePatterns => _availablePatterns;
 
     [ObservableProperty]
     private int _width;
@@ -21,7 +24,6 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
     [ObservableProperty]
     private int _height;
 
-    [ObservableProperty]
     private string _pattern = string.Empty;
 
     [ObservableProperty]
@@ -34,6 +36,23 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
 
     public override bool IsEditableWhileRunning => true;
 
+    public string Pattern
+    {
+        get => _pattern;
+        set
+        {
+            var nextValue = value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(nextValue) && !string.IsNullOrWhiteSpace(_pattern))
+                return;
+
+            if (SetProperty(ref _pattern, nextValue))
+            {
+                SetString("Pattern", nextValue);
+                RaiseSummaryChanged();
+            }
+        }
+    }
+
     partial void OnWidthChanged(int value)
     {
         SetInt("Width", value);
@@ -43,12 +62,6 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
     partial void OnHeightChanged(int value)
     {
         SetInt("Height", value);
-        RaiseSummaryChanged();
-    }
-
-    partial void OnPatternChanged(string value)
-    {
-        SetString("Pattern", value);
         RaiseSummaryChanged();
     }
 

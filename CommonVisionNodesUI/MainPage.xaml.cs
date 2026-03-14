@@ -135,6 +135,7 @@ public sealed partial class MainPage : Page
 
     private void OnNodeSelected(NodeControl control)
     {
+        CommitPropertyEditorChanges();
         _viewModel.Graph.SelectNode(control.ViewModel);
     }
 
@@ -228,7 +229,10 @@ public sealed partial class MainPage : Page
         NodeControl.IsConnectionDragging = false;
 
         if (_isPanning && !_panHasMoved)
+        {
+            CommitPropertyEditorChanges();
             _viewModel.Graph.SelectNode(null);
+        }
         _isPanning = false;
 
         GraphCanvas.ReleasePointerCaptures();
@@ -475,5 +479,10 @@ public sealed partial class MainPage : Page
         {
             // Picker initialization is only needed on certain desktop targets.
         }
+    }
+
+    private void CommitPropertyEditorChanges()
+    {
+        GraphCanvas.Focus(FocusState.Programmatic);
     }
 }

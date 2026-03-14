@@ -30,6 +30,8 @@ public abstract partial class NodeViewModel : ObservableObject
 
     public NodeDefinitionDto Definition { get; private set; }
 
+    public event EventHandler? ConfigurationChanged;
+
     public string Title => Definition.DisplayName;
 
     public List<PortViewModel> InputPorts { get; }
@@ -150,6 +152,7 @@ public abstract partial class NodeViewModel : ObservableObject
     {
         EnsureProperty(name).Value = value;
         OnPropertyChanged(nameof(Summary));
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected void SetInt(string name, int value)

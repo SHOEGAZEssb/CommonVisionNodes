@@ -19,6 +19,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
     private bool _initialized;
+    private CancellationTokenSource? _graphRestartDebounceCts;
 
     public NodeGraphViewModel(IBackendClient backendClient)
     {
@@ -216,6 +217,8 @@ public partial class NodeGraphViewModel : ObservableObject
     [RelayCommand]
     private void RemoveNode(NodeViewModel nodeViewModel)
     {
+        nodeViewModel.ConfigurationChanged -= OnNodeConfigurationChanged;
+
         var connectionsToRemove = Connections
             .Where(connection => connection.Source.ParentNode == nodeViewModel || connection.Target.ParentNode == nodeViewModel)
             .ToList();
@@ -275,6 +278,8 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         SelectNode(null);
         Connections.Clear();
+        foreach (var node in Nodes)
+            node.ConfigurationChanged -= OnNodeConfigurationChanged;
         Nodes.Clear();
         _nodesById.Clear();
         _nextNodeX = 50;
@@ -285,6 +290,10 @@ public partial class NodeGraphViewModel : ObservableObject
 
     public async ValueTask DisposeAsync()
     {
+        _graphRestartDebounceCts?.Cancel();
+        _graphRestartDebounceCts?.Dispose();
+        _graphRestartDebounceCts = null;
+
         if (_listenerCts is not null)
         {
             _listenerCts.Cancel();
@@ -339,8 +348,53 @@ public partial class NodeGraphViewModel : ObservableObject
 
     private void AddLoadedNode(NodeViewModel viewModel)
     {
+        viewModel.ConfigurationChanged += OnNodeConfigurationChanged;
         Nodes.Add(viewModel);
         _nodesById[viewModel.Node.Id] = viewModel;
+    }
+
+    private async void OnNodeConfigurationChanged(object? sender, EventArgs e)
+    {
+        if (sender is not NodeViewModel node || !IsRunning || !node.IsEditableWhileRunning)
+            return;
+
+        _graphRestartDebounceCts?.Cancel();
+        _graphRestartDebounceCts?.Dispose();
+
+        var cts = new CancellationTokenSource();
+        _graphRestartDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(200, cts.Token);
+
+            if (cts.IsCancellationRequested || !IsRunning)
+                return;
+
+            await _backendClient.ExecuteAsync(new ExecutionRequestDto
+            {
+                ClientId = _clientId,
+                Graph = ToGraphDto(),
+                Mode = ExecutionModeDto.Continuous,
+                PreviewRefreshRate = PreviewRefreshRate
+            }, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer change superseded this restart request.
+        }
+        finally
+        {
+            if (ReferenceEquals(_graphRestartDebounceCts, cts))
+            {
+                _graphRestartDebounceCts.Dispose();
+                _graphRestartDebounceCts = null;
+            }
+            else
+            {
+                cts.Dispose();
+            }
+        }
     }
 
     private async Task HandleExecutionMessageAsync(ExecutionMessageDto message)
