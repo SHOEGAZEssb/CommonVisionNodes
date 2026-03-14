@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Serialization;
@@ -8,6 +9,8 @@ using CommonVisionNodes.Runtime.Execution;
 using CommonVisionNodes.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var urls = builder.Configuration["Urls"] ?? "http://localhost:5077";
+builder.WebHost.UseUrls(urls);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -95,3 +98,5 @@ app.Map("/ws/execution", async context =>
 });
 
 app.Run();
+
+
