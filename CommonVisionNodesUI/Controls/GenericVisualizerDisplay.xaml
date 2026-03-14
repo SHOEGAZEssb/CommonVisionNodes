@@ -4,7 +4,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:CommonVisionNodesUI.Controls">
 
-    <Grid Background="#1A1A1A" CornerRadius="4">
+    <Grid Background="#1A1A1A"
+          CornerRadius="4"
+          PointerWheelChanged="Root_PointerWheelChanged">
 
         <!-- Image mode -->
         <local:CvbImageDisplay x:Name="ImageDisplay" Visibility="Collapsed"/>
