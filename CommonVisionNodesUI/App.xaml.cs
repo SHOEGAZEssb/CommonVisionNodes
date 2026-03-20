@@ -4,7 +4,6 @@ using Uno.Extensions;
 using Uno.Extensions.Configuration;
 using Uno.Extensions.Hosting;
 using Uno.Extensions.Localization;
-using Uno.Resizetizer;
 using Uno.UI;
 using CommonVisionNodesUI.Services;
 using CommonVisionNodesUI.ViewModels;

@@ -10,6 +10,7 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     private readonly RuntimePreviewFactory _previewFactory;
     private readonly Func<ExecutionMessageDto, CancellationToken, Task> _publishAsync;
     private readonly Action<GraphExecutionRunner> _onCompleted;
+    private readonly HashSet<string> _previewEnabledNodeIds;
     private readonly CancellationTokenSource _cts = new();
     private Task? _executionTask;
 
@@ -25,6 +26,10 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         _previewFactory = previewFactory;
         _publishAsync = publishAsync;
         _onCompleted = onCompleted;
+        _previewEnabledNodeIds = request.Graph.Nodes
+            .Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
+            .Select(node => node.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         ExecutionId = Guid.NewGuid().ToString("N");
     }
 
@@ -163,6 +168,9 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     {
         foreach (var pair in graphBuildResult.NodeIdsByRuntime)
         {
+            if (!_previewEnabledNodeIds.Contains(pair.Value))
+                continue;
+
             var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key, _request.PreviewImageMaxDimension);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);

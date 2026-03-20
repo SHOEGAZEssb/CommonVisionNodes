@@ -1,4 +1,3 @@
-using System.Runtime.Intrinsics;
 using System.Text;
 using Stemmer.Cvb;
 

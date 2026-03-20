@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using CommonVisionNodes.Contracts;
 using Windows.UI;
 
@@ -18,6 +19,7 @@ public abstract partial class NodeViewModel : ObservableObject
         Definition = definition;
         _propertyDefinitions = definition.Properties.ToDictionary(property => property.Name, StringComparer.OrdinalIgnoreCase);
         EnsureDefaultProperties();
+        _showPreview = ReadShowPreview();
 
         _x = node.X;
         _y = node.Y;
@@ -42,6 +44,8 @@ public abstract partial class NodeViewModel : ObservableObject
 
     public virtual bool IsEditableWhileRunning => Definition.CanEditWhileRunning;
 
+    public bool SupportsPreviewToggle => _propertyDefinitions.ContainsKey(NodePreviewSettings.ShowPreviewPropertyName);
+
     [ObservableProperty]
     private string _executionTime = string.Empty;
 
@@ -53,6 +57,9 @@ public abstract partial class NodeViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isSelected;
+
+    [ObservableProperty]
+    private bool _showPreview;
 
     public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
 
@@ -98,8 +105,10 @@ public abstract partial class NodeViewModel : ObservableObject
             _propertyDefinitions[property.Name] = property;
 
         EnsureDefaultProperties();
+        SyncShowPreview();
         OnDefinitionUpdated();
         OnPropertyChanged(nameof(IsEditableWhileRunning));
+        OnPropertyChanged(nameof(SupportsPreviewToggle));
         OnPropertyChanged(nameof(Summary));
     }
 
@@ -166,10 +175,34 @@ public abstract partial class NodeViewModel : ObservableObject
 
     protected void RaiseSummaryChanged() => OnPropertyChanged(nameof(Summary));
 
+    partial void OnShowPreviewChanged(bool value)
+    {
+        if (!SupportsPreviewToggle)
+            return;
+
+        SetBool(NodePreviewSettings.ShowPreviewPropertyName, value);
+        if (!value)
+            ClearPreviewState();
+    }
+
     private void EnsureDefaultProperties()
     {
         foreach (var property in Definition.Properties)
             EnsureProperty(property.Name, property.DefaultValue);
+    }
+
+    private bool ReadShowPreview()
+        => SupportsPreviewToggle
+            && GetBool(NodePreviewSettings.ShowPreviewPropertyName, NodePreviewSettings.IsEnabledByDefault(Definition.Type));
+
+    private void SyncShowPreview()
+    {
+        var showPreview = ReadShowPreview();
+        if (_showPreview == showPreview)
+            return;
+
+        _showPreview = showPreview;
+        OnPropertyChanged(nameof(ShowPreview));
     }
 
     private NodePropertyDto? GetProperty(string name)
@@ -215,5 +248,18 @@ public abstract partial class NodeViewModel : ObservableObject
         => executionDurationMs >= 1.0
             ? $"{executionDurationMs:F1} ms"
             : $"{executionDurationMs * 1000:F0} us";
+
+    private void ClearPreviewState()
+    {
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+
+        var previewImageProperty = GetType().GetProperty("PreviewImage", flags);
+        if (previewImageProperty?.CanWrite == true && previewImageProperty.PropertyType == typeof(ImagePreviewDto))
+            previewImageProperty.SetValue(this, null);
+
+        var displayTextProperty = GetType().GetProperty("DisplayText", flags);
+        if (displayTextProperty?.CanWrite == true && displayTextProperty.PropertyType == typeof(string))
+            displayTextProperty.SetValue(this, string.Empty);
+    }
 }
 

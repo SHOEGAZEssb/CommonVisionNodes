@@ -1,5 +1,3 @@
-using CommonVisionNodes;
-
 namespace CommonVisionNodes.Test;
 
 public class CSharpNodeTests

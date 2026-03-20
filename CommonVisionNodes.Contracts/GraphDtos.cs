@@ -63,6 +63,31 @@ public sealed class NodePropertyDto
     public string? Value { get; set; }
 }
 
+public static class NodePreviewSettings
+{
+    public const string ShowPreviewPropertyName = "ShowPreview";
+
+    public static bool IsEnabled(string nodeType, IEnumerable<NodePropertyDto> properties)
+    {
+        ArgumentNullException.ThrowIfNull(nodeType);
+        ArgumentNullException.ThrowIfNull(properties);
+
+        foreach (var property in properties)
+        {
+            if (!string.Equals(property.Name, ShowPreviewPropertyName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (bool.TryParse(property.Value, out var enabled))
+                return enabled;
+        }
+
+        return IsEnabledByDefault(nodeType);
+    }
+
+    public static bool IsEnabledByDefault(string nodeType)
+        => string.Equals(nodeType, "GenericVisualizerNode", StringComparison.OrdinalIgnoreCase);
+}
+
 public sealed class NodeDefinitionDto
 {
     public string Type { get; set; } = string.Empty;

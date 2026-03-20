@@ -1,4 +1,3 @@
-using System.Text;
 using Stemmer.Cvb;
 using Stemmer.Cvb.Polimago;
 

@@ -1,5 +1,4 @@
-using System.Collections.ObjectModel;
-using System.Diagnostics;
+using System.ComponentModel;
 using System.Globalization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Services;
@@ -27,6 +26,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
     private bool _initialized;
+    private Task? _initializeTask;
     private CancellationTokenSource? _graphRestartDebounceCts;
 
     public NodeGraphViewModel(IBackendClient backendClient)
@@ -76,16 +76,28 @@ public partial class NodeGraphViewModel : ObservableObject
     public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
     public string PreviewImageMaxDimensionText => PreviewImageMaxDimension <= 0 ? "Off" : $"{PreviewImageMaxDimension}px";
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
         if (_initialized)
-            return;
+            return Task.CompletedTask;
 
-        await RefreshNodeDefinitionsAsync();
+        return _initializeTask ??= InitializeCoreAsync();
+    }
 
-        _listenerCts = new CancellationTokenSource();
-        _listenerTask = Task.Run(() => _backendClient.ListenAsync(_clientId, HandleExecutionMessageAsync, _listenerCts.Token));
-        _initialized = true;
+    private async Task InitializeCoreAsync()
+    {
+        try
+        {
+            await RefreshNodeDefinitionsAsync();
+
+            _listenerCts = new CancellationTokenSource();
+            _listenerTask = Task.Run(() => _backendClient.ListenAsync(_clientId, HandleExecutionMessageAsync, _listenerCts.Token));
+            _initialized = true;
+        }
+        finally
+        {
+            _initializeTask = null;
+        }
     }
 
     public async Task RefreshNodeDefinitionsAsync()
@@ -198,54 +210,115 @@ public partial class NodeGraphViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddImageNode() => AddNode("ImageNode");
+    private async Task AddImageNode()
+    {
+        await InitializeAsync();
+        AddNode("ImageNode");
+    }
 
     [RelayCommand]
-    private void AddSaveImageNode() => AddNode("SaveImageNode");
+    private async Task AddSaveImageNode()
+    {
+        await InitializeAsync();
+        AddNode("SaveImageNode");
+    }
 
     [RelayCommand]
-    private void AddDeviceNode() => AddNode("DeviceNode");
+    private async Task AddDeviceNode()
+    {
+        await InitializeAsync();
+        AddNode("DeviceNode");
+    }
 
     [RelayCommand]
-    private void AddBinarizeNode() => AddNode("BinarizeNode");
+    private async Task AddBinarizeNode()
+    {
+        await InitializeAsync();
+        AddNode("BinarizeNode");
+    }
 
     [RelayCommand]
-    private void AddSubImageNode() => AddNode("SubImageNode");
+    private async Task AddSubImageNode()
+    {
+        await InitializeAsync();
+        AddNode("SubImageNode");
+    }
 
     [RelayCommand]
-    private void AddMatrixTransformNode() => AddNode("MatrixTransformNode");
+    private async Task AddMatrixTransformNode()
+    {
+        await InitializeAsync();
+        AddNode("MatrixTransformNode");
+    }
 
     [RelayCommand]
-    private void AddImageGeneratorNode() => AddNode("ImageGeneratorNode");
+    private async Task AddImageGeneratorNode()
+    {
+        await InitializeAsync();
+        AddNode("ImageGeneratorNode");
+    }
 
     [RelayCommand]
-    private void AddFilterNode() => AddNode("FilterNode");
+    private async Task AddFilterNode()
+    {
+        await InitializeAsync();
+        AddNode("FilterNode");
+    }
 
     [RelayCommand]
-    private void AddHistogramNode() => AddNode("HistogramNode");
+    private async Task AddHistogramNode()
+    {
+        await InitializeAsync();
+        AddNode("HistogramNode");
+    }
 
     [RelayCommand]
-    private void AddMorphologyNode() => AddNode("MorphologyNode");
+    private async Task AddMorphologyNode()
+    {
+        await InitializeAsync();
+        AddNode("MorphologyNode");
+    }
 
     [RelayCommand]
-    private void AddBlobNode() => AddNode("BlobNode");
+    private async Task AddBlobNode()
+    {
+        await InitializeAsync();
+        AddNode("BlobNode");
+    }
 
     [RelayCommand]
-    private void AddNormalizeNode() => AddNode("NormalizeNode");
+    private async Task AddNormalizeNode()
+    {
+        await InitializeAsync();
+        AddNode("NormalizeNode");
+    }
 
     [RelayCommand]
-    private void AddPolimagoClassifyNode() => AddNode("PolimagoClassifyNode");
+    private async Task AddPolimagoClassifyNode()
+    {
+        await InitializeAsync();
+        AddNode("PolimagoClassifyNode");
+    }
 
     [RelayCommand]
-    private void AddGenericVisualizerNode() => AddNode("GenericVisualizerNode");
+    private async Task AddGenericVisualizerNode()
+    {
+        await InitializeAsync();
+        AddNode("GenericVisualizerNode");
+    }
 
     [RelayCommand]
-    private void AddCSharpNode() => AddNode("CSharpNode");
+    private async Task AddCSharpNode()
+    {
+        await InitializeAsync();
+        AddNode("CSharpNode");
+    }
 
     [RelayCommand]
     private void RemoveNode(NodeViewModel nodeViewModel)
     {
         nodeViewModel.ConfigurationChanged -= OnNodeConfigurationChanged;
+        nodeViewModel.PropertyChanged -= OnNodePropertyChanged;
 
         var connectionsToRemove = Connections
             .Where(connection => connection.Source.ParentNode == nodeViewModel || connection.Target.ParentNode == nodeViewModel)
@@ -282,10 +355,13 @@ public partial class NodeGraphViewModel : ObservableObject
 
         if (IsRunning)
         {
+            CancelPendingExecutionRestart();
             await _backendClient.StopAsync(_clientId);
+            IsRunning = false;
             return;
         }
 
+        CancelPendingExecutionRestart();
         await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
     }
 
@@ -294,7 +370,10 @@ public partial class NodeGraphViewModel : ObservableObject
         SelectNode(null);
         Connections.Clear();
         foreach (var node in Nodes)
+        {
             node.ConfigurationChanged -= OnNodeConfigurationChanged;
+            node.PropertyChanged -= OnNodePropertyChanged;
+        }
         Nodes.Clear();
         _nodesById.Clear();
         _nextNodeX = 50;
@@ -305,9 +384,7 @@ public partial class NodeGraphViewModel : ObservableObject
 
     public async ValueTask DisposeAsync()
     {
-        _graphRestartDebounceCts?.Cancel();
-        _graphRestartDebounceCts?.Dispose();
-        _graphRestartDebounceCts = null;
+        CancelPendingExecutionRestart();
 
         if (_listenerCts is not null)
         {
@@ -385,6 +462,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private void AddLoadedNode(NodeViewModel viewModel)
     {
         viewModel.ConfigurationChanged += OnNodeConfigurationChanged;
+        viewModel.PropertyChanged += OnNodePropertyChanged;
         Nodes.Add(viewModel);
         _nodesById[viewModel.Node.Id] = viewModel;
     }
@@ -392,6 +470,14 @@ public partial class NodeGraphViewModel : ObservableObject
     private async void OnNodeConfigurationChanged(object? sender, EventArgs e)
     {
         if (sender is not NodeViewModel node || !IsRunning || !node.IsEditableWhileRunning)
+            return;
+
+        await RestartContinuousExecutionAsync();
+    }
+
+    private async void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(NodeViewModel.ShowPreview) || !IsRunning || sender is not NodeViewModel node || node.IsEditableWhileRunning)
             return;
 
         await RestartContinuousExecutionAsync();
@@ -504,10 +590,16 @@ public partial class NodeGraphViewModel : ObservableObject
             _ = RestartContinuousExecutionAsync();
     }
 
-    private async Task RestartContinuousExecutionAsync()
+    private void CancelPendingExecutionRestart()
     {
         _graphRestartDebounceCts?.Cancel();
         _graphRestartDebounceCts?.Dispose();
+        _graphRestartDebounceCts = null;
+    }
+
+    private async Task RestartContinuousExecutionAsync()
+    {
+        CancelPendingExecutionRestart();
 
         var cts = new CancellationTokenSource();
         _graphRestartDebounceCts = cts;
@@ -575,4 +667,3 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 }
-

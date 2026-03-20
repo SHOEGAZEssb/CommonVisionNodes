@@ -1,4 +1,3 @@
-using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using CommonVisionNodes.Contracts;
 using Microsoft.UI.Xaml.Controls;

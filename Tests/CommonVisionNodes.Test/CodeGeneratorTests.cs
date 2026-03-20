@@ -1,7 +1,43 @@
+using CommonVisionNodes.Contracts;
+using CommonVisionNodes.Runtime;
+
 namespace CommonVisionNodes.Test
 {
     public class CodeGeneratorTests
     {
+        [Test]
+        public void NodePreviewSettings_ShouldHonorDefaultsAndExplicitFlags()
+        {
+            Assert.That(NodePreviewSettings.IsEnabled("ImageNode", []), Is.False);
+            Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode", []), Is.True);
+            Assert.That(NodePreviewSettings.IsEnabled("ImageNode",
+            [
+                new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }
+            ]), Is.True);
+            Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode",
+            [
+                new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
+            ]), Is.False);
+        }
+
+        [Test]
+        public void RuntimeNodeCatalog_ShouldExposePreviewToggleDefaults()
+        {
+            var catalog = new RuntimeNodeCatalog();
+            var definitions = catalog.GetDefinitions();
+
+            var imageDefinition = definitions.Single(definition => definition.Type == nameof(ImageNode));
+            var imagePreviewToggle = imageDefinition.Properties.Single(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName);
+            Assert.That(imagePreviewToggle.DefaultValue, Is.EqualTo(bool.FalseString));
+
+            var visualizerDefinition = definitions.Single(definition => definition.Type == nameof(GenericVisualizerNode));
+            var visualizerPreviewToggle = visualizerDefinition.Properties.Single(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName);
+            Assert.That(visualizerPreviewToggle.DefaultValue, Is.EqualTo(bool.TrueString));
+
+            var histogramDefinition = definitions.Single(definition => definition.Type == nameof(HistogramNode));
+            Assert.That(histogramDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.False);
+        }
+
         [Test]
         public void Generate_ImageNodeOnly_ShouldContainImageFromFile()
         {

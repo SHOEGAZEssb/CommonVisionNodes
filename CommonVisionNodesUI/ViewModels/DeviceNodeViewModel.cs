@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
@@ -25,6 +24,9 @@ public partial class DeviceNodeViewModel : NodeViewModel
     [ObservableProperty]
     private DiscoveredDevice? _selectedDevice;
 
+    [ObservableProperty]
+    private ImagePreviewDto? _previewImage;
+
     public override string? Summary => string.IsNullOrEmpty(AccessToken)
         ? "No device configured"
         : SelectedDevice?.DisplayName ?? AccessToken;
@@ -42,6 +44,11 @@ public partial class DeviceNodeViewModel : NodeViewModel
     }
 
     protected override void OnDefinitionUpdated() => RefreshDiscoveredDevices();
+
+    public override void ApplyImagePreview(ImagePreviewDto? preview)
+    {
+        PreviewImage = preview;
+    }
 
     [RelayCommand]
     private async Task DiscoverDevicesAsync()

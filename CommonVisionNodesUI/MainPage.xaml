@@ -1,4 +1,4 @@
-﻿<Page x:Class="CommonVisionNodesUI.MainPage"
+<Page x:Class="CommonVisionNodesUI.MainPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:local="using:CommonVisionNodesUI"
@@ -8,6 +8,7 @@
     <Page.Resources>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
         <helpers:EmptyToCollapsedConverter x:Key="EmptyToCollapsed"/>
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
 
         <DataTemplate x:Key="ImageNodePropertiesTemplate">
             <StackPanel Spacing="12">
@@ -612,6 +613,20 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding Graph.SelectedNode.SupportsPreviewToggle, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Preview" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,2"/>
+                            <CheckBox Content="Show node preview"
+                                      IsChecked="{Binding Graph.SelectedNode.ShowPreview, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Foreground="White"
+                                      FontSize="13"/>
+                            <TextBlock Text="Disable previews you do not need to reduce image encoding and UI work."
+                                       FontSize="11"
+                                       Foreground="#888888"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
 
                         <ContentControl Content="{Binding Graph.SelectedNode}"

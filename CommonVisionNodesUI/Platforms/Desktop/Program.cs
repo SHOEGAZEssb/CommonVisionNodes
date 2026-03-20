@@ -1,4 +1,3 @@
-using System;
 using Uno.UI.Hosting;
 
 namespace CommonVisionNodesUI;

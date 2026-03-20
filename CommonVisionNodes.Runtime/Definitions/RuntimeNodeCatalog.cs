@@ -56,7 +56,8 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: false,
                 () => new ImageNode(),
-                StringProperty("FilePath", "File Path", "Path to the source image.")),
+                StringProperty("FilePath", "File Path", "Path to the source image."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(DeviceNode),
                 "Device",
@@ -66,7 +67,8 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: false,
                 () => new DeviceNode(),
-                EnumLikeProperty("AccessToken", "Device", "Select a discovered device.", GetDeviceOptions())),
+                EnumLikeProperty("AccessToken", "Device", "Select a discovered device.", GetDeviceOptions()),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(ImageGeneratorNode),
                 "Generator",
@@ -79,7 +81,8 @@ public sealed class RuntimeNodeCatalog
                 IntProperty("Width", "Width", "Generated image width.", 1, 4096, 1),
                 IntProperty("Height", "Height", "Generated image height.", 1, 4096, 1),
                 EnumProperty<TestPattern>("Pattern", "Pattern", "The generator pattern."),
-                IntProperty("Speed", "Speed", "Animation speed.", 1, 50, 1)),
+                IntProperty("Speed", "Speed", "Animation speed.", 1, 50, 1),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(SaveImageNode),
                 "Save Image",
@@ -89,7 +92,8 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: false,
                 () => new SaveImageNode(),
-                StringProperty("FilePath", "File Path", "Destination path for the saved image.")),
+                StringProperty("FilePath", "File Path", "Destination path for the saved image."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(GenericVisualizerNode),
                 "Visualizer",
@@ -98,7 +102,8 @@ public sealed class RuntimeNodeCatalog
                 "&#xE7B3;",
                 NodePreviewKindDto.Text,
                 canEditWhileRunning: false,
-                () => new GenericVisualizerNode()),
+                () => new GenericVisualizerNode(),
+                PreviewToggleProperty(defaultValue: true)),
             CreateDefinition(
                 nameof(BinarizeNode),
                 "Binarize",
@@ -108,7 +113,8 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: true,
                 () => new BinarizeNode(),
-                IntProperty("Threshold", "Threshold", "Threshold between black and white.", 0, 255, 1)),
+                IntProperty("Threshold", "Threshold", "Threshold between black and white.", 0, 255, 1),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(SubImageNode),
                 "SubImage",
@@ -121,7 +127,8 @@ public sealed class RuntimeNodeCatalog
                 IntProperty("AreaX", "X", "Crop origin X.", 0, null, 1),
                 IntProperty("AreaY", "Y", "Crop origin Y.", 0, null, 1),
                 IntProperty("AreaWidth", "Width", "Crop width.", 1, null, 1),
-                IntProperty("AreaHeight", "Height", "Crop height.", 1, null, 1)),
+                IntProperty("AreaHeight", "Height", "Crop height.", 1, null, 1),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(MatrixTransformNode),
                 "Transform",
@@ -135,7 +142,8 @@ public sealed class RuntimeNodeCatalog
                 DoubleProperty("ScaleX", "Scale X", "Horizontal scale.", 0.01, null, 0.1),
                 DoubleProperty("ScaleY", "Scale Y", "Vertical scale.", 0.01, null, 0.1),
                 DoubleProperty("TranslateX", "Translate X", "Horizontal translation in pixels.", null, null, 1),
-                DoubleProperty("TranslateY", "Translate Y", "Vertical translation in pixels.", null, null, 1)),
+                DoubleProperty("TranslateY", "Translate Y", "Vertical translation in pixels.", null, null, 1),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(FilterNode),
                 "Filter",
@@ -146,7 +154,8 @@ public sealed class RuntimeNodeCatalog
                 canEditWhileRunning: true,
                 () => new FilterNode(),
                 EnumProperty<FilterType>("FilterType", "Filter", "The filter algorithm."),
-                EnumProperty<KernelSize>("KernelSize", "Kernel Size", "Kernel size where applicable.")),
+                EnumProperty<KernelSize>("KernelSize", "Kernel Size", "Kernel size where applicable."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(MorphologyNode),
                 "Morphology",
@@ -157,7 +166,8 @@ public sealed class RuntimeNodeCatalog
                 canEditWhileRunning: true,
                 () => new MorphologyNode(),
                 EnumProperty<MorphologyOperation>("Operation", "Operation", "Morphological operation."),
-                EnumProperty<KernelSize>("KernelSize", "Kernel Size", "Structuring element size.")),
+                EnumProperty<KernelSize>("KernelSize", "Kernel Size", "Structuring element size."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(NormalizeNode),
                 "Normalize",
@@ -168,7 +178,8 @@ public sealed class RuntimeNodeCatalog
                 canEditWhileRunning: true,
                 () => new NormalizeNode(),
                 IntProperty("OutputMin", "Output Min", "Minimum output value.", 0, 255, 1),
-                IntProperty("OutputMax", "Output Max", "Maximum output value.", 0, 255, 1)),
+                IntProperty("OutputMax", "Output Max", "Maximum output value.", 0, 255, 1),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(CSharpNode),
                 "C# Script",
@@ -178,7 +189,8 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: false,
                 () => new CSharpNode(),
-                MultilineTextProperty("Code", "Code", "Custom C# method body.")),
+                MultilineTextProperty("Code", "Code", "Custom C# method body."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(HistogramNode),
                 "Histogram",
@@ -202,7 +214,8 @@ public sealed class RuntimeNodeCatalog
                 IntProperty("MaxArea", "Max Area", "Maximum blob size. 0 disables the limit.", 0, null, 1),
                 IntProperty("MaxBlobCount", "Max Blob Count", "Maximum number of results. 0 disables the limit.", 0, null, 1),
                 BoolProperty("InvertForeground", "Invert Foreground", "Treat dark pixels as foreground."),
-                BoolProperty("Use8Connectivity", "8-Connectivity", "Use diagonal connectivity when labeling blobs.")),
+                BoolProperty("Use8Connectivity", "8-Connectivity", "Use diagonal connectivity when labeling blobs."),
+                PreviewToggleProperty()),
             CreateDefinition(
                 nameof(PolimagoClassifyNode),
                 "Polimago Classify",
@@ -213,7 +226,8 @@ public sealed class RuntimeNodeCatalog
                 canEditWhileRunning: true,
                 () => new PolimagoClassifyNode(),
                 StringProperty("ClassifierPath", "Classifier File", "Path to the .clf file."),
-                DoubleProperty("MinQuality", "Min Quality", "Minimum confidence threshold.", 0, 1, 0.05))
+                DoubleProperty("MinQuality", "Min Quality", "Minimum confidence threshold.", 0, 1, 0.05),
+                PreviewToggleProperty())
         ];
     }
 
@@ -325,6 +339,16 @@ public sealed class RuntimeNodeCatalog
             DisplayName = displayName,
             Description = description,
             ValueKind = NodePropertyValueKindDto.Boolean
+        };
+
+    private static NodePropertyDefinitionDto PreviewToggleProperty(bool defaultValue = false)
+        => new()
+        {
+            Name = NodePreviewSettings.ShowPreviewPropertyName,
+            DisplayName = "Show Preview",
+            Description = "Render a live preview for this node.",
+            ValueKind = NodePropertyValueKindDto.Boolean,
+            DefaultValue = defaultValue.ToString()
         };
 
     private static NodePropertyDefinitionDto IntProperty(string name, string displayName, string description, double? min, double? max, double? step)

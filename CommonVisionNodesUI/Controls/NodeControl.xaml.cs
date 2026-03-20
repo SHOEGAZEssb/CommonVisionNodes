@@ -53,48 +53,52 @@ public sealed partial class NodeControl : UserControl
 
         if (vm is ImageNodeViewModel imageVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, imageVM.PreviewImage);
             imageVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(ImageNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(imageVM.PreviewImage);
+                if (e.PropertyName is nameof(ImageNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, imageVM.PreviewImage);
+            };
+        }
+        else if (vm is DeviceNodeViewModel deviceVM)
+        {
+            UpdateImagePreview(ImagePreview, vm, deviceVM.PreviewImage);
+            deviceVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(DeviceNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, deviceVM.PreviewImage);
             };
         }
         else if (vm is SaveImageNodeViewModel saveVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, saveVM.PreviewImage);
             saveVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(SaveImageNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(saveVM.PreviewImage);
+                if (e.PropertyName is nameof(SaveImageNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, saveVM.PreviewImage);
             };
         }
         else if (vm is BinarizeNodeViewModel binarizeVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, binarizeVM.PreviewImage);
             binarizeVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(BinarizeNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(binarizeVM.PreviewImage);
+                if (e.PropertyName is nameof(BinarizeNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, binarizeVM.PreviewImage);
             };
         }
         else if (vm is SubImageNodeViewModel subVM)
         {
-            CropPreview.Visibility = Visibility.Visible;
+            UpdateCropPreview(vm, subVM);
             subVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(SubImageNodeViewModel.PreviewImage))
-                {
-                    CropPreview.SetImage(subVM.PreviewImage);
-                    CropPreview.UpdateCropOverlay(subVM.AreaX, subVM.AreaY, subVM.AreaWidth, subVM.AreaHeight);
-                }
-                else if (e.PropertyName is nameof(SubImageNodeViewModel.AreaX)
-                                         or nameof(SubImageNodeViewModel.AreaY)
-                                         or nameof(SubImageNodeViewModel.AreaWidth)
-                                         or nameof(SubImageNodeViewModel.AreaHeight))
-                {
-                    CropPreview.UpdateCropOverlay(subVM.AreaX, subVM.AreaY, subVM.AreaWidth, subVM.AreaHeight);
-                }
+                if (e.PropertyName is nameof(SubImageNodeViewModel.PreviewImage)
+                    or nameof(NodeViewModel.ShowPreview)
+                    or nameof(SubImageNodeViewModel.AreaX)
+                    or nameof(SubImageNodeViewModel.AreaY)
+                    or nameof(SubImageNodeViewModel.AreaWidth)
+                    or nameof(SubImageNodeViewModel.AreaHeight))
+                    UpdateCropPreview(vm, subVM);
             };
             CropPreview.CropAreaChanged += (x, y, w, h) =>
             {
@@ -106,47 +110,47 @@ public sealed partial class NodeControl : UserControl
         }
         else if (vm is MatrixTransformNodeViewModel transformVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, transformVM.PreviewImage);
             transformVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(MatrixTransformNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(transformVM.PreviewImage);
+                if (e.PropertyName is nameof(MatrixTransformNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, transformVM.PreviewImage);
             };
         }
         else if (vm is ImageGeneratorNodeViewModel genVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, genVM.PreviewImage);
             genVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(ImageGeneratorNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(genVM.PreviewImage);
+                if (e.PropertyName is nameof(ImageGeneratorNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, genVM.PreviewImage);
             };
         }
         else if (vm is FilterNodeViewModel filterVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, filterVM.PreviewImage);
             filterVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(FilterNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(filterVM.PreviewImage);
+                if (e.PropertyName is nameof(FilterNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, filterVM.PreviewImage);
             };
         }
         else if (vm is MorphologyNodeViewModel morphVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, morphVM.PreviewImage);
             morphVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(MorphologyNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(morphVM.PreviewImage);
+                if (e.PropertyName is nameof(MorphologyNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, morphVM.PreviewImage);
             };
         }
         else if (vm is NormalizeNodeViewModel normalizeVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, normalizeVM.PreviewImage);
             normalizeVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(NormalizeNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(normalizeVM.PreviewImage);
+                if (e.PropertyName is nameof(NormalizeNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, normalizeVM.PreviewImage);
             };
         }
         else if (vm is HistogramNodeViewModel histVM)
@@ -160,44 +164,44 @@ public sealed partial class NodeControl : UserControl
         }
         else if (vm is BlobNodeViewModel blobVM)
         {
-            BlobPreview.Visibility = Visibility.Visible;
+            UpdateBlobPreview(vm, blobVM);
             blobVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(BlobNodeViewModel.PreviewImage))
-                    BlobPreview.SetImage(blobVM.PreviewImage);
-                else if (e.PropertyName == nameof(BlobNodeViewModel.Blobs))
-                    BlobPreview.SetBlobs(blobVM.Blobs);
+                if (e.PropertyName is nameof(BlobNodeViewModel.PreviewImage)
+                    or nameof(BlobNodeViewModel.Blobs)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdateBlobPreview(vm, blobVM);
             };
         }
         else if (vm is PolimagoClassifyNodeViewModel polimagoVM)
         {
-            PolimagoPreview.Visibility = Visibility.Visible;
+            UpdatePolimagoPreview(vm, polimagoVM);
             polimagoVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.PreviewImage))
-                    PolimagoPreview.SetImage(polimagoVM.PreviewImage);
-                else if (e.PropertyName == nameof(PolimagoClassifyNodeViewModel.Results))
-                    PolimagoPreview.SetResults(polimagoVM.Results);
+                if (e.PropertyName is nameof(PolimagoClassifyNodeViewModel.PreviewImage)
+                    or nameof(PolimagoClassifyNodeViewModel.Results)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdatePolimagoPreview(vm, polimagoVM);
             };
         }
         else if (vm is GenericVisualizerNodeViewModel genericVM)
         {
-            GenericVisualizerPreview.Visibility = Visibility.Visible;
+            UpdateGenericPreview(vm, genericVM);
             genericVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.PreviewImage))
-                    GenericVisualizerPreview.SetImagePreview(genericVM.PreviewImage);
-                else if (e.PropertyName == nameof(GenericVisualizerNodeViewModel.DisplayText))
-                    GenericVisualizerPreview.SetText(genericVM.DisplayText);
+                if (e.PropertyName is nameof(GenericVisualizerNodeViewModel.PreviewImage)
+                    or nameof(GenericVisualizerNodeViewModel.DisplayText)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdateGenericPreview(vm, genericVM);
             };
         }
         else if (vm is CSharpNodeViewModel csharpVM)
         {
-            ImagePreview.Visibility = Visibility.Visible;
+            UpdateImagePreview(ImagePreview, vm, csharpVM.PreviewImage);
             csharpVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(CSharpNodeViewModel.PreviewImage))
-                    ImagePreview.SetImage(csharpVM.PreviewImage);
+                if (e.PropertyName is nameof(CSharpNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, csharpVM.PreviewImage);
             };
         }
     }
@@ -209,6 +213,52 @@ public sealed partial class NodeControl : UserControl
                 ? Windows.UI.Color.FromArgb(255, 100, 180, 255)
                 : Windows.UI.Color.FromArgb(255, 85, 85, 85));
         NodeBorder.BorderThickness = new Thickness(selected ? 2 : 1);
+    }
+
+    private static void UpdateImagePreview(CvbImageDisplay previewControl, NodeViewModel vm, CommonVisionNodes.Contracts.ImagePreviewDto? preview)
+    {
+        previewControl.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        if (vm.ShowPreview)
+            previewControl.SetImage(preview);
+        else
+            previewControl.Clear();
+    }
+
+    private void UpdateCropPreview(NodeViewModel vm, SubImageNodeViewModel subVM)
+    {
+        CropPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        CropPreview.SetImage(vm.ShowPreview ? subVM.PreviewImage : null);
+        CropPreview.UpdateCropOverlay(subVM.AreaX, subVM.AreaY, subVM.AreaWidth, subVM.AreaHeight);
+    }
+
+    private void UpdateBlobPreview(NodeViewModel vm, BlobNodeViewModel blobVM)
+    {
+        BlobPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        BlobPreview.SetImage(vm.ShowPreview ? blobVM.PreviewImage : null);
+        BlobPreview.SetBlobs(blobVM.Blobs);
+    }
+
+    private void UpdatePolimagoPreview(NodeViewModel vm, PolimagoClassifyNodeViewModel polimagoVM)
+    {
+        PolimagoPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        PolimagoPreview.SetImage(vm.ShowPreview ? polimagoVM.PreviewImage : null);
+        PolimagoPreview.SetResults(polimagoVM.Results);
+    }
+
+    private void UpdateGenericPreview(NodeViewModel vm, GenericVisualizerNodeViewModel genericVM)
+    {
+        GenericVisualizerPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        if (!vm.ShowPreview)
+        {
+            GenericVisualizerPreview.SetImagePreview(null);
+            GenericVisualizerPreview.SetText(null);
+            return;
+        }
+
+        if (genericVM.PreviewImage is not null)
+            GenericVisualizerPreview.SetImagePreview(genericVM.PreviewImage);
+        else
+            GenericVisualizerPreview.SetText(genericVM.DisplayText);
     }
 
     private void UpdateSummary()
