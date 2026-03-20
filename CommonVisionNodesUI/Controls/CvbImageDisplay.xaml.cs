@@ -23,7 +23,7 @@ public sealed partial class CvbImageDisplay : UserControl
         await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
-        InfoText.Text = $"{preview.Width} x {preview.Height}  {preview.PixelFormat}";
+        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);
     }
 
     public void Clear()

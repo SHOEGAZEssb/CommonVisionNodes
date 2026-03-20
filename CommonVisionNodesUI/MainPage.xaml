@@ -652,11 +652,74 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <TextBlock Text="Preview:" Foreground="#888888" FontSize="12" VerticalAlignment="Center"/>
-                    <Slider Minimum="1" Maximum="1001" Value="{Binding Graph.PreviewRefreshRate, Mode=TwoWay}"
-                            StepFrequency="1" Width="120" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Graph.PreviewRefreshRateText}" Foreground="White" FontSize="12"
-                               VerticalAlignment="Center" MinWidth="20"/>
+                    <Button Padding="8,4"
+                            ToolTipService.ToolTip="Preview settings"
+                            CornerRadius="6"
+                            Background="#30343D"
+                            BorderBrush="#484E5A"
+                            BorderThickness="1"
+                            Margin="0,0,8,0">
+                        <FontIcon Glyph="&#xE713;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"/>
+                        <Button.Flyout>
+                            <Flyout Placement="Left">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="Background" Value="#00000000"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
+                                <Border MinWidth="280"
+                                        Padding="14"
+                                        CornerRadius="14"
+                                        BorderBrush="#3F4C60"
+                                        BorderThickness="1">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF1F2630" Offset="0"/>
+                                            <GradientStop Color="#FF151A22" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <StackPanel Spacing="12">
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Preview Settings"
+                                                       FontSize="15"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="White"/>
+                                            <TextBlock Text="Tune preview bandwidth and browser load."
+                                                       FontSize="11"
+                                                       Foreground="#AAB4C3"/>
+                                        </StackPanel>
+                                        <Border Height="1" Background="#2E394A"/>
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Preview refresh rate"
+                                                       Foreground="#AAB4C3"
+                                                       FontSize="12"/>
+                                            <Slider Minimum="1"
+                                                    Maximum="1001"
+                                                    Value="{x:Bind ViewModel.Graph.PreviewRefreshRate, Mode=TwoWay}"
+                                                    StepFrequency="1"/>
+                                            <TextBlock Text="{x:Bind ViewModel.Graph.PreviewRefreshRateText, Mode=OneWay}"
+                                                       FontSize="12"
+                                                       Foreground="White"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Max preview edge"
+                                                       Foreground="#AAB4C3"
+                                                       FontSize="12"/>
+                                            <ComboBox ItemsSource="{x:Bind ViewModel.Graph.PreviewImageMaxDimensionOptions, Mode=OneWay}"
+                                                      DisplayMemberPath="Label"
+                                                      SelectedValuePath="Value"
+                                                      SelectedValue="{x:Bind ViewModel.Graph.PreviewImageMaxDimension, Mode=TwoWay}">
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

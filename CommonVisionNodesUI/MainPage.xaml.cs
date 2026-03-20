@@ -112,6 +112,8 @@ public sealed partial class MainPage : Page
         };
     }
 
+    public MainViewModel ViewModel => _viewModel;
+
     private void AddNodeControl(NodeViewModel nodeViewModel)
     {
         var control = new NodeControl();

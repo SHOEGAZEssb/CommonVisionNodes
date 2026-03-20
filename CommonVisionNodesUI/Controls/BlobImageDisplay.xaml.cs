@@ -34,7 +34,7 @@ public sealed partial class BlobImageDisplay : UserControl
         await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
-        InfoText.Text = $"{preview.Width} x {preview.Height}  {preview.PixelFormat}";
+        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);
         RedrawOverlays();
     }
 

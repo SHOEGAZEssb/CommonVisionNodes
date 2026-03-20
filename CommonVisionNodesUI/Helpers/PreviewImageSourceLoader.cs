@@ -26,5 +26,18 @@ internal static class PreviewImageSourceLoader
         await bitmap.SetSourceAsync(stream);
         image.Source = bitmap;
     }
+
+    public static string GetPreviewInfoText(ImagePreviewDto preview)
+    {
+        var sourceSize = $"{preview.Width} x {preview.Height}";
+        if (preview.PreviewWidth > 0 &&
+            preview.PreviewHeight > 0 &&
+            (preview.PreviewWidth != preview.Width || preview.PreviewHeight != preview.Height))
+        {
+            return $"{sourceSize} -> preview {preview.PreviewWidth} x {preview.PreviewHeight}  {preview.PixelFormat}";
+        }
+
+        return $"{sourceSize}  {preview.PixelFormat}";
+    }
 }
 

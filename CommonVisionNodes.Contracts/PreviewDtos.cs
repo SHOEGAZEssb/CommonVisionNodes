@@ -7,6 +7,8 @@ public sealed class ImagePreviewDto
     public string Base64Data { get; set; } = string.Empty;
     public int Width { get; set; }
     public int Height { get; set; }
+    public int PreviewWidth { get; set; }
+    public int PreviewHeight { get; set; }
     public string PixelFormat { get; set; } = string.Empty;
     public DateTimeOffset TimestampUtc { get; set; } = DateTimeOffset.UtcNow;
 }

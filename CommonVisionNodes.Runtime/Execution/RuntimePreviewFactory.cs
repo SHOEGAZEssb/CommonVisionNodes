@@ -1,4 +1,3 @@
-using System.Text;
 using CommonVisionNodes.Contracts;
 using Stemmer.Cvb;
 
@@ -6,32 +5,32 @@ namespace CommonVisionNodes.Runtime.Execution;
 
 public sealed class RuntimePreviewFactory
 {
-    public ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node)
+    public ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node, int previewImageMaxDimension)
     {
         return node switch
         {
-            ImageNode imageNode => CreateImagePreviewMessage(nodeId, imageNode.CachedImage),
-            SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image),
-            DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image),
-            BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image),
-            SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image),
-            MatrixTransformNode transformNode => CreateImagePreviewMessage(nodeId, transformNode.ImageOutput.Value as Image),
-            ImageGeneratorNode generatorNode => CreateImagePreviewMessage(nodeId, generatorNode.ImageOutput.Value as Image),
-            FilterNode filterNode => CreateImagePreviewMessage(nodeId, filterNode.ImageOutput.Value as Image),
-            MorphologyNode morphologyNode => CreateImagePreviewMessage(nodeId, morphologyNode.ImageOutput.Value as Image),
-            NormalizeNode normalizeNode => CreateImagePreviewMessage(nodeId, normalizeNode.ImageOutput.Value as Image),
-            CSharpNode csharpNode => CreateImagePreviewMessage(nodeId, csharpNode.ImageOutput.Value as Image),
+            ImageNode imageNode => CreateImagePreviewMessage(nodeId, imageNode.CachedImage, previewImageMaxDimension),
+            SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image, previewImageMaxDimension),
+            DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            MatrixTransformNode transformNode => CreateImagePreviewMessage(nodeId, transformNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            ImageGeneratorNode generatorNode => CreateImagePreviewMessage(nodeId, generatorNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            FilterNode filterNode => CreateImagePreviewMessage(nodeId, filterNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            MorphologyNode morphologyNode => CreateImagePreviewMessage(nodeId, morphologyNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            NormalizeNode normalizeNode => CreateImagePreviewMessage(nodeId, normalizeNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            CSharpNode csharpNode => CreateImagePreviewMessage(nodeId, csharpNode.ImageOutput.Value as Image, previewImageMaxDimension),
             HistogramNode histogramNode => CreateHistogramPreviewMessage(nodeId, histogramNode),
-            BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode),
-            PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode),
-            GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue),
+            BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension),
+            PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension),
+            GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension),
             _ => null
         };
     }
 
-    private ExecutionMessageDto? CreateImagePreviewMessage(string nodeId, Image? image)
+    private ExecutionMessageDto? CreateImagePreviewMessage(string nodeId, Image? image, int previewImageMaxDimension)
     {
-        var preview = CreateImagePreview(nodeId, image);
+        var preview = CreateImagePreview(nodeId, image, previewImageMaxDimension);
         return preview is null
             ? null
             : new ExecutionMessageDto
@@ -55,14 +54,14 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto CreateBlobPreviewMessage(string nodeId, BlobNode node)
+    private ExecutionMessageDto CreateBlobPreviewMessage(string nodeId, BlobNode node, int previewImageMaxDimension)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.BlobPreview,
             BlobPreview = new BlobPreviewDto
             {
                 NodeId = nodeId,
-                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image),
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
                 Blobs = node.Blobs.Select(blob => new BlobInfoDto
                 {
                     Label = blob.Label,
@@ -78,14 +77,14 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto CreateClassificationPreviewMessage(string nodeId, PolimagoClassifyNode node)
+    private ExecutionMessageDto CreateClassificationPreviewMessage(string nodeId, PolimagoClassifyNode node, int previewImageMaxDimension)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.ClassificationPreview,
             ClassificationPreview = new ClassificationPreviewDto
             {
                 NodeId = nodeId,
-                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image),
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
                 Results = node.Results.Select(result => new ClassificationResultDto
                 {
                     BlobIndex = result.BlobIndex,
@@ -98,11 +97,11 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value)
+    private ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
     {
         return value switch
         {
-            Image image => CreateImagePreviewMessage(nodeId, image),
+            Image image => CreateImagePreviewMessage(nodeId, image, previewImageMaxDimension),
             IReadOnlyList<BlobInfo> blobs => CreateTextPreviewMessage(nodeId, "BlobInfo[]", string.Join(Environment.NewLine, blobs.Select(blob =>
                 $"#{blob.Label} area={blob.Area} center=({blob.CentroidX:F1},{blob.CentroidY:F1}) bounds=({blob.BoundsX},{blob.BoundsY}) {blob.BoundsWidth}x{blob.BoundsHeight}"))),
             IReadOnlyList<BlobRect> rects => CreateTextPreviewMessage(nodeId, "BlobRect[]", string.Join(Environment.NewLine, rects.Select((rect, index) =>
@@ -127,7 +126,7 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ImagePreviewDto? CreateImagePreview(string nodeId, Image? image)
+    private static ImagePreviewDto? CreateImagePreview(string nodeId, Image? image, int previewImageMaxDimension)
     {
         if (image is null || image.IsDisposed)
             return null;
@@ -135,7 +134,8 @@ public sealed class RuntimePreviewFactory
         var tempPath = Path.Combine(Path.GetTempPath(), $"cvn-preview-{Guid.NewGuid():N}.png");
         try
         {
-            image.Save(tempPath);
+            using var previewImage = CreateScaledPreviewImage(image, previewImageMaxDimension);
+            (previewImage ?? image).Save(tempPath);
             var bytes = File.ReadAllBytes(tempPath);
             var bitsPerPixel = image.Planes.Count > 0 ? image.Planes[0].DataType.BitsPerPixel : 0;
             var pixelFormat = image.Planes.Count == 1
@@ -148,6 +148,8 @@ public sealed class RuntimePreviewFactory
                 Base64Data = Convert.ToBase64String(bytes),
                 Width = image.Width,
                 Height = image.Height,
+                PreviewWidth = previewImage?.Width ?? image.Width,
+                PreviewHeight = previewImage?.Height ?? image.Height,
                 PixelFormat = pixelFormat,
                 TimestampUtc = DateTimeOffset.UtcNow
             };
@@ -164,5 +166,126 @@ public sealed class RuntimePreviewFactory
                 // Ignore preview temp-file cleanup failures.
             }
         }
+    }
+
+    private static Image? CreateScaledPreviewImage(Image image, int previewImageMaxDimension)
+    {
+        if (previewImageMaxDimension <= 0)
+            return null;
+
+        if (image.Planes.Count == 0)
+            return null;
+
+        var longestEdge = Math.Max(image.Width, image.Height);
+        if (longestEdge <= previewImageMaxDimension)
+            return null;
+
+        var scale = previewImageMaxDimension / (double)longestEdge;
+        var targetWidth = Math.Max(1, (int)Math.Round(image.Width * scale));
+        var targetHeight = Math.Max(1, (int)Math.Round(image.Height * scale));
+        var dataType = image.Planes[0].DataType;
+
+        var scaledImage = new Image(new Size2D(targetWidth, targetHeight), image.Planes.Count, dataType);
+
+        for (var planeIndex = 0; planeIndex < image.Planes.Count; planeIndex++)
+        {
+            var sourcePlane = image.Planes[planeIndex];
+            var targetPlane = scaledImage.Planes[planeIndex];
+            var bytesPerPixel = Math.Max(1, sourcePlane.DataType.BytesPerPixel);
+            CopyDownscaledPlane(sourcePlane.GetLinearAccess(), targetPlane.GetLinearAccess(), image.Width, image.Height, targetWidth, targetHeight, bytesPerPixel);
+        }
+
+        return scaledImage;
+    }
+
+    private static unsafe void CopyDownscaledPlane(
+        LinearAccessData sourceAccess,
+        LinearAccessData targetAccess,
+        int sourceWidth,
+        int sourceHeight,
+        int targetWidth,
+        int targetHeight,
+        int bytesPerPixel)
+    {
+        byte* sourceBase = (byte*)sourceAccess.BasePtr;
+        byte* targetBase = (byte*)targetAccess.BasePtr;
+        long sourceYInc = sourceAccess.YInc.ToInt64();
+        long sourceXInc = sourceAccess.XInc.ToInt64();
+        long targetYInc = targetAccess.YInc.ToInt64();
+        long targetXInc = targetAccess.XInc.ToInt64();
+
+        if (bytesPerPixel == 1)
+        {
+            BoxFilterDownscaledPlane(sourceBase, targetBase, sourceWidth, sourceHeight, targetWidth, targetHeight, sourceXInc, sourceYInc, targetXInc, targetYInc);
+            return;
+        }
+
+        for (var targetY = 0; targetY < targetHeight; targetY++)
+        {
+            var sourceY = MapTargetCoordinate(targetY, sourceHeight, targetHeight);
+            var sourceRow = sourceBase + sourceY * sourceYInc;
+            var targetRow = targetBase + targetY * targetYInc;
+
+            for (var targetX = 0; targetX < targetWidth; targetX++)
+            {
+                var sourceX = MapTargetCoordinate(targetX, sourceWidth, targetWidth);
+                var sourcePixel = sourceRow + sourceX * sourceXInc;
+                var targetPixel = targetRow + targetX * targetXInc;
+                Buffer.MemoryCopy(sourcePixel, targetPixel, bytesPerPixel, bytesPerPixel);
+            }
+        }
+    }
+
+    private static unsafe void BoxFilterDownscaledPlane(
+        byte* sourceBase,
+        byte* targetBase,
+        int sourceWidth,
+        int sourceHeight,
+        int targetWidth,
+        int targetHeight,
+        long sourceXInc,
+        long sourceYInc,
+        long targetXInc,
+        long targetYInc)
+    {
+        for (var targetY = 0; targetY < targetHeight; targetY++)
+        {
+            var sourceY0 = targetY * sourceHeight / targetHeight;
+            var sourceY1 = Math.Max(sourceY0 + 1, (targetY + 1) * sourceHeight / targetHeight);
+            var targetRow = targetBase + targetY * targetYInc;
+
+            for (var targetX = 0; targetX < targetWidth; targetX++)
+            {
+                var sourceX0 = targetX * sourceWidth / targetWidth;
+                var sourceX1 = Math.Max(sourceX0 + 1, (targetX + 1) * sourceWidth / targetWidth);
+
+                var sum = 0L;
+                var samples = 0;
+
+                for (var sourceY = sourceY0; sourceY < sourceY1; sourceY++)
+                {
+                    var sourceRow = sourceBase + sourceY * sourceYInc;
+                    for (var sourceX = sourceX0; sourceX < sourceX1; sourceX++)
+                    {
+                        sum += *(sourceRow + sourceX * sourceXInc);
+                        samples++;
+                    }
+                }
+
+                var targetPixel = targetRow + targetX * targetXInc;
+                *targetPixel = samples > 0
+                    ? (byte)Math.Clamp((int)Math.Round(sum / (double)samples), 0, 255)
+                    : *(sourceBase + MapTargetCoordinate(targetY, sourceHeight, targetHeight) * sourceYInc + MapTargetCoordinate(targetX, sourceWidth, targetWidth) * sourceXInc);
+            }
+        }
+    }
+
+    private static int MapTargetCoordinate(int targetCoordinate, int sourceLength, int targetLength)
+    {
+        if (sourceLength <= 1 || targetLength <= 1)
+            return 0;
+
+        var mapped = ((targetCoordinate * 2L + 1L) * sourceLength) / (targetLength * 2L);
+        return (int)Math.Clamp(mapped, 0L, sourceLength - 1L);
     }
 }

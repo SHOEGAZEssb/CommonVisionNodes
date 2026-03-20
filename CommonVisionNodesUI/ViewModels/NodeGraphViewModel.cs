@@ -4,11 +4,19 @@ using System.Globalization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Services;
 using Microsoft.UI.Dispatching;
+using Windows.Storage;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+public sealed record PreviewImageMaxDimensionOption(int Value, string Label);
+
 public partial class NodeGraphViewModel : ObservableObject
 {
+    private const int DefaultPreviewRefreshRate = 30;
+    private const int DefaultPreviewImageMaxDimension = 1280;
+    private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
+    private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
+
     private readonly IBackendClient _backendClient;
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly Dictionary<string, NodeDefinitionDto> _nodeDefinitions = new(StringComparer.OrdinalIgnoreCase);
@@ -25,11 +33,27 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         _backendClient = backendClient;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        _previewRefreshRate = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
+        _previewImageMaxDimension = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
     }
 
     public ObservableCollection<NodeViewModel> Nodes { get; } = [];
 
     public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
+
+    public IReadOnlyList<PreviewImageMaxDimensionOption> PreviewImageMaxDimensionOptions { get; } =
+    [
+        new(0, "Off (full resolution)"),
+        new(1600, "1600 px"),
+        new(1280, "1280 px"),
+        new(960, "960 px"),
+        new(640, "640 px"),
+        new(480, "480 px"),
+        new(360, "360 px"),
+        new(320, "320 px"),
+        new(240, "240 px"),
+        new(160, "160 px")
+    ];
 
     [ObservableProperty]
     private NodeViewModel? _selectedNode;
@@ -44,9 +68,13 @@ public partial class NodeGraphViewModel : ObservableObject
     private string _lastExecutionTimeText = "-";
 
     [ObservableProperty]
-    private int _previewRefreshRate = 30;
+    private int _previewRefreshRate = DefaultPreviewRefreshRate;
+
+    [ObservableProperty]
+    private int _previewImageMaxDimension = DefaultPreviewImageMaxDimension;
 
     public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+    public string PreviewImageMaxDimensionText => PreviewImageMaxDimension <= 0 ? "Off" : $"{PreviewImageMaxDimension}px";
 
     public async Task InitializeAsync()
     {
@@ -244,14 +272,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private async Task ExecuteGraphAsync()
     {
         await InitializeAsync();
-
-        await _backendClient.ExecuteAsync(new ExecutionRequestDto
-        {
-            ClientId = _clientId,
-            Graph = ToGraphDto(),
-            Mode = ExecutionModeDto.Single,
-            PreviewRefreshRate = PreviewRefreshRate
-        });
+        await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Single));
     }
 
     [RelayCommand]
@@ -265,13 +286,7 @@ public partial class NodeGraphViewModel : ObservableObject
             return;
         }
 
-        await _backendClient.ExecuteAsync(new ExecutionRequestDto
-        {
-            ClientId = _clientId,
-            Graph = ToGraphDto(),
-            Mode = ExecutionModeDto.Continuous,
-            PreviewRefreshRate = PreviewRefreshRate
-        });
+        await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
     }
 
     public void ClearGraph()
@@ -315,7 +330,28 @@ public partial class NodeGraphViewModel : ObservableObject
 
     partial void OnPreviewRefreshRateChanged(int value)
     {
+        if (value is < 1 or > 1001)
+        {
+            PreviewRefreshRate = Math.Clamp(value, 1, 1001);
+            return;
+        }
+
         OnPropertyChanged(nameof(PreviewRefreshRateText));
+        WriteIntSetting(PreviewRefreshRateSettingKey, value);
+        ScheduleRunningExecutionRestart();
+    }
+
+    partial void OnPreviewImageMaxDimensionChanged(int value)
+    {
+        if (value < 0)
+        {
+            PreviewImageMaxDimension = 0;
+            return;
+        }
+
+        OnPropertyChanged(nameof(PreviewImageMaxDimensionText));
+        WriteIntSetting(PreviewImageMaxDimensionSettingKey, value);
+        ScheduleRunningExecutionRestart();
     }
 
     private void AddNode(string type)
@@ -358,43 +394,7 @@ public partial class NodeGraphViewModel : ObservableObject
         if (sender is not NodeViewModel node || !IsRunning || !node.IsEditableWhileRunning)
             return;
 
-        _graphRestartDebounceCts?.Cancel();
-        _graphRestartDebounceCts?.Dispose();
-
-        var cts = new CancellationTokenSource();
-        _graphRestartDebounceCts = cts;
-
-        try
-        {
-            await Task.Delay(200, cts.Token);
-
-            if (cts.IsCancellationRequested || !IsRunning)
-                return;
-
-            await _backendClient.ExecuteAsync(new ExecutionRequestDto
-            {
-                ClientId = _clientId,
-                Graph = ToGraphDto(),
-                Mode = ExecutionModeDto.Continuous,
-                PreviewRefreshRate = PreviewRefreshRate
-            }, cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            // A newer change superseded this restart request.
-        }
-        finally
-        {
-            if (ReferenceEquals(_graphRestartDebounceCts, cts))
-            {
-                _graphRestartDebounceCts.Dispose();
-                _graphRestartDebounceCts = null;
-            }
-            else
-            {
-                cts.Dispose();
-            }
-        }
+        await RestartContinuousExecutionAsync();
     }
 
     private async Task HandleExecutionMessageAsync(ExecutionMessageDto message)
@@ -487,5 +487,92 @@ public partial class NodeGraphViewModel : ObservableObject
         => executionDurationMs >= 1.0
             ? $"{executionDurationMs:F1} ms"
             : $"{executionDurationMs * 1000:F0} us";
+
+    private ExecutionRequestDto CreateExecutionRequest(ExecutionModeDto mode)
+        => new()
+        {
+            ClientId = _clientId,
+            Graph = ToGraphDto(),
+            Mode = mode,
+            PreviewRefreshRate = PreviewRefreshRate,
+            PreviewImageMaxDimension = Math.Max(0, PreviewImageMaxDimension)
+        };
+
+    private void ScheduleRunningExecutionRestart()
+    {
+        if (IsRunning)
+            _ = RestartContinuousExecutionAsync();
+    }
+
+    private async Task RestartContinuousExecutionAsync()
+    {
+        _graphRestartDebounceCts?.Cancel();
+        _graphRestartDebounceCts?.Dispose();
+
+        var cts = new CancellationTokenSource();
+        _graphRestartDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(200, cts.Token);
+
+            if (cts.IsCancellationRequested || !IsRunning)
+                return;
+
+            await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous), cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer change superseded this restart request.
+        }
+        finally
+        {
+            if (ReferenceEquals(_graphRestartDebounceCts, cts))
+            {
+                _graphRestartDebounceCts.Dispose();
+                _graphRestartDebounceCts = null;
+            }
+            else
+            {
+                cts.Dispose();
+            }
+        }
+    }
+
+    private static int ReadIntSetting(string key, int defaultValue)
+    {
+        try
+        {
+            var values = ApplicationData.Current.LocalSettings.Values;
+            if (values.TryGetValue(key, out var rawValue))
+            {
+                return rawValue switch
+                {
+                    int intValue => intValue,
+                    long longValue when longValue is >= int.MinValue and <= int.MaxValue => (int)longValue,
+                    string stringValue when int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+                    _ => defaultValue
+                };
+            }
+        }
+        catch
+        {
+            // Ignore setting read failures and fall back to defaults.
+        }
+
+        return defaultValue;
+    }
+
+    private static void WriteIntSetting(string key, int value)
+    {
+        try
+        {
+            ApplicationData.Current.LocalSettings.Values[key] = value;
+        }
+        catch
+        {
+            // Ignore setting persistence failures.
+        }
+    }
 }
 

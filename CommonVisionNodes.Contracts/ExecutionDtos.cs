@@ -45,6 +45,7 @@ public sealed class ExecutionRequestDto
     public GraphDto Graph { get; set; } = new();
     public ExecutionModeDto Mode { get; set; }
     public int PreviewRefreshRate { get; set; } = 30;
+    public int PreviewImageMaxDimension { get; set; } = 1280;
 }
 
 public sealed class StopExecutionRequestDto

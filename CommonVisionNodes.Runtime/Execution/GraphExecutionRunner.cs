@@ -163,7 +163,7 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     {
         foreach (var pair in graphBuildResult.NodeIdsByRuntime)
         {
-            var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key);
+            var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key, _request.PreviewImageMaxDimension);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);
         }
