@@ -8,23 +8,23 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
     public PolimagoClassifyNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _classifierPath = GetString("ClassifierPath");
-        _minQuality = GetDouble("MinQuality", 0.5);
+		ClassifierPath = GetString("ClassifierPath");
+		MinQuality = GetDouble("MinQuality", 0.5);
     }
 
-    [ObservableProperty]
-    private string _classifierPath = string.Empty;
+	[ObservableProperty]
+	public partial string ClassifierPath { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private double _minQuality;
+	[ObservableProperty]
+	public partial double MinQuality { get; set; }
 
-    [ObservableProperty]
-    private IReadOnlyList<ClassificationResultDto> _results = [];
+	[ObservableProperty]
+	public partial IReadOnlyList<ClassificationResultDto> Results { get; set; } = [];
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public int ResultCount => Results.Count;
+	public int ResultCount => Results.Count;
 
     public override string? Summary => string.IsNullOrEmpty(ClassifierPath)
         ? "No classifier loaded"
@@ -47,7 +47,7 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
     public override void ApplyClassificationPreview(ClassificationPreviewDto preview)
     {
         PreviewImage = preview.Image;
-        Results = preview.Results.ToList();
+        Results = [.. preview.Results];
         OnPropertyChanged(nameof(ResultCount));
         RaiseSummaryChanged();
     }

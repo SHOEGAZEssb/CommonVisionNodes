@@ -9,22 +9,22 @@ public partial class HistogramNodeViewModel : NodeViewModel
     {
     }
 
-    [ObservableProperty]
-    private long[] _bins = [];
+	[ObservableProperty]
+	public partial long[] Bins { get; set; } = [];
 
-    [ObservableProperty]
-    private double _mean;
+	[ObservableProperty]
+	public partial double Mean { get; set; }
 
-    [ObservableProperty]
-    private double _stdDev;
+	[ObservableProperty]
+	public partial double StdDev { get; set; }
 
-    public override string? Summary => Bins.Length > 0
+	public override string? Summary => Bins.Length > 0
         ? $"u {Mean:F1}  s {StdDev:F1}"
         : "No data";
 
     public override void ApplyHistogramPreview(HistogramPreviewDto preview)
     {
-        Bins = preview.Bins.ToArray();
+        Bins = [.. preview.Bins];
         Mean = preview.Mean;
         StdDev = preview.StdDev;
         RaiseSummaryChanged();

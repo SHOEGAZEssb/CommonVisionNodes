@@ -19,13 +19,12 @@ public abstract partial class NodeViewModel : ObservableObject
         Definition = definition;
         _propertyDefinitions = definition.Properties.ToDictionary(property => property.Name, StringComparer.OrdinalIgnoreCase);
         EnsureDefaultProperties();
-        _showPreview = ReadShowPreview();
+		ShowPreview = ReadShowPreview();
+		X = node.X;
+		Y = node.Y;
 
-        _x = node.X;
-        _y = node.Y;
-
-        InputPorts = definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index)).ToList();
-        OutputPorts = definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index)).ToList();
+        InputPorts = [.. definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index))];
+        OutputPorts = [.. definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index))];
     }
 
     public NodeDto Node { get; }
@@ -46,22 +45,22 @@ public abstract partial class NodeViewModel : ObservableObject
 
     public bool SupportsPreviewToggle => _propertyDefinitions.ContainsKey(NodePreviewSettings.ShowPreviewPropertyName);
 
-    [ObservableProperty]
-    private string _executionTime = string.Empty;
+	[ObservableProperty]
+	public partial string ExecutionTime { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private double _x;
+	[ObservableProperty]
+	public partial double X { get; set; }
 
-    [ObservableProperty]
-    private double _y;
+	[ObservableProperty]
+	public partial double Y { get; set; }
 
-    [ObservableProperty]
-    private bool _isSelected;
+	[ObservableProperty]
+	public partial bool IsSelected { get; set; }
 
-    [ObservableProperty]
-    private bool _showPreview;
+	[ObservableProperty]
+	public partial bool ShowPreview { get; set; }
 
-    public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
+	public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
 
     public Color HeaderColor => Definition.Type switch
     {
@@ -90,12 +89,12 @@ public abstract partial class NodeViewModel : ObservableObject
             Type = Node.Type,
             X = X,
             Y = Y,
-            Properties = Node.Properties.Select(property => new NodePropertyDto
+            Properties = [.. Node.Properties.Select(property => new NodePropertyDto
             {
                 Name = property.Name,
                 Value = property.Value
-            }).ToList()
-        };
+            })]
+		};
 
     public virtual void RefreshDefinition(NodeDefinitionDto definition)
     {
@@ -198,11 +197,10 @@ public abstract partial class NodeViewModel : ObservableObject
     private void SyncShowPreview()
     {
         var showPreview = ReadShowPreview();
-        if (_showPreview == showPreview)
+        if (ShowPreview == showPreview)
             return;
 
-        _showPreview = showPreview;
-        OnPropertyChanged(nameof(ShowPreview));
+        ShowPreview = showPreview;
     }
 
     private NodePropertyDto? GetProperty(string name)

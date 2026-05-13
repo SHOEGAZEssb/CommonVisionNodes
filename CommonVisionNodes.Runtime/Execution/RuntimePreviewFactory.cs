@@ -47,7 +47,7 @@ public sealed class RuntimePreviewFactory
             HistogramPreview = new HistogramPreviewDto
             {
                 NodeId = nodeId,
-                Bins = node.Bins.ToList(),
+                Bins = [.. node.Bins],
                 Mean = node.Mean,
                 StdDev = node.StdDev,
                 TimestampUtc = DateTimeOffset.UtcNow
@@ -62,7 +62,7 @@ public sealed class RuntimePreviewFactory
             {
                 NodeId = nodeId,
                 Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
-                Blobs = node.Blobs.Select(blob => new BlobInfoDto
+                Blobs = [.. node.Blobs.Select(blob => new BlobInfoDto
                 {
                     Label = blob.Label,
                     Area = blob.Area,
@@ -72,7 +72,7 @@ public sealed class RuntimePreviewFactory
                     BoundsY = blob.BoundsY,
                     BoundsWidth = blob.BoundsWidth,
                     BoundsHeight = blob.BoundsHeight
-                }).ToList(),
+                })],
                 TimestampUtc = DateTimeOffset.UtcNow
             }
         };
@@ -85,14 +85,14 @@ public sealed class RuntimePreviewFactory
             {
                 NodeId = nodeId,
                 Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
-                Results = node.Results.Select(result => new ClassificationResultDto
+                Results = [.. node.Results.Select(result => new ClassificationResultDto
                 {
                     BlobIndex = result.BlobIndex,
                     ClassName = result.ClassName,
                     Quality = result.Quality,
                     X = result.X,
                     Y = result.Y
-                }).ToList(),
+                })],
                 TimestampUtc = DateTimeOffset.UtcNow
             }
         };

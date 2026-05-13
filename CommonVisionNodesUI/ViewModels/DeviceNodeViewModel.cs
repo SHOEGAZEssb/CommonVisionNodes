@@ -12,22 +12,21 @@ public partial class DeviceNodeViewModel : NodeViewModel
         : base(node, definition)
     {
         _refreshDevicesAsync = refreshDevicesAsync;
-        _accessToken = GetString("AccessToken");
+		AccessToken = GetString("AccessToken");
         RefreshDiscoveredDevices();
     }
 
-    [ObservableProperty]
-    private string _accessToken = string.Empty;
+	[ObservableProperty]
+	public partial string AccessToken { get; set; } = string.Empty;
+	public ObservableCollection<DiscoveredDevice> DiscoveredDevices { get; } = [];
 
-    public ObservableCollection<DiscoveredDevice> DiscoveredDevices { get; } = [];
+	[ObservableProperty]
+	public partial DiscoveredDevice? SelectedDevice { get; set; }
 
-    [ObservableProperty]
-    private DiscoveredDevice? _selectedDevice;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
-
-    public override string? Summary => string.IsNullOrEmpty(AccessToken)
+	public override string? Summary => string.IsNullOrEmpty(AccessToken)
         ? "No device configured"
         : SelectedDevice?.DisplayName ?? AccessToken;
 

@@ -7,32 +7,32 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
     public MatrixTransformNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _angle = GetDouble("Angle", 0);
-        _scaleX = GetDouble("ScaleX", 1.0);
-        _scaleY = GetDouble("ScaleY", 1.0);
-        _translateX = GetDouble("TranslateX", 0);
-        _translateY = GetDouble("TranslateY", 0);
+		Angle = GetDouble("Angle", 0);
+		ScaleX = GetDouble("ScaleX", 1.0);
+		ScaleY = GetDouble("ScaleY", 1.0);
+		TranslateX = GetDouble("TranslateX", 0);
+		TranslateY = GetDouble("TranslateY", 0);
     }
 
-    [ObservableProperty]
-    private double _angle;
+	[ObservableProperty]
+	public partial double Angle { get; set; }
 
-    [ObservableProperty]
-    private double _scaleX;
+	[ObservableProperty]
+	public partial double ScaleX { get; set; }
 
-    [ObservableProperty]
-    private double _scaleY;
+	[ObservableProperty]
+	public partial double ScaleY { get; set; }
 
-    [ObservableProperty]
-    private double _translateX;
+	[ObservableProperty]
+	public partial double TranslateX { get; set; }
 
-    [ObservableProperty]
-    private double _translateY;
+	[ObservableProperty]
+	public partial double TranslateY { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => $"{Angle:F1}°  {ScaleX:F2}x/{ScaleY:F2}x";
+	public override string? Summary => $"{Angle:F1}°  {ScaleX:F2}x/{ScaleY:F2}x";
 
     public override bool IsEditableWhileRunning => true;
 

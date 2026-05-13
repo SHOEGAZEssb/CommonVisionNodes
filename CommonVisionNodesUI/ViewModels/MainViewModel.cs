@@ -38,43 +38,43 @@ public partial class MainViewModel : ObservableObject
 
     public NodeGraphViewModel Graph { get; }
 
-    [ObservableProperty]
-    private string _selectedNodeTitle = string.Empty;
+	[ObservableProperty]
+	public partial string SelectedNodeTitle { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private string _selectedNodeTypeName = string.Empty;
+	[ObservableProperty]
+	public partial string SelectedNodeTypeName { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private Visibility _propertiesPanelVisibility = Visibility.Collapsed;
+	[ObservableProperty]
+	public partial Visibility PropertiesPanelVisibility { get; set; } = Visibility.Collapsed;
 
-    [ObservableProperty]
-    private Visibility _noSelectionVisibility = Visibility.Visible;
+	[ObservableProperty]
+	public partial Visibility NoSelectionVisibility { get; set; } = Visibility.Visible;
 
-    [ObservableProperty]
-    private bool _isPropertiesContentEnabled = true;
+	[ObservableProperty]
+	public partial bool IsPropertiesContentEnabled { get; set; } = true;
 
-    [ObservableProperty]
-    private bool _isEditingEnabled = true;
+	[ObservableProperty]
+	public partial bool IsEditingEnabled { get; set; } = true;
 
-    [ObservableProperty]
-    private string _runButtonText = "\uE768 Run";
+	[ObservableProperty]
+	public partial string RunButtonText { get; set; } = "\uE768 Run";
 
-    [ObservableProperty]
-    private SolidColorBrush _runButtonBackground = new(Color.FromArgb(255, 56, 142, 60));
+	[ObservableProperty]
+	public partial SolidColorBrush RunButtonBackground { get; set; } = new(Color.FromArgb(255, 56, 142, 60));
 
-    [ObservableProperty]
-    private string _fpsText = "-";
+	[ObservableProperty]
+	public partial string FpsText { get; set; } = "-";
 
-    [ObservableProperty]
-    private string _cpuText = "N/A";
+	[ObservableProperty]
+	public partial string CpuText { get; set; } = "N/A";
 
-    [ObservableProperty]
-    private string _memoryText = "N/A";
+	[ObservableProperty]
+	public partial string MemoryText { get; set; } = "N/A";
 
-    [ObservableProperty]
-    private string _gpuText = "N/A";
+	[ObservableProperty]
+	public partial string GpuText { get; set; } = "N/A";
 
-    private void OnStatusTimerTick(object? sender, object e)
+	private void OnStatusTimerTick(object? sender, object e)
     {
         UpdateCpuAndMemory();
         FpsText = Graph.IsRunning ? Graph.Fps.ToString("F1") : "-";

@@ -7,16 +7,16 @@ public partial class BinarizeNodeViewModel : NodeViewModel
     public BinarizeNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _threshold = GetInt("Threshold", 128);
+		Threshold = GetInt("Threshold", 128);
     }
 
-    [ObservableProperty]
-    private int _threshold;
+	[ObservableProperty]
+	public partial int Threshold { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => $"Threshold {Threshold}";
+	public override string? Summary => $"Threshold {Threshold}";
 
     partial void OnThresholdChanged(int value)
     {

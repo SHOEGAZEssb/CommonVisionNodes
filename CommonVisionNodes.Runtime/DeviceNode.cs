@@ -65,13 +65,10 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_stream != null)
-            {
-                _stream.TryStop();
-                _stream = null;
-            }
+			_stream?.TryStop();
+			_stream = null;
 
-            _device?.Dispose();
+			_device?.Dispose();
             _device = null;
 
             _lastAcquiredImage?.Dispose();

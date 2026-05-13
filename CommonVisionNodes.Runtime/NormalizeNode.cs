@@ -49,6 +49,7 @@ namespace CommonVisionNodes
             byte outMax = (byte)Math.Clamp(OutputMax, 0, 255);
             int width = source.Width;
             int height = source.Height;
+            Span<byte> lut = stackalloc byte[256];
 
             for (int p = 0; p < source.Planes.Count; p++)
             {
@@ -77,7 +78,6 @@ namespace CommonVisionNodes
                     }
 
                     // Build lookup table
-                    byte* lut = stackalloc byte[256];
                     int srcRange = srcMax - srcMin;
                     int outRange = outMax - outMin;
 

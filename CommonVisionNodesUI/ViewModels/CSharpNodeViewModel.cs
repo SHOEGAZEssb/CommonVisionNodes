@@ -7,19 +7,19 @@ public partial class CSharpNodeViewModel : NodeViewModel
     public CSharpNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _code = GetString("Code");
+		Code = GetString("Code");
     }
 
-    [ObservableProperty]
-    private string _code = string.Empty;
+	[ObservableProperty]
+	public partial string Code { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    [ObservableProperty]
-    private string _compilationError = string.Empty;
+	[ObservableProperty]
+	public partial string CompilationError { get; set; } = string.Empty;
 
-    public bool HasCompilationError => !string.IsNullOrWhiteSpace(CompilationError);
+	public bool HasCompilationError => !string.IsNullOrWhiteSpace(CompilationError);
 
     public override string? Summary => HasCompilationError ? "Script error" : "Custom image code";
 

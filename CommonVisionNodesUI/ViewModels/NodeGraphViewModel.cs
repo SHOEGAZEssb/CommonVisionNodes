@@ -33,8 +33,8 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         _backendClient = backendClient;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
-        _previewRefreshRate = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
-        _previewImageMaxDimension = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
+		PreviewRefreshRate = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
+		PreviewImageMaxDimension = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
     }
 
     public ObservableCollection<NodeViewModel> Nodes { get; } = [];
@@ -55,25 +55,23 @@ public partial class NodeGraphViewModel : ObservableObject
         new(160, "160 px")
     ];
 
-    [ObservableProperty]
-    private NodeViewModel? _selectedNode;
+	[ObservableProperty]
+	public partial NodeViewModel? SelectedNode { get; set; }
 
-    [ObservableProperty]
-    private bool _isRunning;
+	[ObservableProperty]
+	public partial bool IsRunning { get; set; }
+	[ObservableProperty]
+	public partial double Fps { get; set; }
 
-    [ObservableProperty]
-    private double _fps;
+	[ObservableProperty]
+	public partial string LastExecutionTimeText { get; set; } = "-";
+	[ObservableProperty]
+	public partial int PreviewRefreshRate { get; set; } = DefaultPreviewRefreshRate;
 
-    [ObservableProperty]
-    private string _lastExecutionTimeText = "-";
+	[ObservableProperty]
+	public partial int PreviewImageMaxDimension { get; set; } = DefaultPreviewImageMaxDimension;
 
-    [ObservableProperty]
-    private int _previewRefreshRate = DefaultPreviewRefreshRate;
-
-    [ObservableProperty]
-    private int _previewImageMaxDimension = DefaultPreviewImageMaxDimension;
-
-    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+	public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
     public string PreviewImageMaxDimensionText => PreviewImageMaxDimension <= 0 ? "Off" : $"{PreviewImageMaxDimension}px";
 
     public Task InitializeAsync()
@@ -116,26 +114,24 @@ public partial class NodeGraphViewModel : ObservableObject
 
     public void SelectNode(NodeViewModel? node)
     {
-        if (SelectedNode is not null)
-            SelectedNode.IsSelected = false;
+        SelectedNode?.IsSelected = false;
 
         SelectedNode = node;
-        if (node is not null)
-            node.IsSelected = true;
+        node?.IsSelected = true;
     }
 
     public GraphDto ToGraphDto()
         => new()
         {
-            Nodes = Nodes.Select(node => node.ToNodeDtoClone()).ToList(),
-            Connections = Connections.Select(connection => new ConnectionDto
+            Nodes = [.. Nodes.Select(node => node.ToNodeDtoClone())],
+            Connections = [.. Connections.Select(connection => new ConnectionDto
             {
                 OutputNodeId = connection.Connection.OutputNodeId,
                 OutputPortName = connection.Connection.OutputPortName,
                 InputNodeId = connection.Connection.InputNodeId,
                 InputPortName = connection.Connection.InputPortName
-            }).ToList()
-        };
+            })]
+		};
 
     public async Task LoadGraphAsync(GraphDto graph)
     {
@@ -441,12 +437,12 @@ public partial class NodeGraphViewModel : ObservableObject
             Type = type,
             X = _nextNodeX,
             Y = _nextNodeY,
-            Properties = definition.Properties.Select(property => new NodePropertyDto
+            Properties = [.. definition.Properties.Select(property => new NodePropertyDto
             {
                 Name = property.Name,
                 Value = property.DefaultValue
-            }).ToList()
-        };
+            })]
+		};
 
         var viewModel = NodeViewModelFactory.Create(node, definition, RefreshNodeDefinitionsAsync);
         AddLoadedNode(viewModel);

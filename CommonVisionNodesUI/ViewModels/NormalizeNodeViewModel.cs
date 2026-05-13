@@ -7,20 +7,20 @@ public partial class NormalizeNodeViewModel : NodeViewModel
     public NormalizeNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _outputMin = GetInt("OutputMin", 0);
-        _outputMax = GetInt("OutputMax", 255);
+		OutputMin = GetInt("OutputMin", 0);
+		OutputMax = GetInt("OutputMax", 255);
     }
 
-    [ObservableProperty]
-    private int _outputMin;
+	[ObservableProperty]
+	public partial int OutputMin { get; set; }
 
-    [ObservableProperty]
-    private int _outputMax;
+	[ObservableProperty]
+	public partial int OutputMax { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => $"{OutputMin}-{OutputMax}";
+	public override string? Summary => $"{OutputMin}-{OutputMax}";
 
     public override bool IsEditableWhileRunning => true;
 

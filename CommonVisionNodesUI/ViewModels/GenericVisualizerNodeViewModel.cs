@@ -9,16 +9,16 @@ public partial class GenericVisualizerNodeViewModel : NodeViewModel
     {
     }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    [ObservableProperty]
-    private string _typeDescription = "No data";
+	[ObservableProperty]
+	public partial string TypeDescription { get; set; } = "No data";
 
-    [ObservableProperty]
-    private string _displayText = string.Empty;
+	[ObservableProperty]
+	public partial string DisplayText { get; set; } = string.Empty;
 
-    public override string? Summary => TypeDescription;
+	public override string? Summary => TypeDescription;
 
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {

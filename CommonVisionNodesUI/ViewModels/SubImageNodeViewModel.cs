@@ -7,28 +7,28 @@ public partial class SubImageNodeViewModel : NodeViewModel
     public SubImageNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _areaX = GetInt("AreaX", 0);
-        _areaY = GetInt("AreaY", 0);
-        _areaWidth = GetInt("AreaWidth", 64);
-        _areaHeight = GetInt("AreaHeight", 64);
+		AreaX = GetInt("AreaX", 0);
+		AreaY = GetInt("AreaY", 0);
+		AreaWidth = GetInt("AreaWidth", 64);
+		AreaHeight = GetInt("AreaHeight", 64);
     }
 
-    [ObservableProperty]
-    private int _areaX;
+	[ObservableProperty]
+	public partial int AreaX { get; set; }
 
-    [ObservableProperty]
-    private int _areaY;
+	[ObservableProperty]
+	public partial int AreaY { get; set; }
 
-    [ObservableProperty]
-    private int _areaWidth;
+	[ObservableProperty]
+	public partial int AreaWidth { get; set; }
 
-    [ObservableProperty]
-    private int _areaHeight;
+	[ObservableProperty]
+	public partial int AreaHeight { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
+	public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
 
     partial void OnAreaXChanged(int value)
     {

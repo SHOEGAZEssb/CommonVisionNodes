@@ -8,16 +8,16 @@ public partial class SaveImageNodeViewModel : NodeViewModel
     public SaveImageNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _filePath = GetString("FilePath");
+		FilePath = GetString("FilePath");
     }
 
-    [ObservableProperty]
-    private string _filePath = string.Empty;
+	[ObservableProperty]
+	public partial string FilePath { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => string.IsNullOrEmpty(FilePath)
+	public override string? Summary => string.IsNullOrEmpty(FilePath)
         ? "No output path"
         : Path.GetFileName(FilePath);
 

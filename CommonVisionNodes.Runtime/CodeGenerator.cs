@@ -24,7 +24,7 @@ public static class CodeGenerator
         }
 
         var sorted = TopologicalSort(graph)
-            .Where(n => n.Inputs.Any(connectedPorts.Contains) || n.Outputs.Any(connectedPorts.Contains))
+            .Where(n => ShouldEmitNode(n, connectedPorts))
             .ToList();
 
         // Collect required usings from nodes
@@ -77,6 +77,14 @@ public static class CodeGenerator
         }
 
         return sb.ToString();
+    }
+
+    private static bool ShouldEmitNode(Node node, HashSet<Port> connectedPorts)
+    {
+        if (node.Inputs.Any(connectedPorts.Contains) || node.Outputs.Any(connectedPorts.Contains))
+            return true;
+
+        return node.Inputs.Count == 0 && node.Outputs.Count > 0;
     }
 
     private static List<Node> TopologicalSort(NodeGraph graph)

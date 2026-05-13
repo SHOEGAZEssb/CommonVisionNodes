@@ -10,10 +10,9 @@ namespace CommonVisionNodes.Runtime;
 public sealed class RuntimeNodeCatalog
 {
     public IReadOnlyList<NodeDefinitionDto> GetDefinitions()
-        => CreateDefinitions()
+        => [.. CreateDefinitions()
             .OrderBy(definition => definition.Category, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(definition => definition.DisplayName, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .ThenBy(definition => definition.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
     public NodeDefinitionDto? GetDefinition(string type)
         => CreateDefinitions().FirstOrDefault(definition => string.Equals(definition.Type, type, StringComparison.OrdinalIgnoreCase));
@@ -252,10 +251,10 @@ public sealed class RuntimeNodeCatalog
             IconGlyph = iconGlyph,
             PreviewKind = previewKind,
             CanEditWhileRunning = canEditWhileRunning,
-            InputPorts = node.Inputs.Select(MapPort).ToList(),
-            OutputPorts = node.Outputs.Select(MapPort).ToList(),
-            Properties = ApplyDefaultValues(node, properties).ToList()
-        };
+            InputPorts = [.. node.Inputs.Select(MapPort)],
+            OutputPorts = [.. node.Outputs.Select(MapPort)],
+            Properties = [.. ApplyDefaultValues(node, properties)]
+		};
     }
 
     private static IEnumerable<NodePropertyDefinitionDto> ApplyDefaultValues(Node node, IEnumerable<NodePropertyDefinitionDto> properties)
@@ -383,14 +382,13 @@ public sealed class RuntimeNodeCatalog
             DisplayName = displayName,
             Description = description,
             ValueKind = NodePropertyValueKindDto.Enum,
-            Options = Enum.GetValues<TEnum>()
+            Options = [.. Enum.GetValues<TEnum>()
                 .Select(value => new PropertyOptionDto
                 {
                     Value = value.ToString(),
                     Label = SplitCamelCase(value.ToString())
-                })
-                .ToList()
-        };
+                })]
+		};
 
     private static NodePropertyDefinitionDto EnumLikeProperty(string name, string displayName, string description, IList<PropertyOptionDto> options)
         => new()
@@ -406,7 +404,7 @@ public sealed class RuntimeNodeCatalog
     {
         try
         {
-            return DeviceFactory.Discover(DiscoverFlags.IgnoreVins | DiscoverFlags.IncludeMockTL)
+            return [.. DeviceFactory.Discover(DiscoverFlags.IgnoreVins | DiscoverFlags.IncludeMockTL)
                 .Select(info =>
                 {
                     var label = info.TryGetProperty(DiscoveryProperties.DeviceModel, out var model)
@@ -421,8 +419,7 @@ public sealed class RuntimeNodeCatalog
                         Value = info.AccessToken,
                         Label = label
                     };
-                })
-                .ToList();
+                })];
         }
         catch
         {

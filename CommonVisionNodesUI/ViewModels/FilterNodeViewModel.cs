@@ -10,8 +10,8 @@ public partial class FilterNodeViewModel : NodeViewModel
     public FilterNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _availableFilterTypes = GetOptions("FilterType").Select(option => option.Value).ToList();
-        _availableKernelSizes = GetOptions("KernelSize").Select(option => option.Value).ToList();
+        _availableFilterTypes = [.. GetOptions("FilterType").Select(option => option.Value)];
+        _availableKernelSizes = [.. GetOptions("KernelSize").Select(option => option.Value)];
         _filterType = GetString("FilterType", _availableFilterTypes.FirstOrDefault() ?? string.Empty);
         _kernelSize = GetString("KernelSize", _availableKernelSizes.FirstOrDefault() ?? string.Empty);
     }
@@ -24,10 +24,10 @@ public partial class FilterNodeViewModel : NodeViewModel
 
     private string _kernelSize = string.Empty;
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => string.IsNullOrEmpty(FilterType)
+	public override string? Summary => string.IsNullOrEmpty(FilterType)
         ? "No filter"
         : $"{FilterType} / {KernelSize}";
 

@@ -9,30 +9,30 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
     public ImageGeneratorNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _availablePatterns = GetOptions("Pattern").Select(option => option.Value).ToList();
-        _width = GetInt("Width", 640);
-        _height = GetInt("Height", 480);
+        _availablePatterns = [.. GetOptions("Pattern").Select(option => option.Value)];
+		ImageWidth = GetInt("Width", 640);
+		ImageHeight = GetInt("Height", 480);
         _pattern = GetString("Pattern", _availablePatterns.FirstOrDefault() ?? string.Empty);
-        _speed = GetInt("Speed", 2);
+		Speed = GetInt("Speed", 2);
     }
 
     public IReadOnlyList<string> AvailablePatterns => _availablePatterns;
 
-    [ObservableProperty]
-    private int _width;
+	[ObservableProperty]
+	public partial int ImageWidth { get; set; }
 
-    [ObservableProperty]
-    private int _height;
+	[ObservableProperty]
+	public partial int ImageHeight { get; set; }
 
-    private string _pattern = string.Empty;
+	private string _pattern = string.Empty;
 
-    [ObservableProperty]
-    private int _speed;
+	[ObservableProperty]
+	public partial int Speed { get; set; }
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => $"{Width}x{Height}  {Pattern}";
+	public override string? Summary => $"{ImageWidth}x{ImageHeight}  {Pattern}";
 
     public override bool IsEditableWhileRunning => true;
 
@@ -53,15 +53,15 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
         }
     }
 
-    partial void OnWidthChanged(int value)
+    partial void OnImageWidthChanged(int value)
     {
-        SetInt("Width", value);
+        SetInt("ImageWidth", value);
         RaiseSummaryChanged();
     }
 
-    partial void OnHeightChanged(int value)
+    partial void OnImageHeightChanged(int value)
     {
-        SetInt("Height", value);
+        SetInt("ImageHeight", value);
         RaiseSummaryChanged();
     }
 

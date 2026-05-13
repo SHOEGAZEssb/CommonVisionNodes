@@ -10,8 +10,8 @@ public partial class MorphologyNodeViewModel : NodeViewModel
     public MorphologyNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _availableOperations = GetOptions("Operation").Select(option => option.Value).ToList();
-        _availableKernelSizes = GetOptions("KernelSize").Select(option => option.Value).ToList();
+        _availableOperations = [.. GetOptions("Operation").Select(option => option.Value)];
+        _availableKernelSizes = [.. GetOptions("KernelSize").Select(option => option.Value)];
         _operation = GetString("Operation", _availableOperations.FirstOrDefault() ?? string.Empty);
         _kernelSize = GetString("KernelSize", _availableKernelSizes.FirstOrDefault() ?? string.Empty);
     }
@@ -24,10 +24,10 @@ public partial class MorphologyNodeViewModel : NodeViewModel
 
     private string _kernelSize = string.Empty;
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public override string? Summary => string.IsNullOrEmpty(Operation)
+	public override string? Summary => string.IsNullOrEmpty(Operation)
         ? "No operation"
         : $"{Operation} / {KernelSize}";
 

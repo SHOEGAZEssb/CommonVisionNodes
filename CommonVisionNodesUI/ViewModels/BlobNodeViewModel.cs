@@ -7,39 +7,39 @@ public partial class BlobNodeViewModel : NodeViewModel
     public BlobNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        _foregroundThreshold = GetInt("ForegroundThreshold", 128);
-        _minArea = GetInt("MinArea", 1);
-        _maxArea = GetInt("MaxArea", 0);
-        _maxBlobCount = GetInt("MaxBlobCount", 0);
-        _invertForeground = GetBool("InvertForeground", false);
-        _use8Connectivity = GetBool("Use8Connectivity", false);
+		ForegroundThreshold = GetInt("ForegroundThreshold", 128);
+		MinArea = GetInt("MinArea", 1);
+		MaxArea = GetInt("MaxArea", 0);
+		MaxBlobCount = GetInt("MaxBlobCount", 0);
+		InvertForeground = GetBool("InvertForeground", false);
+		Use8Connectivity = GetBool("Use8Connectivity", false);
     }
 
-    [ObservableProperty]
-    private int _foregroundThreshold;
+	[ObservableProperty]
+	public partial int ForegroundThreshold { get; set; }
 
-    [ObservableProperty]
-    private int _minArea;
+	[ObservableProperty]
+	public partial int MinArea { get; set; }
 
-    [ObservableProperty]
-    private int _maxArea;
+	[ObservableProperty]
+	public partial int MaxArea { get; set; }
 
-    [ObservableProperty]
-    private int _maxBlobCount;
+	[ObservableProperty]
+	public partial int MaxBlobCount { get; set; }
 
-    [ObservableProperty]
-    private bool _invertForeground;
+	[ObservableProperty]
+	public partial bool InvertForeground { get; set; }
 
-    [ObservableProperty]
-    private bool _use8Connectivity;
+	[ObservableProperty]
+	public partial bool Use8Connectivity { get; set; }
 
-    [ObservableProperty]
-    private IReadOnlyList<BlobInfoDto> _blobs = [];
+	[ObservableProperty]
+	public partial IReadOnlyList<BlobInfoDto> Blobs { get; set; } = [];
 
-    [ObservableProperty]
-    private ImagePreviewDto? _previewImage;
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-    public int BlobCount => Blobs.Count;
+	public int BlobCount => Blobs.Count;
 
     public override string? Summary => $"{BlobCount} blob(s)";
 
@@ -84,7 +84,7 @@ public partial class BlobNodeViewModel : NodeViewModel
     public override void ApplyBlobPreview(BlobPreviewDto preview)
     {
         PreviewImage = preview.Image;
-        Blobs = preview.Blobs.ToList();
+        Blobs = [.. preview.Blobs];
         OnPropertyChanged(nameof(BlobCount));
         RaiseSummaryChanged();
     }
