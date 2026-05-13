@@ -17,6 +17,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? SubImageNodeTemplate { get; set; }
     public DataTemplate? MatrixTransformNodeTemplate { get; set; }
     public DataTemplate? ImageGeneratorNodeTemplate { get; set; }
+    public DataTemplate? TimeTriggerNodeTemplate { get; set; }
+    public DataTemplate? ManualTriggerNodeTemplate { get; set; }
     public DataTemplate? FilterNodeTemplate { get; set; }
     public DataTemplate? HistogramNodeTemplate { get; set; }
     public DataTemplate? MorphologyNodeTemplate { get; set; }
@@ -43,6 +45,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             SubImageNodeViewModel => SubImageNodeTemplate,
             MatrixTransformNodeViewModel => MatrixTransformNodeTemplate,
             ImageGeneratorNodeViewModel => ImageGeneratorNodeTemplate,
+            TimeTriggerNodeViewModel => TimeTriggerNodeTemplate,
+            ManualTriggerNodeViewModel => ManualTriggerNodeTemplate,
             FilterNodeViewModel => FilterNodeTemplate,
             HistogramNodeViewModel => HistogramNodeTemplate,
             MorphologyNodeViewModel => MorphologyNodeTemplate,

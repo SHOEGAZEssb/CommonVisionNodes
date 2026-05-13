@@ -18,13 +18,16 @@ namespace CommonVisionNodes.Test
         }
 
         [Test]
-        public void Constructor_ShouldHaveNoInputPorts()
+        public void Constructor_ShouldCreateTriggerInputPort()
         {
             // Arrange & Act
             var node = new ImageNode();
 
             // Assert
-            Assert.That(node.Inputs, Is.Empty);
+            Assert.That(node.Inputs, Has.Count.EqualTo(1));
+            Assert.That(node.TriggerInput.Name, Is.EqualTo("Trigger"));
+            Assert.That(node.TriggerInput.Type, Is.EqualTo(typeof(TriggerSignal)));
+            Assert.That(node.TriggerInput.Direction, Is.EqualTo(PortDirection.Input));
         }
 
         [Test]

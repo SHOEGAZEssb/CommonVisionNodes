@@ -29,6 +29,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private Task? _initializeTask;
     private CancellationTokenSource? _graphRestartDebounceCts;
     private CancellationTokenSource? _previewSettingsDebounceCts;
+    private CancellationTokenSource? _nodePropertiesDebounceCts;
 
     public NodeGraphViewModel(IBackendClient backendClient)
     {
@@ -263,6 +264,20 @@ public partial class NodeGraphViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task AddTimeTriggerNode()
+    {
+        await InitializeAsync();
+        AddNode("TimeTriggerNode");
+    }
+
+    [RelayCommand]
+    private async Task AddManualTriggerNode()
+    {
+        await InitializeAsync();
+        AddNode("ManualTriggerNode");
+    }
+
+    [RelayCommand]
     private async Task AddFilterNode()
     {
         await InitializeAsync();
@@ -323,6 +338,8 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         nodeViewModel.ConfigurationChanged -= OnNodeConfigurationChanged;
         nodeViewModel.PropertyChanged -= OnNodePropertyChanged;
+        if (nodeViewModel is ManualTriggerNodeViewModel manualTriggerNode)
+            manualTriggerNode.TriggerRequested -= OnManualTriggerRequested;
 
         var connectionsToRemove = Connections
             .Where(connection => connection.Source.ParentNode == nodeViewModel || connection.Target.ParentNode == nodeViewModel)
@@ -361,12 +378,14 @@ public partial class NodeGraphViewModel : ObservableObject
         {
             CancelPendingExecutionRestart();
             CancelPendingPreviewSettingsUpdate();
+            CancelPendingNodePropertiesUpdate();
             await _backendClient.StopAsync(_clientId);
             IsRunning = false;
             return;
         }
 
         CancelPendingExecutionRestart();
+        CancelPendingNodePropertiesUpdate();
         await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
     }
 
@@ -378,6 +397,8 @@ public partial class NodeGraphViewModel : ObservableObject
         {
             node.ConfigurationChanged -= OnNodeConfigurationChanged;
             node.PropertyChanged -= OnNodePropertyChanged;
+            if (node is ManualTriggerNodeViewModel manualTriggerNode)
+                manualTriggerNode.TriggerRequested -= OnManualTriggerRequested;
         }
         Nodes.Clear();
         _nodesById.Clear();
@@ -391,6 +412,7 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         CancelPendingExecutionRestart();
         CancelPendingPreviewSettingsUpdate();
+        CancelPendingNodePropertiesUpdate();
 
         if (_listenerCts is not null)
         {
@@ -469,14 +491,50 @@ public partial class NodeGraphViewModel : ObservableObject
     {
         viewModel.ConfigurationChanged += OnNodeConfigurationChanged;
         viewModel.PropertyChanged += OnNodePropertyChanged;
+        if (viewModel is ManualTriggerNodeViewModel manualTriggerNode)
+            manualTriggerNode.TriggerRequested += OnManualTriggerRequested;
+
         Nodes.Add(viewModel);
         _nodesById[viewModel.Node.Id] = viewModel;
+    }
+
+    private async void OnManualTriggerRequested(object? sender, EventArgs e)
+    {
+        if (sender is not ManualTriggerNodeViewModel manualTriggerNode)
+            return;
+
+        if (!IsRunning)
+        {
+            manualTriggerNode.MarkTriggerUnavailable();
+            return;
+        }
+
+        try
+        {
+            await _backendClient.TriggerNodeAsync(
+                new TriggerNodeRequestDto
+                {
+                    ClientId = _clientId,
+                    NodeId = manualTriggerNode.Node.Id
+                });
+            manualTriggerNode.MarkTriggerQueued();
+        }
+        catch
+        {
+            manualTriggerNode.MarkTriggerFailed();
+        }
     }
 
     private async void OnNodeConfigurationChanged(object? sender, EventArgs e)
     {
         if (sender is not NodeViewModel node || !IsRunning || !node.IsEditableWhileRunning)
             return;
+
+        if (node is TimeTriggerNodeViewModel)
+        {
+            await UpdateRunningNodePropertiesAsync(node);
+            return;
+        }
 
         await RestartContinuousExecutionAsync();
     }
@@ -619,6 +677,13 @@ public partial class NodeGraphViewModel : ObservableObject
         _previewSettingsDebounceCts = null;
     }
 
+    private void CancelPendingNodePropertiesUpdate()
+    {
+        _nodePropertiesDebounceCts?.Cancel();
+        _nodePropertiesDebounceCts?.Dispose();
+        _nodePropertiesDebounceCts = null;
+    }
+
     private async Task UpdateRunningPreviewSettingsAsync()
     {
         CancelPendingPreviewSettingsUpdate();
@@ -690,6 +755,51 @@ public partial class NodeGraphViewModel : ObservableObject
             {
                 _graphRestartDebounceCts.Dispose();
                 _graphRestartDebounceCts = null;
+            }
+            else
+            {
+                cts.Dispose();
+            }
+        }
+    }
+
+    private async Task UpdateRunningNodePropertiesAsync(NodeViewModel node)
+    {
+        CancelPendingNodePropertiesUpdate();
+
+        var cts = new CancellationTokenSource();
+        _nodePropertiesDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(150, cts.Token);
+
+            if (cts.IsCancellationRequested || !IsRunning)
+                return;
+
+            await _backendClient.UpdateNodePropertiesAsync(
+                new UpdateNodePropertiesRequestDto
+                {
+                    ClientId = _clientId,
+                    NodeId = node.Node.Id,
+                    Properties = [.. node.ToNodeDtoClone().Properties]
+                },
+                cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer property edit superseded this update request.
+        }
+        catch
+        {
+            // The active run may have stopped before the debounced update reached the backend.
+        }
+        finally
+        {
+            if (ReferenceEquals(_nodePropertiesDebounceCts, cts))
+            {
+                _nodePropertiesDebounceCts.Dispose();
+                _nodePropertiesDebounceCts = null;
             }
             else
             {

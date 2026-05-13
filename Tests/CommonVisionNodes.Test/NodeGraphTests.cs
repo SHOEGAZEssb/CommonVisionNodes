@@ -1,4 +1,4 @@
-﻿namespace CommonVisionNodes.Test
+namespace CommonVisionNodes.Test
 {
     public class NodeGraphTests
     {
@@ -244,6 +244,124 @@
         }
 
         [Test]
+        public void Execute_TriggerableNodeWithDisconnectedTrigger_ShouldExecuteNormally()
+        {
+            // Arrange
+            var graph = new NodeGraph();
+            var source = new TriggerableSourceNode { ProducedValue = "frame" };
+            var sink = new SinkNode();
+            graph.AddNode(source);
+            graph.AddNode(sink);
+            graph.Connect(source.Output, sink.Input);
+
+            // Act
+            graph.Execute();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
+            });
+        }
+
+        [Test]
+        public void Execute_TriggerableNodeWithManualTrigger_ShouldOnlyRunBranchWhenTriggered()
+        {
+            // Arrange
+            var graph = new NodeGraph();
+            var trigger = new ManualTriggerNode();
+            var source = new TriggerableSourceNode { ProducedValue = "frame" };
+            var sink = new SinkNode();
+            graph.AddNode(trigger);
+            graph.AddNode(source);
+            graph.AddNode(sink);
+            graph.Connect(trigger.TriggerOutput, source.TriggerInput);
+            graph.Connect(source.Output, sink.Input);
+
+            // Act
+            graph.Execute();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.ExecuteCount, Is.Zero);
+                Assert.That(sink.ExecuteCount, Is.Zero);
+                Assert.That(sink.ReceivedValue, Is.Null);
+            });
+
+            // Act
+            trigger.Trigger();
+            graph.Execute();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
+            });
+
+            // Act
+            graph.Execute();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ExecuteCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void Execute_TriggerableNodeWithTimeTrigger_ShouldRunImmediatelyThenWaitForInterval()
+        {
+            // Arrange
+            var graph = new NodeGraph();
+            var trigger = new TimeTriggerNode { IntervalSeconds = 60 };
+            var source = new TriggerableSourceNode { ProducedValue = "frame" };
+            var sink = new SinkNode();
+            graph.AddNode(trigger);
+            graph.AddNode(source);
+            graph.AddNode(sink);
+            graph.Connect(trigger.TriggerOutput, source.TriggerInput);
+            graph.Connect(source.Output, sink.Input);
+
+            // Act
+            graph.Execute();
+            graph.Execute();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ExecuteCount, Is.EqualTo(1));
+                Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
+            });
+        }
+
+        [Test]
+        public void TimeTriggerNode_InvalidInterval_ShouldKeepLastValidInterval()
+        {
+            // Arrange
+            var trigger = new TimeTriggerNode { IntervalSeconds = 2.5 };
+
+            // Act
+            trigger.IntervalSeconds = double.NaN;
+            trigger.IntervalSeconds = double.PositiveInfinity;
+
+            // Assert
+            Assert.That(trigger.IntervalSeconds, Is.EqualTo(2.5));
+
+            // Act
+            trigger.IntervalSeconds = -1;
+
+            // Assert
+            Assert.That(trigger.IntervalSeconds, Is.Zero);
+        }
+
+        [Test]
         public void Initialize_ShouldInitializeInitializableNodesInOrder()
         {
             // Arrange
@@ -376,6 +494,7 @@
         public Port Input { get; }
         public object? ReceivedValue { get; private set; }
         public List<Node>? ExecutionLog { get; set; }
+        public int ExecuteCount { get; private set; }
 
         public SinkNode()
         {
@@ -384,8 +503,29 @@
 
         public override void Execute()
         {
+            ExecuteCount++;
             ReceivedValue = Input.Value;
             ExecutionLog?.Add(this);
+        }
+    }
+
+    internal sealed class TriggerableSourceNode : Node, ITriggerableNode
+    {
+        public Port TriggerInput { get; }
+        public Port Output { get; }
+        public object? ProducedValue { get; set; }
+        public int ExecuteCount { get; private set; }
+
+        public TriggerableSourceNode()
+        {
+            TriggerInput = AddInput("Trigger", typeof(TriggerSignal));
+            Output = AddOutput("Output", typeof(object));
+        }
+
+        public override void Execute()
+        {
+            ExecuteCount++;
+            Output.Value = ProducedValue;
         }
     }
 

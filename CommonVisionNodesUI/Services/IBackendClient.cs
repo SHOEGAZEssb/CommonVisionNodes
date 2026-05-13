@@ -10,10 +10,13 @@ public interface IBackendClient
 
     Task StopAsync(string clientId, CancellationToken cancellationToken = default);
 
+    Task TriggerNodeAsync(TriggerNodeRequestDto request, CancellationToken cancellationToken = default);
+
     Task UpdateExecutionSettingsAsync(UpdateExecutionSettingsRequestDto request, CancellationToken cancellationToken = default);
+
+    Task UpdateNodePropertiesAsync(UpdateNodePropertiesRequestDto request, CancellationToken cancellationToken = default);
 
     Task<string> GenerateCodeAsync(GraphDto graph, CancellationToken cancellationToken = default);
 
     Task ListenAsync(string clientId, Func<ExecutionMessageDto, Task> onMessage, CancellationToken cancellationToken = default);
 }
-

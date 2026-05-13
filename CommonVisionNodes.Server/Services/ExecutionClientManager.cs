@@ -93,6 +93,32 @@ public sealed class ExecutionClientManager
         return true;
     }
 
+    public bool TriggerManualNode(TriggerNodeRequestDto request)
+    {
+        var session = GetSession(request.ClientId);
+        GraphExecutionRunner? runner;
+
+        lock (session.RunnerSync)
+            runner = session.Runner;
+
+        if (runner is null)
+            return false;
+
+        runner.TriggerManualNode(request.NodeId);
+        return true;
+    }
+
+    public bool UpdateNodeProperties(UpdateNodePropertiesRequestDto request)
+    {
+        var session = GetSession(request.ClientId);
+        GraphExecutionRunner? runner;
+
+        lock (session.RunnerSync)
+            runner = session.Runner;
+
+        return runner?.UpdateNodeProperties(request.NodeId, request.Properties) == true;
+    }
+
     public async Task AttachSocketAsync(string clientId, WebSocket socket, CancellationToken cancellationToken)
     {
         var session = GetSession(clientId);

@@ -73,6 +73,8 @@ public abstract partial class NodeViewModel : ObservableObject
         "SubImageNode" => Color.FromArgb(255, 0, 172, 193),
         "MatrixTransformNode" => Color.FromArgb(255, 233, 30, 99),
         "ImageGeneratorNode" => Color.FromArgb(255, 76, 175, 80),
+        "TimeTriggerNode" => Color.FromArgb(255, 66, 165, 245),
+        "ManualTriggerNode" => Color.FromArgb(255, 126, 87, 194),
         "FilterNode" => Color.FromArgb(255, 92, 107, 192),
         "HistogramNode" => Color.FromArgb(255, 239, 108, 0),
         "MorphologyNode" => Color.FromArgb(255, 121, 85, 72),

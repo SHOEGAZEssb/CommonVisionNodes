@@ -7,11 +7,16 @@ namespace CommonVisionNodes
     /// <summary>
     /// Acquires images from a GenICam-compatible camera device.
     /// </summary>
-    public sealed class DeviceNode : Node, IInitializable
+    public sealed class DeviceNode : Node, IInitializable, ITriggerableNode
     {
         private GenICamDevice? _device;
         private ImageStream? _stream;
         private Image? _lastAcquiredImage;
+
+        /// <summary>
+        /// Optional trigger input that gates when a frame is acquired and sent downstream.
+        /// </summary>
+        public Port TriggerInput { get; }
 
         /// <summary>
         /// Output port that provides the most recently acquired image.
@@ -33,6 +38,7 @@ namespace CommonVisionNodes
 
         public DeviceNode()
         {
+            TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a frame is acquired.");
             ImageOutput = AddOutput("Image", typeof(Image), "The most recently acquired camera image.");
         }
 

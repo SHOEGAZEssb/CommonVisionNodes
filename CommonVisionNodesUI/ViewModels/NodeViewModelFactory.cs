@@ -16,6 +16,8 @@ public static class NodeViewModelFactory
             "SubImageNode" => new SubImageNodeViewModel(node, definition),
             "MatrixTransformNode" => new MatrixTransformNodeViewModel(node, definition),
             "ImageGeneratorNode" => new ImageGeneratorNodeViewModel(node, definition),
+            "TimeTriggerNode" => new TimeTriggerNodeViewModel(node, definition),
+            "ManualTriggerNode" => new ManualTriggerNodeViewModel(node, definition),
             "FilterNode" => new FilterNodeViewModel(node, definition),
             "HistogramNode" => new HistogramNodeViewModel(node, definition),
             "MorphologyNode" => new MorphologyNodeViewModel(node, definition),

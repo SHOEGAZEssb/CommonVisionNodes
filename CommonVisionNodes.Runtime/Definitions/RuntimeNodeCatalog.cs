@@ -31,6 +31,8 @@ public sealed class RuntimeNodeCatalog
             nameof(SubImageNode) => new SubImageNode(),
             nameof(MatrixTransformNode) => new MatrixTransformNode(),
             nameof(ImageGeneratorNode) => new ImageGeneratorNode(),
+            nameof(TimeTriggerNode) => new TimeTriggerNode(),
+            nameof(ManualTriggerNode) => new ManualTriggerNode(),
             nameof(GevServerNode) => new GevServerNode(),
             nameof(FilterNode) => new FilterNode(),
             nameof(HistogramNode) => new HistogramNode(),
@@ -86,6 +88,25 @@ public sealed class RuntimeNodeCatalog
                 EnumProperty<TestPattern>("Pattern", "Pattern", "The generator pattern."),
                 IntProperty("Speed", "Speed", "Animation speed.", 1, 50, 1),
                 PreviewToggleProperty()),
+            CreateDefinition(
+                nameof(TimeTriggerNode),
+                "Time Trigger",
+                "Trigger",
+                "Send trigger signals at a fixed interval.",
+                "&#xE916;",
+                NodePreviewKindDto.None,
+                canEditWhileRunning: true,
+                () => new TimeTriggerNode(),
+                DoubleProperty("IntervalSeconds", "Interval", "Seconds between trigger signals.", 0.001, null, 0.1)),
+            CreateDefinition(
+                nameof(ManualTriggerNode),
+                "Manual Trigger",
+                "Trigger",
+                "Send a trigger signal when requested by the user.",
+                "&#xE7C9;",
+                NodePreviewKindDto.None,
+                canEditWhileRunning: true,
+                () => new ManualTriggerNode()),
             CreateDefinition(
                 nameof(SaveImageNode),
                 "Save Image",
@@ -313,6 +334,9 @@ public sealed class RuntimeNodeCatalog
         if (type == typeof(Image))
             return "Image";
 
+        if (type == typeof(TriggerSignal))
+            return "Trigger";
+
         if (type == typeof(object))
             return "Any";
 
@@ -537,5 +561,4 @@ public sealed class RuntimeNodeCatalog
         return builder.ToString();
     }
 }
-
 

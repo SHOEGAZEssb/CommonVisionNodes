@@ -82,6 +82,32 @@ app.MapPost("/api/graph/settings", (UpdateExecutionSettingsRequestDto request, E
         : Results.NotFound();
 });
 
+app.MapPost("/api/graph/trigger", (TriggerNodeRequestDto request, ExecutionClientManager manager) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ClientId))
+        return Results.BadRequest("clientId is required.");
+
+    if (string.IsNullOrWhiteSpace(request.NodeId))
+        return Results.BadRequest("nodeId is required.");
+
+    return manager.TriggerManualNode(request)
+        ? Results.Ok()
+        : Results.NotFound();
+});
+
+app.MapPost("/api/graph/node-properties", (UpdateNodePropertiesRequestDto request, ExecutionClientManager manager) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ClientId))
+        return Results.BadRequest("clientId is required.");
+
+    if (string.IsNullOrWhiteSpace(request.NodeId))
+        return Results.BadRequest("nodeId is required.");
+
+    return manager.UpdateNodeProperties(request)
+        ? Results.Ok()
+        : Results.NotFound();
+});
+
 app.MapPost("/api/graph/codegen", (GraphDto graph, RuntimeCodeGenerationService codeGenerationService) =>
     Results.Text(codeGenerationService.GenerateCode(graph), "text/plain"));
 
@@ -108,5 +134,3 @@ app.Map("/ws/execution", async context =>
 });
 
 app.Run();
-
-

@@ -133,6 +133,32 @@ public sealed class RuntimeGraphFactoryTests
 
         Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
     }
+
+    [Test]
+    public void Build_TimeTriggerWithNonFiniteInterval_ShouldKeepDefaultInterval()
+    {
+        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+        var graphDto = new GraphDto
+        {
+            Nodes =
+            [
+                new NodeDto
+                {
+                    Id = "trigger",
+                    Type = nameof(TimeTriggerNode),
+                    Properties =
+                    [
+                        new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "NaN" }
+                    ]
+                }
+            ]
+        };
+
+        using var result = factory.Build(graphDto);
+
+        var trigger = (TimeTriggerNode)result.NodesById["trigger"];
+        Assert.That(trigger.IntervalSeconds, Is.EqualTo(1.0));
+    }
 }
 
 public sealed class GraphExecutionRunnerTests
@@ -199,6 +225,54 @@ public sealed class GraphExecutionRunnerTests
         Assert.That(failure, Is.Not.Null);
         Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
         Assert.That(failure.ExecutionState?.Message, Does.Contain("Unknown node type"));
+    }
+
+    [Test]
+    public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = new ExecutionRequestDto
+        {
+            ClientId = "test-client",
+            Mode = ExecutionModeDto.Continuous,
+            PreviewRefreshRate = 30,
+            PreviewImageMaxDimension = 64,
+            Graph = new GraphDto
+            {
+                Nodes =
+                [
+                    new NodeDto
+                    {
+                        Id = "trigger",
+                        Type = nameof(TimeTriggerNode),
+                        Properties =
+                        [
+                            new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "60" }
+                        ]
+                    }
+                ]
+            }
+        };
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+
+        var updated = false;
+        for (var attempt = 0; attempt < 100 && !updated; attempt++)
+        {
+            updated = runner.UpdateNodeProperties(
+                "trigger",
+                [new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "0.25" }]);
+
+            if (!updated)
+                await Task.Delay(20);
+        }
+
+        await runner.DisposeAsync();
+
+        Assert.That(updated, Is.True);
+        Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
     }
 
     [TestCase(0, 1000.0)]

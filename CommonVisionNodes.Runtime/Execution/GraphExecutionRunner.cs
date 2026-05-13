@@ -11,10 +11,14 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     private readonly Func<ExecutionMessageDto, CancellationToken, Task> _publishAsync;
     private readonly Action<GraphExecutionRunner> _onCompleted;
     private readonly HashSet<string> _previewEnabledNodeIds;
+    private readonly object _manualTriggerSync = new();
+    private readonly Dictionary<string, int> _manualTriggerCounts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _graphSync = new();
     private readonly CancellationTokenSource _cts = new();
     private int _previewRefreshRate;
     private int _previewImageMaxDimension;
     private Task? _executionTask;
+    private RuntimeGraphBuildResult? _activeGraphBuildResult;
 
     public GraphExecutionRunner(
         ExecutionRequestDto request,
@@ -47,10 +51,43 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         _executionTask = Task.Run(() => RunAsync(_cts.Token));
     }
 
+    public void TriggerManualNode(string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+            return;
+
+        lock (_manualTriggerSync)
+        {
+            _manualTriggerCounts.TryGetValue(nodeId, out var count);
+            _manualTriggerCounts[nodeId] = count == int.MaxValue ? count : count + 1;
+        }
+    }
+
     public void UpdatePreviewSettings(int previewRefreshRate, int previewImageMaxDimension)
     {
         Volatile.Write(ref _previewRefreshRate, Math.Clamp(previewRefreshRate, 1, 1001));
         Volatile.Write(ref _previewImageMaxDimension, Math.Max(0, previewImageMaxDimension));
+    }
+
+    public bool UpdateNodeProperties(string nodeId, IEnumerable<NodePropertyDto> properties)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+            return false;
+
+        lock (_graphSync)
+        {
+            if (_activeGraphBuildResult is null ||
+                !_activeGraphBuildResult.NodesById.TryGetValue(nodeId, out var node))
+            {
+                return false;
+            }
+
+            if (node is not TimeTriggerNode)
+                return false;
+
+            RuntimeNodePropertyBinder.Apply(node, properties);
+            return true;
+        }
     }
 
     public async Task StopAsync()
@@ -87,9 +124,13 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             await PublishStateAsync(ExecutionStatusDto.Starting, "Building execution graph.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 
             graphBuildResult = _graphFactory.Build(_request.Graph);
+            ConfigureManualTriggerNodes(graphBuildResult);
+            lock (_graphSync)
+                _activeGraphBuildResult = graphBuildResult;
 
             await PublishStateAsync(ExecutionStatusDto.Initializing, "Initializing runtime nodes.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
-            graphBuildResult.Graph.Initialize();
+            lock (_graphSync)
+                graphBuildResult.Graph.Initialize();
 
             await PublishStateAsync(ExecutionStatusDto.Running, "Execution started.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 
@@ -136,6 +177,12 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         }
         finally
         {
+            lock (_graphSync)
+            {
+                if (ReferenceEquals(_activeGraphBuildResult, graphBuildResult))
+                    _activeGraphBuildResult = null;
+            }
+
             graphBuildResult?.Dispose();
             _onCompleted(this);
         }
@@ -147,7 +194,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
 
         try
         {
-            graphBuildResult.Graph.Execute();
+            lock (_graphSync)
+                graphBuildResult.Graph.Execute();
         }
         catch (NodeExecutionException nodeExecutionException)
         {
@@ -251,6 +299,37 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             null,
             ExecutionMessageTypeDto.Failure,
             CancellationToken.None);
+    }
+
+    private void ConfigureManualTriggerNodes(RuntimeGraphBuildResult graphBuildResult)
+    {
+        foreach (var pair in graphBuildResult.NodeIdsByRuntime)
+        {
+            if (pair.Key is not ManualTriggerNode manualTriggerNode)
+                continue;
+
+            manualTriggerNode.TriggerId = pair.Value;
+            manualTriggerNode.TryConsumeExternalTrigger = TryConsumeManualTrigger;
+        }
+    }
+
+    private bool TryConsumeManualTrigger(string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+            return false;
+
+        lock (_manualTriggerSync)
+        {
+            if (!_manualTriggerCounts.TryGetValue(nodeId, out var count) || count <= 0)
+                return false;
+
+            if (count == 1)
+                _manualTriggerCounts.Remove(nodeId);
+            else
+                _manualTriggerCounts[nodeId] = count - 1;
+
+            return true;
+        }
     }
 
     private async Task PublishAsync(ExecutionMessageDto message, CancellationToken cancellationToken)

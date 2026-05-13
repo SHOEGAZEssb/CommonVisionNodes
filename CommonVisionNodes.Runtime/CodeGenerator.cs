@@ -84,7 +84,8 @@ public static class CodeGenerator
         if (node.Inputs.Any(connectedPorts.Contains) || node.Outputs.Any(connectedPorts.Contains))
             return true;
 
-        return node.Inputs.Count == 0 && node.Outputs.Count > 0;
+        var hasDataInputs = node.Inputs.Any(input => input.Type != typeof(TriggerSignal));
+        return !hasDataInputs && node.Outputs.Count > 0;
     }
 
     private static List<Node> TopologicalSort(NodeGraph graph)

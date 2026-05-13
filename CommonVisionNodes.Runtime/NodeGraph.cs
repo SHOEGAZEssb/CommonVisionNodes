@@ -74,16 +74,23 @@ namespace CommonVisionNodes
         {
             var sorted = _cachedSort ??= TopologicalSort();
             var lookup = _connectionLookup ??= BuildConnectionLookup();
+            var activeOutputs = new HashSet<Port>();
 
             foreach (var node in sorted)
             {
-                beforeExecute?.Invoke(node);
-
                 foreach (var input in node.Inputs)
                 {
-                    if (lookup.TryGetValue(input, out var connection))
+                    if (lookup.TryGetValue(input, out var connection) && activeOutputs.Contains(connection.Output))
                         input.Value = connection.Output.Value;
                 }
+
+                if (!ShouldExecute(node, lookup, activeOutputs))
+                {
+                    node.LastExecutionTime = TimeSpan.Zero;
+                    continue;
+                }
+
+                beforeExecute?.Invoke(node);
 
                 var sw = Stopwatch.StartNew();
                 try
@@ -99,6 +106,10 @@ namespace CommonVisionNodes
 
                 sw.Stop();
                 node.LastExecutionTime = sw.Elapsed;
+
+                foreach (var output in node.Outputs)
+                    activeOutputs.Add(output);
+
                 afterExecute?.Invoke(node);
             }
         }
@@ -126,6 +137,31 @@ namespace CommonVisionNodes
             foreach (var connection in _connections)
                 lookup[connection.Input] = connection;
             return lookup;
+        }
+
+        private static bool ShouldExecute(
+            Node node,
+            Dictionary<Port, Connection> lookup,
+            HashSet<Port> activeOutputs)
+        {
+            Port? triggerInput = null;
+            if (node is ITriggerableNode triggerableNode && lookup.ContainsKey(triggerableNode.TriggerInput))
+            {
+                triggerInput = triggerableNode.TriggerInput;
+                if (triggerInput.Value is not TriggerSignal { IsTriggered: true })
+                    return false;
+            }
+
+            foreach (var input in node.Inputs)
+            {
+                if (input == triggerInput)
+                    continue;
+
+                if (lookup.TryGetValue(input, out var connection) && !activeOutputs.Contains(connection.Output))
+                    return false;
+            }
+
+            return true;
         }
 
         private List<Node> TopologicalSort()

@@ -53,9 +53,21 @@ public sealed class BackendClient : IBackendClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task TriggerNodeAsync(TriggerNodeRequestDto request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("api/graph/trigger", request, _jsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task UpdateExecutionSettingsAsync(UpdateExecutionSettingsRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/settings", request, _jsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task UpdateNodePropertiesAsync(UpdateNodePropertiesRequestDto request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("api/graph/node-properties", request, _jsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
@@ -109,5 +121,3 @@ public sealed class BackendClient : IBackendClient
         return builder.Uri;
     }
 }
-
-

@@ -38,10 +38,15 @@ namespace CommonVisionNodes
     /// Generates synthetic test-pattern images that animate over successive executions.
     /// Does not require a camera or file — useful for testing pipelines.
     /// </summary>
-    public sealed class ImageGeneratorNode : Node
+    public sealed class ImageGeneratorNode : Node, ITriggerableNode
     {
         private Image? _currentImage;
         private int _frameCounter;
+
+        /// <summary>
+        /// Optional trigger input that gates when a new generated image is sent downstream.
+        /// </summary>
+        public Port TriggerInput { get; }
 
         /// <summary>
         /// Output port that provides the generated image.
@@ -70,6 +75,7 @@ namespace CommonVisionNodes
 
         public ImageGeneratorNode()
         {
+            TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a new generated image is sent.");
             ImageOutput = AddOutput("Image", typeof(Image), "The generated test-pattern image.");
         }
 

@@ -53,11 +53,24 @@ public sealed class StopExecutionRequestDto
     public string ClientId { get; set; } = string.Empty;
 }
 
+public sealed class TriggerNodeRequestDto
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string NodeId { get; set; } = string.Empty;
+}
+
 public sealed class UpdateExecutionSettingsRequestDto
 {
     public string ClientId { get; set; } = string.Empty;
     public int PreviewRefreshRate { get; set; } = 30;
     public int PreviewImageMaxDimension { get; set; } = 1280;
+}
+
+public sealed class UpdateNodePropertiesRequestDto
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string NodeId { get; set; } = string.Empty;
+    public IList<NodePropertyDto> Properties { get; set; } = [];
 }
 
 public sealed class ExecutionAcceptedDto

@@ -1,13 +1,18 @@
-﻿using Stemmer.Cvb;
+using Stemmer.Cvb;
 
 namespace CommonVisionNodes
 {
     /// <summary>
     /// Loads an image from a file and provides it as output.
     /// </summary>
-    public sealed class ImageNode : Node, IInitializable
+    public sealed class ImageNode : Node, IInitializable, ITriggerableNode
     {
         private Image? _cachedImage;
+
+        /// <summary>
+        /// Optional trigger input that gates when the image is sent downstream.
+        /// </summary>
+        public Port TriggerInput { get; }
 
         /// <summary>
         /// The loaded image, available after initialization.
@@ -29,6 +34,7 @@ namespace CommonVisionNodes
 
         public ImageNode()
         {
+            TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when the image is sent.");
             ImageOutput = AddOutput("Image", typeof(Image), "The image loaded from the configured file path.");
         }
 
