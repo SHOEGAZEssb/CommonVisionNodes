@@ -10,6 +10,7 @@ public static class NodeViewModelFactory
         {
             "ImageNode" => new ImageNodeViewModel(node, definition),
             "SaveImageNode" => new SaveImageNodeViewModel(node, definition),
+            "GevServerNode" => new GevServerNodeViewModel(node, definition),
             "DeviceNode" => new DeviceNodeViewModel(node, definition, refreshDeviceDefinitionsAsync),
             "BinarizeNode" => new BinarizeNodeViewModel(node, definition),
             "SubImageNode" => new SubImageNodeViewModel(node, definition),

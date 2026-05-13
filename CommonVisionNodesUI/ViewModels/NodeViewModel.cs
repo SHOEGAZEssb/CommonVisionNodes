@@ -67,6 +67,7 @@ public abstract partial class NodeViewModel : ObservableObject
     {
         "ImageNode" => Color.FromArgb(255, 74, 144, 217),
         "SaveImageNode" => Color.FromArgb(255, 102, 187, 106),
+        "GevServerNode" => Color.FromArgb(255, 38, 166, 154),
         "DeviceNode" => Color.FromArgb(255, 171, 71, 188),
         "BinarizeNode" => Color.FromArgb(255, 255, 152, 0),
         "SubImageNode" => Color.FromArgb(255, 0, 172, 193),
@@ -120,6 +121,11 @@ public abstract partial class NodeViewModel : ObservableObject
         OnExecutionUpdate(update);
     }
 
+    public void ApplyExecutionState(ExecutionStateDto state)
+    {
+        OnExecutionState(state);
+    }
+
     public virtual void ApplyImagePreview(ImagePreviewDto? preview) { }
 
     public virtual void ApplyHistogramPreview(HistogramPreviewDto preview) { }
@@ -131,6 +137,8 @@ public abstract partial class NodeViewModel : ObservableObject
     public virtual void ApplyTextPreview(TextPreviewDto preview) { }
 
     protected virtual void OnExecutionUpdate(NodeExecutionUpdateDto update) { }
+
+    protected virtual void OnExecutionState(ExecutionStateDto state) { }
 
     protected virtual void OnDefinitionUpdated() { }
 

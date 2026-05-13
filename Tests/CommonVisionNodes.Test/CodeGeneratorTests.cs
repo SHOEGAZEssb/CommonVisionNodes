@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
 
@@ -36,6 +38,28 @@ namespace CommonVisionNodes.Test
 
             var histogramDefinition = definitions.Single(definition => definition.Type == nameof(HistogramNode));
             Assert.That(histogramDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.False);
+
+            var gevServerDefinition = definitions.Single(definition => definition.Type == nameof(GevServerNode));
+            Assert.That(gevServerDefinition.InputPorts.Single().Type, Is.EqualTo("Image"));
+            Assert.That(gevServerDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.True);
+
+            var adapterProperty = gevServerDefinition.Properties.Single(property => property.Name == nameof(GevServerNode.LocalAddress));
+            Assert.That(adapterProperty.ValueKind, Is.EqualTo(NodePropertyValueKindDto.Enum));
+            Assert.That(adapterProperty.Options, Is.Not.Empty);
+        }
+
+        [Test]
+        public void RuntimeNodeCatalog_Definitions_ShouldSerializeForApi()
+        {
+            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+
+            var definitions = new RuntimeNodeCatalog().GetDefinitions();
+
+            Assert.DoesNotThrow(() => JsonSerializer.Serialize(definitions, options));
         }
 
         [Test]
@@ -67,6 +91,30 @@ namespace CommonVisionNodes.Test
 
             Assert.That(code, Does.Contain("using var sourceImage = Image.FromFile(@\"C:\\input.bmp\")"));
             Assert.That(code, Does.Contain("sourceImage.Save(@\"C:\\output.bmp\")"));
+        }
+
+        [Test]
+        public void Generate_ImageToGevServer_ShouldEmitServerStreamingCode()
+        {
+            var graph = new NodeGraph();
+            var imageNode = new ImageNode { FilePath = @"C:\input.bmp" };
+            var gevServerNode = new GevServerNode
+            {
+                LocalAddress = "192.168.1.10",
+                ResendBuffersCount = 2
+            };
+            graph.AddNode(imageNode);
+            graph.AddNode(gevServerNode);
+            graph.Connect(imageNode.ImageOutput, gevServerNode.ImageInput);
+
+            var code = CodeGenerator.Generate(graph);
+
+            Assert.That(code, Does.Contain("using Stemmer.Cvb.GevServer;"));
+            Assert.That(code, Does.Contain("using System.Net;"));
+            Assert.That(code, Does.Contain("GevServer.CreateWithConstSize(sourceImage.Size, sourceImage.ColorModel, sourceImage.Planes[0].DataType, DriverType.Socket)"));
+            Assert.That(code, Does.Contain("gevServer.Stream.ResendBuffersCount = 2;"));
+            Assert.That(code, Does.Contain("gevServer.Start(IPAddress.Parse(@\"192.168.1.10\"));"));
+            Assert.That(code, Does.Contain("gevStream.TrySend(sourceImage)"));
         }
 
         [Test]

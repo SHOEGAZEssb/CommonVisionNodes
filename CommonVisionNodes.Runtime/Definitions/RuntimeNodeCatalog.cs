@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using CommonVisionNodes.Contracts;
@@ -28,6 +31,7 @@ public sealed class RuntimeNodeCatalog
             nameof(SubImageNode) => new SubImageNode(),
             nameof(MatrixTransformNode) => new MatrixTransformNode(),
             nameof(ImageGeneratorNode) => new ImageGeneratorNode(),
+            nameof(GevServerNode) => new GevServerNode(),
             nameof(FilterNode) => new FilterNode(),
             nameof(HistogramNode) => new HistogramNode(),
             nameof(MorphologyNode) => new MorphologyNode(),
@@ -92,6 +96,19 @@ public sealed class RuntimeNodeCatalog
                 canEditWhileRunning: false,
                 () => new SaveImageNode(),
                 StringProperty("FilePath", "File Path", "Destination path for the saved image."),
+                PreviewToggleProperty()),
+            CreateDefinition(
+                nameof(GevServerNode),
+                "GEV Server",
+                "Output",
+                "Expose incoming images as a GigE Vision server stream.",
+                "&#xE774;",
+                NodePreviewKindDto.Image,
+                canEditWhileRunning: false,
+                () => new GevServerNode(),
+                AdapterProperty("LocalAddress", "Adapter", "Local IPv4 adapter address to bind."),
+                EnumProperty<Stemmer.Cvb.GevServer.DriverType>("DriverType", "Driver", "GigE Vision transfer driver."),
+                IntProperty("ResendBuffersCount", "Resend Buffers", "Full-frame packet resend buffer count.", 0, 64, 1),
                 PreviewToggleProperty()),
             CreateDefinition(
                 nameof(GenericVisualizerNode),
@@ -340,6 +357,20 @@ public sealed class RuntimeNodeCatalog
             ValueKind = NodePropertyValueKindDto.Boolean
         };
 
+    private static NodePropertyDefinitionDto AdapterProperty(string name, string displayName, string description)
+    {
+        var options = GetAdapterOptions();
+        return new()
+        {
+            Name = name,
+            DisplayName = displayName,
+            Description = description,
+            ValueKind = NodePropertyValueKindDto.Enum,
+            DefaultValue = options.FirstOrDefault()?.Value ?? IPAddress.Loopback.ToString(),
+            Options = options
+        };
+    }
+
     private static NodePropertyDefinitionDto PreviewToggleProperty(bool defaultValue = false)
         => new()
         {
@@ -400,6 +431,67 @@ public sealed class RuntimeNodeCatalog
             Options = options
         };
 
+    private static IList<PropertyOptionDto> GetAdapterOptions()
+    {
+        try
+        {
+            var adapters = new List<(bool IsLoopback, string Label, string Value)>();
+            foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                try
+                {
+                    var isLoopbackInterface = networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback;
+                    if (!isLoopbackInterface && networkInterface.OperationalStatus != OperationalStatus.Up)
+                        continue;
+
+                    foreach (var unicastAddress in networkInterface.GetIPProperties().UnicastAddresses)
+                    {
+                        var address = unicastAddress.Address;
+                        if (address.AddressFamily != AddressFamily.InterNetwork)
+                            continue;
+
+                        if (IPAddress.Any.Equals(address) || IPAddress.Broadcast.Equals(address))
+                            continue;
+
+                        var isLoopback = isLoopbackInterface || IPAddress.IsLoopback(address);
+                        adapters.Add((isLoopback, $"{networkInterface.Name} ({address})", address.ToString()));
+                    }
+                }
+                catch
+                {
+                    // Ignore adapters that cannot be inspected.
+                }
+            }
+
+            var options = adapters
+                .GroupBy(adapter => adapter.Value, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(adapter => adapter.IsLoopback)
+                .ThenBy(adapter => adapter.Label, StringComparer.OrdinalIgnoreCase)
+                .Select(adapter => new PropertyOptionDto
+                {
+                    Value = adapter.Value,
+                    Label = adapter.Label
+                })
+                .ToList();
+
+            return options.Count > 0
+                ? options
+                : [LoopbackAdapterOption()];
+        }
+        catch
+        {
+            return [LoopbackAdapterOption()];
+        }
+    }
+
+    private static PropertyOptionDto LoopbackAdapterOption()
+        => new()
+        {
+            Value = IPAddress.Loopback.ToString(),
+            Label = $"Loopback ({IPAddress.Loopback})"
+        };
+
     private static IList<PropertyOptionDto> GetDeviceOptions()
     {
         try
@@ -445,7 +537,5 @@ public sealed class RuntimeNodeCatalog
         return builder.ToString();
     }
 }
-
-
 
 

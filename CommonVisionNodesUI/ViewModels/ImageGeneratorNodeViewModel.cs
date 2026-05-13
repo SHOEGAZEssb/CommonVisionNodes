@@ -55,13 +55,13 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
 
     partial void OnImageWidthChanged(int value)
     {
-        SetInt("ImageWidth", value);
+        SetInt("Width", value);
         RaiseSummaryChanged();
     }
 
     partial void OnImageHeightChanged(int value)
     {
-        SetInt("ImageHeight", value);
+        SetInt("Height", value);
         RaiseSummaryChanged();
     }
 

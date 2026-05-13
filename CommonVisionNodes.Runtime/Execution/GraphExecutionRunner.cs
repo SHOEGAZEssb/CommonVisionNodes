@@ -266,6 +266,7 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             HistogramNode histogramNode => $"Mean {histogramNode.Mean:F2}, StdDev {histogramNode.StdDev:F2}",
             BlobNode blobNode => $"{blobNode.BlobCount} blob(s)",
             PolimagoClassifyNode classifyNode => $"{classifyNode.ResultCount} result(s)",
+            GevServerNode gevServerNode => gevServerNode.LastStatus,
             CSharpNode csharpNode when !string.IsNullOrWhiteSpace(csharpNode.LastCompilationError) => csharpNode.LastCompilationError,
             _ => null
         };

@@ -28,6 +28,37 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="GevServerNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Adapter" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableAdapters}"
+                              DisplayMemberPath="Label"
+                              SelectedItem="{Binding SelectedAdapter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Driver" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableDriverTypes}"
+                              DisplayMemberPath="Label"
+                              SelectedItem="{Binding SelectedDriverType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Resend Buffers" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding ResendBuffersCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Minimum="0"
+                               Maximum="64"
+                               SpinButtonPlacementMode="Compact"
+                               FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Status" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding Status}" FontSize="13" Foreground="White" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="BinarizeNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -114,9 +145,9 @@
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding Width, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ImageWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Height" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ImageHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4096" SpinButtonPlacementMode="Compact" FontSize="13"/>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding Speed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="50" SpinButtonPlacementMode="Compact" FontSize="13"/>
                 </Grid>
@@ -309,6 +340,7 @@
         <helpers:NodePropertiesTemplateSelector x:Key="NodePropertiesSelector"
             ImageNodeTemplate="{StaticResource ImageNodePropertiesTemplate}"
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
+            GevServerNodeTemplate="{StaticResource GevServerNodePropertiesTemplate}"
             DeviceNodeTemplate="{StaticResource DeviceNodePropertiesTemplate}"
             BinarizeNodeTemplate="{StaticResource BinarizeNodePropertiesTemplate}"
             SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"
@@ -375,6 +407,11 @@
                         <MenuFlyoutItem Text="Save Image" Command="{Binding Graph.AddSaveImageNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE74E;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="GEV Server" Command="{Binding Graph.AddGevServerNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE774;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem Text="Visualizer" Command="{Binding Graph.AddGenericVisualizerNodeCommand}">

@@ -11,6 +11,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ImageNodeTemplate { get; set; }
     public DataTemplate? SaveImageNodeTemplate { get; set; }
+    public DataTemplate? GevServerNodeTemplate { get; set; }
     public DataTemplate? DeviceNodeTemplate { get; set; }
     public DataTemplate? BinarizeNodeTemplate { get; set; }
     public DataTemplate? SubImageNodeTemplate { get; set; }
@@ -36,6 +37,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
         {
             ImageNodeViewModel => ImageNodeTemplate,
             SaveImageNodeViewModel => SaveImageNodeTemplate,
+            GevServerNodeViewModel => GevServerNodeTemplate,
             DeviceNodeViewModel => DeviceNodeTemplate,
             BinarizeNodeViewModel => BinarizeNodeTemplate,
             SubImageNodeViewModel => SubImageNodeTemplate,

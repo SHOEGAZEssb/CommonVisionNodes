@@ -78,6 +78,15 @@ public sealed partial class NodeControl : UserControl
                     UpdateImagePreview(ImagePreview, vm, saveVM.PreviewImage);
             };
         }
+        else if (vm is GevServerNodeViewModel gevServerVM)
+        {
+            UpdateImagePreview(ImagePreview, vm, gevServerVM.PreviewImage);
+            gevServerVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(GevServerNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+                    UpdateImagePreview(ImagePreview, vm, gevServerVM.PreviewImage);
+            };
+        }
         else if (vm is BinarizeNodeViewModel binarizeVM)
         {
             UpdateImagePreview(ImagePreview, vm, binarizeVM.PreviewImage);

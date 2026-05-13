@@ -245,6 +245,42 @@ namespace CommonVisionNodes.Test
         }
     }
 
+    public class GevServerNodeTests
+    {
+        [Test]
+        public void Constructor_ShouldCreateImageInputPort()
+        {
+            var node = new GevServerNode();
+
+            Assert.That(node.Inputs, Has.Count.EqualTo(1));
+            Assert.That(node.ImageInput.Name, Is.EqualTo("Image"));
+            Assert.That(node.ImageInput.Type, Is.EqualTo(typeof(Image)));
+            Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
+            Assert.That(node.Outputs, Is.Empty);
+        }
+
+        [Test]
+        public void Initialize_WithValidLocalAddress_ShouldSetInitialized()
+        {
+            var node = new GevServerNode { LocalAddress = "127.0.0.1" };
+
+            node.Initialize();
+
+            Assert.That(node.IsInitialized, Is.True);
+            Assert.That(node.LastStatus, Is.EqualTo("Waiting for first image."));
+            node.Dispose();
+        }
+
+        [Test]
+        public void Initialize_WithInvalidLocalAddress_ShouldThrow()
+        {
+            var node = new GevServerNode { LocalAddress = "not-an-ip" };
+
+            Assert.Throws<InvalidOperationException>(() => node.Initialize());
+            Assert.That(node.IsInitialized, Is.False);
+        }
+    }
+
     public class ImagePipelineTests
     {
         [Test]

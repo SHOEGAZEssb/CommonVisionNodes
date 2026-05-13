@@ -11,6 +11,7 @@ public sealed class RuntimePreviewFactory
         {
             ImageNode imageNode => CreateImagePreviewMessage(nodeId, imageNode.CachedImage, previewImageMaxDimension),
             SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image, previewImageMaxDimension),
+            GevServerNode gevServerNode => CreateImagePreviewMessage(nodeId, gevServerNode.ImageInput.Value as Image, previewImageMaxDimension),
             DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image, previewImageMaxDimension),
             BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image, previewImageMaxDimension),
             SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image, previewImageMaxDimension),

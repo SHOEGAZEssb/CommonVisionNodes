@@ -221,6 +221,13 @@ public partial class NodeGraphViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task AddGevServerNode()
+    {
+        await InitializeAsync();
+        AddNode("GevServerNode");
+    }
+
+    [RelayCommand]
     private async Task AddDeviceNode()
     {
         await InitializeAsync();
@@ -533,6 +540,9 @@ public partial class NodeGraphViewModel : ObservableObject
         LastExecutionTimeText = state.LastExecutionDurationMs.HasValue
             ? FormatExecutionTime(state.LastExecutionDurationMs.Value)
             : "-";
+
+        foreach (var node in Nodes)
+            node.ApplyExecutionState(state);
     }
 
     private Task EnqueueAsync(Action action)
