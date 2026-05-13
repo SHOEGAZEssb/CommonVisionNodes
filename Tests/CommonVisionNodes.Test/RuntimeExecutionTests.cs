@@ -159,10 +159,20 @@ public sealed class GraphExecutionRunnerTests
             message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
             message.NodeUpdate?.NodeId == "generator" &&
             message.NodeUpdate.Status == NodeExecutionStatusDto.Succeeded), Is.True);
-        Assert.That(messages.Any(message =>
-            message.MessageType == ExecutionMessageTypeDto.ImagePreview &&
-            message.ImagePreview?.NodeId == "generator" &&
-            message.ImagePreview.Base64Data.Length > 0), Is.True);
+
+        var imagePreview = messages
+            .Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+            .Select(message => message.ImagePreview)
+            .SingleOrDefault(preview => preview?.NodeId == "generator");
+
+        Assert.That(imagePreview, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
+            Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-bgra32"));
+            Assert.That(imagePreview.Base64Data.Length, Is.GreaterThan(0));
+            Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth * 4));
+        });
     }
 
     [Test]

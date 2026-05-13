@@ -20,11 +20,12 @@ public abstract partial class NodeViewModel : ObservableObject
         _propertyDefinitions = definition.Properties.ToDictionary(property => property.Name, StringComparer.OrdinalIgnoreCase);
         EnsureDefaultProperties();
 		ShowPreview = ReadShowPreview();
-		X = node.X;
-		Y = node.Y;
 
         InputPorts = [.. definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index))];
         OutputPorts = [.. definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index))];
+
+		X = node.X;
+		Y = node.Y;
     }
 
     public NodeDto Node { get; }
@@ -235,11 +236,17 @@ public abstract partial class NodeViewModel : ObservableObject
 
     private void NotifyPortPositions()
     {
-        foreach (var port in InputPorts)
-            port.NotifyPositionChanged();
+        if (InputPorts is not null)
+        {
+            foreach (var port in InputPorts)
+                port.NotifyPositionChanged();
+        }
 
-        foreach (var port in OutputPorts)
-            port.NotifyPositionChanged();
+        if (OutputPorts is not null)
+        {
+            foreach (var port in OutputPorts)
+                port.NotifyPositionChanged();
+        }
     }
 
     private static string FormatExecutionTime(double executionDurationMs)
@@ -260,4 +267,3 @@ public abstract partial class NodeViewModel : ObservableObject
             displayTextProperty.SetValue(this, string.Empty);
     }
 }
-

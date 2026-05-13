@@ -1,14 +1,22 @@
 namespace CommonVisionNodes.Contracts;
 
+public enum ImagePreviewEncodingDto
+{
+    Png,
+    Bgra32
+}
+
 public sealed class ImagePreviewDto
 {
     public string NodeId { get; set; } = string.Empty;
     public string MediaType { get; set; } = "image/png";
+    public ImagePreviewEncodingDto Encoding { get; set; } = ImagePreviewEncodingDto.Png;
     public string Base64Data { get; set; } = string.Empty;
     public int Width { get; set; }
     public int Height { get; set; }
     public int PreviewWidth { get; set; }
     public int PreviewHeight { get; set; }
+    public int Stride { get; set; }
     public string PixelFormat { get; set; } = string.Empty;
     public DateTimeOffset TimestampUtc { get; set; } = DateTimeOffset.UtcNow;
 }

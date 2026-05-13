@@ -35,7 +35,9 @@ public sealed partial class CropImageDisplay : UserControl
             return;
         }
 
-        await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        if (!await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview))
+            return;
+
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
         InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);

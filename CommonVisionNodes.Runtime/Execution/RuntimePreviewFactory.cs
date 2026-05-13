@@ -131,6 +131,10 @@ public sealed class RuntimePreviewFactory
         if (image is null || image.IsDisposed)
             return null;
 
+        var rawPreview = CreateBgra32Preview(nodeId, image, previewImageMaxDimension);
+        if (rawPreview is not null)
+            return rawPreview;
+
         var tempPath = Path.Combine(Path.GetTempPath(), $"cvn-preview-{Guid.NewGuid():N}.png");
         try
         {
@@ -150,6 +154,7 @@ public sealed class RuntimePreviewFactory
                 Height = image.Height,
                 PreviewWidth = previewImage?.Width ?? image.Width,
                 PreviewHeight = previewImage?.Height ?? image.Height,
+                Stride = 0,
                 PixelFormat = pixelFormat,
                 TimestampUtc = DateTimeOffset.UtcNow
             };
@@ -164,6 +169,77 @@ public sealed class RuntimePreviewFactory
             catch
             {
                 // Ignore preview temp-file cleanup failures.
+            }
+        }
+    }
+
+    private static ImagePreviewDto? CreateBgra32Preview(string nodeId, Image image, int previewImageMaxDimension)
+    {
+        if (image.Planes.Count != 1)
+            return null;
+
+        if (image.Planes[0].DataType.BytesPerPixel != 1)
+            return null;
+
+        using var previewImage = CreateScaledPreviewImage(image, previewImageMaxDimension);
+        var displayImage = previewImage ?? image;
+        var stride = checked(displayImage.Width * 4);
+        var bytes = new byte[checked(stride * displayImage.Height)];
+
+        CopyBgra32(displayImage, bytes, stride);
+
+        var sourceBitsPerPixel = image.Planes[0].DataType.BitsPerPixel;
+        var sourcePixelFormat = $"Mono {sourceBitsPerPixel}bpp";
+
+        return new ImagePreviewDto
+        {
+            NodeId = nodeId,
+            MediaType = "application/x-bgra32",
+            Encoding = ImagePreviewEncodingDto.Bgra32,
+            Base64Data = Convert.ToBase64String(bytes),
+            Width = image.Width,
+            Height = image.Height,
+            PreviewWidth = displayImage.Width,
+            PreviewHeight = displayImage.Height,
+            Stride = stride,
+            PixelFormat = $"{sourcePixelFormat} -> BGRA32",
+            TimestampUtc = DateTimeOffset.UtcNow
+        };
+    }
+
+    private static unsafe void CopyBgra32(Image image, byte[] destination, int stride)
+    {
+        var bluePlane = image.Planes[0].GetLinearAccess();
+        var greenPlane = bluePlane;
+        var redPlane = bluePlane;
+
+        byte* blueBase = (byte*)bluePlane.BasePtr;
+        byte* greenBase = (byte*)greenPlane.BasePtr;
+        byte* redBase = (byte*)redPlane.BasePtr;
+        long blueYInc = bluePlane.YInc.ToInt64();
+        long blueXInc = bluePlane.XInc.ToInt64();
+        long greenYInc = greenPlane.YInc.ToInt64();
+        long greenXInc = greenPlane.XInc.ToInt64();
+        long redYInc = redPlane.YInc.ToInt64();
+        long redXInc = redPlane.XInc.ToInt64();
+
+        fixed (byte* destinationBase = destination)
+        {
+            for (var y = 0; y < image.Height; y++)
+            {
+                var blueRow = blueBase + y * blueYInc;
+                var greenRow = greenBase + y * greenYInc;
+                var redRow = redBase + y * redYInc;
+                var destinationRow = destinationBase + y * stride;
+
+                for (var x = 0; x < image.Width; x++)
+                {
+                    var pixel = destinationRow + x * 4;
+                    pixel[0] = *(blueRow + x * blueXInc);
+                    pixel[1] = *(greenRow + x * greenXInc);
+                    pixel[2] = *(redRow + x * redXInc);
+                    pixel[3] = 255;
+                }
             }
         }
     }
