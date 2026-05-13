@@ -12,6 +12,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     private readonly Action<GraphExecutionRunner> _onCompleted;
     private readonly HashSet<string> _previewEnabledNodeIds;
     private readonly CancellationTokenSource _cts = new();
+    private int _previewRefreshRate;
+    private int _previewImageMaxDimension;
     private Task? _executionTask;
 
     public GraphExecutionRunner(
@@ -30,6 +32,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             .Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
             .Select(node => node.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _previewRefreshRate = request.PreviewRefreshRate;
+        _previewImageMaxDimension = request.PreviewImageMaxDimension;
         ExecutionId = Guid.NewGuid().ToString("N");
     }
 
@@ -41,6 +45,12 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             return;
 
         _executionTask = Task.Run(() => RunAsync(_cts.Token));
+    }
+
+    public void UpdatePreviewSettings(int previewRefreshRate, int previewImageMaxDimension)
+    {
+        Volatile.Write(ref _previewRefreshRate, Math.Clamp(previewRefreshRate, 1, 1001));
+        Volatile.Write(ref _previewImageMaxDimension, Math.Max(0, previewImageMaxDimension));
     }
 
     public async Task StopAsync()
@@ -68,7 +78,6 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     {
         RuntimeGraphBuildResult? graphBuildResult = null;
         var framesProcessed = 0L;
-        var previewIntervalMs = GetPreviewIntervalMilliseconds(_request.PreviewRefreshRate);
         var previewTimer = Stopwatch.StartNew();
         var fpsTimer = Stopwatch.StartNew();
         var framesInWindow = 0;
@@ -107,7 +116,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
                     fpsTimer.Restart();
                 }
 
-                if (previewIntervalMs == 0 || previewTimer.ElapsedMilliseconds >= previewIntervalMs)
+                var previewIntervalMs = GetPreviewIntervalMilliseconds(Volatile.Read(ref _previewRefreshRate));
+                if (previewIntervalMs == 0 || previewTimer.Elapsed.TotalMilliseconds >= previewIntervalMs)
                 {
                     await PublishPreviewsAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
                     previewTimer.Restart();
@@ -171,7 +181,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             if (!_previewEnabledNodeIds.Contains(pair.Value))
                 continue;
 
-            var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key, _request.PreviewImageMaxDimension);
+            var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
+            var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key, previewImageMaxDimension);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);
         }
@@ -268,12 +279,12 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         return NodeExecutionStatusDto.Succeeded;
     }
 
-    private static int GetPreviewIntervalMilliseconds(int previewRefreshRate)
+    private static double GetPreviewIntervalMilliseconds(int previewRefreshRate)
     {
         if (previewRefreshRate >= 1001)
             return 0;
 
         var rate = Math.Max(previewRefreshRate, 1);
-        return (int)Math.Ceiling(1000.0 / rate);
+        return 1000.0 / rate;
     }
 }

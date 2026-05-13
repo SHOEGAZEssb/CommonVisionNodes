@@ -201,21 +201,54 @@ public sealed class GraphExecutionRunnerTests
         Assert.That(failure.ExecutionState?.Message, Does.Contain("Unknown node type"));
     }
 
-    [TestCase(0, 1000)]
-    [TestCase(1, 1000)]
-    [TestCase(30, 34)]
-    [TestCase(60, 17)]
+    [TestCase(0, 1000.0)]
+    [TestCase(1, 1000.0)]
+    [TestCase(30, 1000.0 / 30)]
+    [TestCase(60, 1000.0 / 60)]
+    [TestCase(999, 1000.0 / 999)]
+    [TestCase(1000, 1.0)]
     [TestCase(1001, 0)]
     [TestCase(2000, 0)]
-    public void PreviewRefreshRate_ShouldMapToExpectedInterval(int refreshRate, int expectedIntervalMs)
+    public void PreviewRefreshRate_ShouldMapToExpectedInterval(int refreshRate, double expectedIntervalMs)
     {
         var method = typeof(GraphExecutionRunner).GetMethod(
             "GetPreviewIntervalMilliseconds",
             BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.That(method, Is.Not.Null);
-        var interval = (int)method!.Invoke(null, [refreshRate])!;
-        Assert.That(interval, Is.EqualTo(expectedIntervalMs));
+        var interval = (double)method!.Invoke(null, [refreshRate])!;
+        Assert.That(interval, Is.EqualTo(expectedIntervalMs).Within(0.0001));
+    }
+
+    [TestCase(0, 32, 16)]
+    [TestCase(64, 32, 16)]
+    [TestCase(16, 16, 8)]
+    [TestCase(10, 10, 5)]
+    public async Task SingleExecution_ShouldHonorPreviewMaxDimension(int maxDimension, int expectedPreviewWidth, int expectedPreviewHeight)
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: true, previewImageMaxDimension: maxDimension);
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.DisposeAsync();
+
+        var imagePreview = messages
+            .Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+            .Select(message => message.ImagePreview)
+            .SingleOrDefault(preview => preview?.NodeId == "generator");
+
+        Assert.That(imagePreview, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(imagePreview!.Width, Is.EqualTo(32));
+            Assert.That(imagePreview.Height, Is.EqualTo(16));
+            Assert.That(imagePreview.PreviewWidth, Is.EqualTo(expectedPreviewWidth));
+            Assert.That(imagePreview.PreviewHeight, Is.EqualTo(expectedPreviewHeight));
+            Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth * 4));
+        });
     }
 
     private static GraphExecutionRunner CreateRunner(
@@ -243,13 +276,13 @@ public sealed class GraphExecutionRunnerTests
             _ => completed.TrySetResult());
     }
 
-    private static ExecutionRequestDto CreateSingleGeneratorRequest(bool showPreview)
+    private static ExecutionRequestDto CreateSingleGeneratorRequest(bool showPreview, int previewImageMaxDimension = 64)
         => new()
         {
             ClientId = "test-client",
             Mode = ExecutionModeDto.Single,
             PreviewRefreshRate = 30,
-            PreviewImageMaxDimension = 64,
+            PreviewImageMaxDimension = previewImageMaxDimension,
             Graph = new GraphDto
             {
                 Nodes =

@@ -28,6 +28,7 @@ public partial class NodeGraphViewModel : ObservableObject
     private bool _initialized;
     private Task? _initializeTask;
     private CancellationTokenSource? _graphRestartDebounceCts;
+    private CancellationTokenSource? _previewSettingsDebounceCts;
 
     public NodeGraphViewModel(IBackendClient backendClient)
     {
@@ -352,6 +353,7 @@ public partial class NodeGraphViewModel : ObservableObject
         if (IsRunning)
         {
             CancelPendingExecutionRestart();
+            CancelPendingPreviewSettingsUpdate();
             await _backendClient.StopAsync(_clientId);
             IsRunning = false;
             return;
@@ -381,6 +383,7 @@ public partial class NodeGraphViewModel : ObservableObject
     public async ValueTask DisposeAsync()
     {
         CancelPendingExecutionRestart();
+        CancelPendingPreviewSettingsUpdate();
 
         if (_listenerCts is not null)
         {
@@ -411,7 +414,7 @@ public partial class NodeGraphViewModel : ObservableObject
 
         OnPropertyChanged(nameof(PreviewRefreshRateText));
         WriteIntSetting(PreviewRefreshRateSettingKey, value);
-        ScheduleRunningExecutionRestart();
+        ScheduleRunningPreviewSettingsUpdate();
     }
 
     partial void OnPreviewImageMaxDimensionChanged(int value)
@@ -424,7 +427,7 @@ public partial class NodeGraphViewModel : ObservableObject
 
         OnPropertyChanged(nameof(PreviewImageMaxDimensionText));
         WriteIntSetting(PreviewImageMaxDimensionSettingKey, value);
-        ScheduleRunningExecutionRestart();
+        ScheduleRunningPreviewSettingsUpdate();
     }
 
     private void AddNode(string type)
@@ -591,6 +594,64 @@ public partial class NodeGraphViewModel : ObservableObject
         _graphRestartDebounceCts?.Cancel();
         _graphRestartDebounceCts?.Dispose();
         _graphRestartDebounceCts = null;
+    }
+
+    private void ScheduleRunningPreviewSettingsUpdate()
+    {
+        if (IsRunning)
+            _ = UpdateRunningPreviewSettingsAsync();
+    }
+
+    private void CancelPendingPreviewSettingsUpdate()
+    {
+        _previewSettingsDebounceCts?.Cancel();
+        _previewSettingsDebounceCts?.Dispose();
+        _previewSettingsDebounceCts = null;
+    }
+
+    private async Task UpdateRunningPreviewSettingsAsync()
+    {
+        CancelPendingPreviewSettingsUpdate();
+
+        var cts = new CancellationTokenSource();
+        _previewSettingsDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(200, cts.Token);
+
+            if (cts.IsCancellationRequested || !IsRunning)
+                return;
+
+            await _backendClient.UpdateExecutionSettingsAsync(
+                new UpdateExecutionSettingsRequestDto
+                {
+                    ClientId = _clientId,
+                    PreviewRefreshRate = PreviewRefreshRate,
+                    PreviewImageMaxDimension = Math.Max(0, PreviewImageMaxDimension)
+                },
+                cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer preview setting superseded this update request.
+        }
+        catch
+        {
+            // The active run may have stopped before the debounced settings update reached the backend.
+        }
+        finally
+        {
+            if (ReferenceEquals(_previewSettingsDebounceCts, cts))
+            {
+                _previewSettingsDebounceCts.Dispose();
+                _previewSettingsDebounceCts = null;
+            }
+            else
+            {
+                cts.Dispose();
+            }
+        }
     }
 
     private async Task RestartContinuousExecutionAsync()

@@ -78,6 +78,21 @@ public sealed class ExecutionClientManager
             await runner.DisposeAsync().ConfigureAwait(false);
     }
 
+    public bool UpdateExecutionSettings(UpdateExecutionSettingsRequestDto request)
+    {
+        var session = GetSession(request.ClientId);
+        GraphExecutionRunner? runner;
+
+        lock (session.RunnerSync)
+            runner = session.Runner;
+
+        if (runner is null)
+            return false;
+
+        runner.UpdatePreviewSettings(request.PreviewRefreshRate, request.PreviewImageMaxDimension);
+        return true;
+    }
+
     public async Task AttachSocketAsync(string clientId, WebSocket socket, CancellationToken cancellationToken)
     {
         var session = GetSession(clientId);

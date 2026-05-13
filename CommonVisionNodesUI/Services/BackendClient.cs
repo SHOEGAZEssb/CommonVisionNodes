@@ -53,6 +53,12 @@ public sealed class BackendClient : IBackendClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task UpdateExecutionSettingsAsync(UpdateExecutionSettingsRequestDto request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("api/graph/settings", request, _jsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<string> GenerateCodeAsync(GraphDto graph, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/codegen", graph, _jsonOptions, cancellationToken);

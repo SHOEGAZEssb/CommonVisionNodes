@@ -72,6 +72,16 @@ app.MapPost("/api/graph/stop", async (StopExecutionRequestDto request, Execution
     return Results.Ok();
 });
 
+app.MapPost("/api/graph/settings", (UpdateExecutionSettingsRequestDto request, ExecutionClientManager manager) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ClientId))
+        return Results.BadRequest("clientId is required.");
+
+    return manager.UpdateExecutionSettings(request)
+        ? Results.Ok()
+        : Results.NotFound();
+});
+
 app.MapPost("/api/graph/codegen", (GraphDto graph, RuntimeCodeGenerationService codeGenerationService) =>
     Results.Text(codeGenerationService.GenerateCode(graph), "text/plain"));
 

@@ -53,6 +53,13 @@ public sealed class StopExecutionRequestDto
     public string ClientId { get; set; } = string.Empty;
 }
 
+public sealed class UpdateExecutionSettingsRequestDto
+{
+    public string ClientId { get; set; } = string.Empty;
+    public int PreviewRefreshRate { get; set; } = 30;
+    public int PreviewImageMaxDimension { get; set; } = 1280;
+}
+
 public sealed class ExecutionAcceptedDto
 {
     public string ClientId { get; set; } = string.Empty;
