@@ -7,7 +7,9 @@ namespace CommonVisionNodesUI.ViewModels;
 /// </summary>
 public partial class TimeTriggerNodeViewModel : NodeViewModel
 {
-    private double _intervalSeconds;
+    private const string FramesPerSecondPropertyName = "FramesPerSecond";
+
+    private double _framesPerSecond;
 
     /// <summary>
     /// Creates a time trigger node view model.
@@ -17,30 +19,30 @@ public partial class TimeTriggerNodeViewModel : NodeViewModel
     public TimeTriggerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
-        IntervalSeconds = GetDouble("IntervalSeconds", 1.0);
+        FramesPerSecond = GetDouble(FramesPerSecondPropertyName, 1.0);
     }
 
     /// <inheritdoc/>
-    public override string? Summary => $"{IntervalSeconds:0.###} s";
+    public override string? Summary => $"{FramesPerSecond:0.###} fps";
 
     /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
 
     /// <summary>
-    /// Seconds between emitted trigger signals.
+    /// Trigger rate in frames per second.
     /// </summary>
-    public double IntervalSeconds
+    public double FramesPerSecond
     {
-        get => _intervalSeconds;
+        get => _framesPerSecond;
         set
         {
             if (!double.IsFinite(value))
                 return;
 
             var nextValue = Math.Max(0.0, value);
-            if (SetProperty(ref _intervalSeconds, nextValue))
+            if (SetProperty(ref _framesPerSecond, nextValue))
             {
-                SetDouble("IntervalSeconds", nextValue);
+                SetDouble(FramesPerSecondPropertyName, nextValue);
                 RaiseSummaryChanged();
             }
         }

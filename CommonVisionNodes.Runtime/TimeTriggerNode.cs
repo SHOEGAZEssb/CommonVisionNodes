@@ -7,7 +7,7 @@ namespace CommonVisionNodes.Runtime
     /// </summary>
     public sealed class TimeTriggerNode : Node
     {
-        private double _intervalSeconds = 1.0;
+        private double _framesPerSecond = 1.0;
         private long _lastTriggerTimestamp;
         private bool _hasTriggered;
 
@@ -17,17 +17,17 @@ namespace CommonVisionNodes.Runtime
         public Port TriggerOutput { get; }
 
         /// <summary>
-        /// Seconds between trigger signals.
+        /// Trigger rate in frames per second.
         /// </summary>
-        public double IntervalSeconds
+        public double FramesPerSecond
         {
-            get => _intervalSeconds;
+            get => _framesPerSecond;
             set
             {
                 if (!double.IsFinite(value))
                     return;
 
-                _intervalSeconds = Math.Max(0.0, value);
+                _framesPerSecond = Math.Max(0.0, value);
             }
         }
 
@@ -43,7 +43,8 @@ namespace CommonVisionNodes.Runtime
         public override void Execute()
         {
             var now = Stopwatch.GetTimestamp();
-            var intervalSeconds = IntervalSeconds;
+            var framesPerSecond = FramesPerSecond;
+            var intervalSeconds = framesPerSecond <= 0.0 ? 0.0 : 1.0 / framesPerSecond;
 
             var shouldTrigger = !_hasTriggered
                 || intervalSeconds <= 0.0

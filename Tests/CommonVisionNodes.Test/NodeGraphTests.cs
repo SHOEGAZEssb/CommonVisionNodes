@@ -333,7 +333,7 @@ namespace CommonVisionNodes.Test
         {
             // Arrange
             var graph = new NodeGraph();
-            var trigger = new TimeTriggerNode { IntervalSeconds = 60 };
+            var trigger = new TimeTriggerNode { FramesPerSecond = 1.0 / 60 };
             var source = new TriggerableSourceNode { ProducedValue = "frame" };
             var sink = new SinkNode();
             graph.AddNode(trigger);
@@ -356,23 +356,23 @@ namespace CommonVisionNodes.Test
         }
 
         [Test]
-        public void TimeTriggerNode_InvalidInterval_ShouldKeepLastValidInterval()
+        public void TimeTriggerNode_InvalidFramesPerSecond_ShouldKeepLastValidRate()
         {
             // Arrange
-            var trigger = new TimeTriggerNode { IntervalSeconds = 2.5 };
+            var trigger = new TimeTriggerNode { FramesPerSecond = 2.5 };
 
             // Act
-            trigger.IntervalSeconds = double.NaN;
-            trigger.IntervalSeconds = double.PositiveInfinity;
+            trigger.FramesPerSecond = double.NaN;
+            trigger.FramesPerSecond = double.PositiveInfinity;
 
             // Assert
-            Assert.That(trigger.IntervalSeconds, Is.EqualTo(2.5));
+            Assert.That(trigger.FramesPerSecond, Is.EqualTo(2.5));
 
             // Act
-            trigger.IntervalSeconds = -1;
+            trigger.FramesPerSecond = -1;
 
             // Assert
-            Assert.That(trigger.IntervalSeconds, Is.Zero);
+            Assert.That(trigger.FramesPerSecond, Is.Zero);
         }
 
         [Test]
@@ -410,7 +410,7 @@ namespace CommonVisionNodes.Test
             graph.AddNode(sink);
             graph.Connect(source.Output, sink.Input);
 
-            // Act & Assert — should not throw
+            // Act & Assert â€” should not throw
             Assert.DoesNotThrow(() => graph.Initialize());
         }
 
@@ -426,10 +426,10 @@ namespace CommonVisionNodes.Test
             graph.Initialize();
             Assert.That(initLog, Has.Count.EqualTo(1));
 
-            // Act — initialize again
+            // Act â€” initialize again
             graph.Initialize();
 
-            // Assert — should not have initialized again
+            // Assert â€” should not have initialized again
             Assert.That(initLog, Has.Count.EqualTo(1));
         }
 
@@ -458,7 +458,7 @@ namespace CommonVisionNodes.Test
             var source = new SourceNode { ProducedValue = 1 };
             graph.AddNode(source);
 
-            // Act & Assert — should not throw
+            // Act & Assert â€” should not throw
             Assert.DoesNotThrow(() => graph.Dispose());
         }
 

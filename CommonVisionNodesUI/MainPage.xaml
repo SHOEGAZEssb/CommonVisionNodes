@@ -157,11 +157,11 @@
         <DataTemplate x:Key="TimeTriggerNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="Interval (seconds)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <NumberBox Value="{Binding IntervalSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                               Minimum="0"
-                               SmallChange="0.1"
-                               LargeChange="1"
+                    <TextBlock Text="FPS" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding FramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Minimum="0.001"
+                               SmallChange="1"
+                               LargeChange="10"
                                SpinButtonPlacementMode="Compact"
                                FontSize="13"/>
                 </StackPanel>

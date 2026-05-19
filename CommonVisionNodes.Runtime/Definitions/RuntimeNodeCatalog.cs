@@ -115,7 +115,7 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.None,
                 canEditWhileRunning: true,
                 () => new TimeTriggerNode(),
-                DoubleProperty("IntervalSeconds", "Interval", "Seconds between trigger signals.", 0.001, null, 0.1)),
+                DoubleProperty("FramesPerSecond", "FPS", "Trigger rate in frames per second.", 0.001, null, 1)),
             CreateDefinition(
                 nameof(ManualTriggerNode),
                 "Manual Trigger",

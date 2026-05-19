@@ -139,7 +139,7 @@ public sealed class RuntimeGraphFactoryTests
     }
 
     [Test]
-    public void Build_TimeTriggerWithNonFiniteInterval_ShouldKeepDefaultInterval()
+    public void Build_TimeTriggerWithNonFiniteFramesPerSecond_ShouldKeepDefaultRate()
     {
         var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
         var graphDto = new GraphDto
@@ -152,7 +152,7 @@ public sealed class RuntimeGraphFactoryTests
                     Type = nameof(TimeTriggerNode),
                     Properties =
                     [
-                        new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "NaN" }
+                        new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "NaN" }
                     ]
                 }
             ]
@@ -161,8 +161,9 @@ public sealed class RuntimeGraphFactoryTests
         using var result = factory.Build(graphDto);
 
         var trigger = (TimeTriggerNode)result.NodesById["trigger"];
-        Assert.That(trigger.IntervalSeconds, Is.EqualTo(1.0));
+        Assert.That(trigger.FramesPerSecond, Is.EqualTo(1.0));
     }
+
 }
 
 public sealed class GraphExecutionRunnerTests
@@ -258,7 +259,7 @@ public sealed class GraphExecutionRunnerTests
                         Type = nameof(TimeTriggerNode),
                         Properties =
                         [
-                            new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "60" }
+                            new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "1" }
                         ]
                     }
                 ]
@@ -273,7 +274,7 @@ public sealed class GraphExecutionRunnerTests
         {
             updated = runner.UpdateNodeProperties(
                 "trigger",
-                [new NodePropertyDto { Name = nameof(TimeTriggerNode.IntervalSeconds), Value = "0.25" }]);
+                [new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "4" }]);
 
             if (!updated)
                 await Task.Delay(20);
