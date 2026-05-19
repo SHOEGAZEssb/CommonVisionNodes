@@ -5,13 +5,23 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Displays an image preview produced by a CVB-backed node.
+/// </summary>
 public sealed partial class CvbImageDisplay : UserControl
 {
+    /// <summary>
+    /// Creates the image preview control.
+    /// </summary>
     public CvbImageDisplay()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Updates the displayed image from a preview payload.
+    /// </summary>
+    /// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
     public async void SetImage(ImagePreviewDto? preview)
     {
         if (preview is null)
@@ -28,6 +38,9 @@ public sealed partial class CvbImageDisplay : UserControl
         InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);
     }
 
+    /// <summary>
+    /// Clears the displayed image and restores the placeholder.
+    /// </summary>
     public void Clear()
     {
         DisplayImage.Source = null;

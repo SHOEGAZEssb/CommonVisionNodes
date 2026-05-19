@@ -59,11 +59,11 @@ namespace CommonVisionNodes
     /// </summary>
     public enum KernelSize
     {
-        /// <summary>3×3 kernel.</summary>
+        /// <summary>3x3 kernel.</summary>
         Kernel3x3,
-        /// <summary>5×5 kernel.</summary>
+        /// <summary>5x5 kernel.</summary>
         Kernel5x5,
-        /// <summary>7×7 kernel.</summary>
+        /// <summary>7x7 kernel.</summary>
         Kernel7x7
     }
 
@@ -90,10 +90,13 @@ namespace CommonVisionNodes
         public FilterType FilterType { get; set; } = FilterType.Gauss;
 
         /// <summary>
-        /// Kernel size used by most filters (3×3, 5×5, or 7×7).
+        /// Kernel size used by most filters (3x3, 5x5, or 7x7).
         /// </summary>
         public KernelSize KernelSize { get; set; } = KernelSize.Kernel3x3;
 
+        /// <summary>
+        /// Creates a filter node with one image input and one image output.
+        /// </summary>
         public FilterNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to filter.");

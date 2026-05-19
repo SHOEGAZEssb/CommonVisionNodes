@@ -40,6 +40,9 @@ namespace CommonVisionNodes
         /// </summary>
         public int AreaHeight { get; set; } = 64;
 
+        /// <summary>
+        /// Creates a sub-image node with one image input and one image output.
+        /// </summary>
         public SubImageNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to crop.");

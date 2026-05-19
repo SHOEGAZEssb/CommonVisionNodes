@@ -23,6 +23,9 @@ namespace CommonVisionNodes
 
         internal Func<string, bool>? TryConsumeExternalTrigger { get; set; }
 
+        /// <summary>
+        /// Creates a manual trigger node with one trigger output.
+        /// </summary>
         public ManualTriggerNode()
         {
             TriggerOutput = AddOutput("Trigger", typeof(TriggerSignal), "Trigger signal emitted when the manual trigger is pressed.");

@@ -11,6 +11,9 @@ namespace CommonVisionNodesUI.Controls;
 /// </summary>
 public sealed partial class HistogramDisplay : UserControl
 {
+    /// <summary>
+    /// Creates the histogram display control.
+    /// </summary>
     public HistogramDisplay()
     {
         this.InitializeComponent();

@@ -23,10 +23,13 @@ namespace CommonVisionNodes
         public Port ImageOutput { get; }
 
         /// <summary>
-        /// Threshold value (0–255) used for binarization.
+        /// Threshold value (0-255) used for binarization.
         /// </summary>
         public int Threshold { get; set; } = 128;
 
+        /// <summary>
+        /// Creates a binarization node with one image input and one image output.
+        /// </summary>
         public BinarizeNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to binarize.");
@@ -57,6 +60,9 @@ namespace CommonVisionNodes
 
                     if (srcAccess.XInc == 1 && dstAccess.XInc == 1)
                     {
+                        // The SIMD path works only for tightly packed 8-bit rows. CVB images can
+                        // expose arbitrary X strides, so the scalar fallback below preserves support
+                        // for non-contiguous plane layouts.
                         var threshVec = Vector256.Create(threshold);
                         int vecLen = Vector256<byte>.Count;
 

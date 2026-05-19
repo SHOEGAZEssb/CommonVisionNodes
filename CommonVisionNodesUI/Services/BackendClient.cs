@@ -6,12 +6,19 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.Services;
 
+/// <summary>
+/// HTTP and WebSocket implementation of <see cref="IBackendClient"/>.
+/// </summary>
 public sealed class BackendClient : IBackendClient
 {
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Uri _webSocketUriBase;
 
+    /// <summary>
+    /// Creates a backend client for a base HTTP URL.
+    /// </summary>
+    /// <param name="baseUrl">Backend base URL.</param>
     public BackendClient(string baseUrl)
     {
         var normalizedBaseUrl = baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/";
@@ -29,6 +36,7 @@ public sealed class BackendClient : IBackendClient
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
+    /// <inheritdoc/>
     public async Task<IReadOnlyList<NodeDefinitionDto>> GetNodeDefinitionsAsync(CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.GetAsync("api/nodes/definitions", cancellationToken);
@@ -36,6 +44,7 @@ public sealed class BackendClient : IBackendClient
         return await ReadAsync<List<NodeDefinitionDto>>(response, cancellationToken) ?? [];
     }
 
+    /// <inheritdoc/>
     public async Task<ExecutionAcceptedDto> ExecuteAsync(ExecutionRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/execute", request, _jsonOptions, cancellationToken);
@@ -43,6 +52,7 @@ public sealed class BackendClient : IBackendClient
         return await ReadAsync<ExecutionAcceptedDto>(response, cancellationToken) ?? new ExecutionAcceptedDto();
     }
 
+    /// <inheritdoc/>
     public async Task StopAsync(string clientId, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync(
@@ -53,24 +63,28 @@ public sealed class BackendClient : IBackendClient
         response.EnsureSuccessStatusCode();
     }
 
+    /// <inheritdoc/>
     public async Task TriggerNodeAsync(TriggerNodeRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/trigger", request, _jsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
+    /// <inheritdoc/>
     public async Task UpdateExecutionSettingsAsync(UpdateExecutionSettingsRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/settings", request, _jsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
+    /// <inheritdoc/>
     public async Task UpdateNodePropertiesAsync(UpdateNodePropertiesRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/node-properties", request, _jsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
+    /// <inheritdoc/>
     public async Task<string> GenerateCodeAsync(GraphDto graph, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/codegen", graph, _jsonOptions, cancellationToken);
@@ -78,6 +92,7 @@ public sealed class BackendClient : IBackendClient
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
+    /// <inheritdoc/>
     public async Task ListenAsync(string clientId, Func<ExecutionMessageDto, Task> onMessage, CancellationToken cancellationToken = default)
     {
         using var socket = new ClientWebSocket();
@@ -91,6 +106,8 @@ public sealed class BackendClient : IBackendClient
             WebSocketReceiveResult result;
             do
             {
+                // Execution messages can exceed a single WebSocket frame when previews are large,
+                // so accumulate until EndOfMessage before deserializing.
                 result = await socket.ReceiveAsync(buffer, cancellationToken);
                 if (result.MessageType == WebSocketMessageType.Close)
                     return;

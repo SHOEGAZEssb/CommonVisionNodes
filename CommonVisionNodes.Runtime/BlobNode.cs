@@ -61,7 +61,7 @@ namespace CommonVisionNodes
 
     /// <summary>
     /// Performs connected-component (blob) analysis on a binary image.
-    /// Pixels with value ≥ <see cref="ForegroundThreshold"/> are treated as foreground.
+    /// Pixels with value greater than or equal to <see cref="ForegroundThreshold"/> are treated as foreground.
     /// Blobs smaller than <see cref="MinArea"/> are discarded.
     /// </summary>
     public sealed class BlobNode : Node
@@ -123,6 +123,9 @@ namespace CommonVisionNodes
         /// </summary>
         public bool Use8Connectivity { get; set; }
 
+        /// <summary>
+        /// Creates a blob analysis node with image pass-through and blob list outputs.
+        /// </summary>
         public BlobNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The binary image to analyze for connected components.");
@@ -161,7 +164,8 @@ namespace CommonVisionNodes
 
             bool use8 = Use8Connectivity;
 
-            // Two-pass connected-component labeling
+            // Two-pass connected-component labeling. CVB does have blob tooling, but this
+            // implementation keeps the node dependency-light and mirrors the generated helper.
             int[,] labels = new int[height, width];
             int nextLabel = 1;
             int[] parent = new int[width * height + 1]; // union-find
@@ -222,7 +226,7 @@ namespace CommonVisionNodes
                 }
             }
 
-            // Second pass — flatten labels and collect stats
+            // Second pass: flatten labels and collect stats.
             var stats = new Dictionary<int, (long sumX, long sumY, int area, int minX, int minY, int maxX, int maxY)>();
 
             for (int y = 0; y < height; y++)

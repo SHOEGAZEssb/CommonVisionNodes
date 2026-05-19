@@ -32,6 +32,9 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public bool IsInitialized { get; private set; }
 
+        /// <summary>
+        /// Creates an image source node with an optional trigger input and one image output.
+        /// </summary>
         public ImageNode()
         {
             TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when the image is sent.");

@@ -4,10 +4,10 @@ namespace CommonVisionNodes
     /// A sink node that accepts any value from a connected port and exposes it for visual inspection.
     /// The UI renders the value differently depending on its runtime type:
     /// <list type="bullet">
-    ///   <item><see cref="Stemmer.Cvb.Image"/> — rendered as an image preview.</item>
-    ///   <item><see cref="IReadOnlyList{BlobInfo}"/> or <see cref="IReadOnlyList{BlobRect}"/> — rendered as a string list.</item>
-    ///   <item><see cref="IReadOnlyList{PolimagoClassifyResultItem}"/> — rendered as a string list.</item>
-    ///   <item>Anything else — rendered via <see cref="object.ToString"/>.</item>
+    ///   <item><see cref="Stemmer.Cvb.Image"/>: rendered as an image preview.</item>
+    ///   <item><see cref="IReadOnlyList{BlobInfo}"/> or <see cref="IReadOnlyList{BlobRect}"/>: rendered as a string list.</item>
+    ///   <item><see cref="IReadOnlyList{PolimagoClassifyResultItem}"/>: rendered as a string list.</item>
+    ///   <item>Anything else: rendered via <see cref="object.ToString"/>.</item>
     /// </list>
     /// </summary>
     public sealed class GenericVisualizerNode : Node
@@ -22,6 +22,9 @@ namespace CommonVisionNodes
         /// </summary>
         public object? LastValue { get; private set; }
 
+        /// <summary>
+        /// Creates a generic visualizer node with one object input.
+        /// </summary>
         public GenericVisualizerNode()
         {
             DataInput = AddInput("Data", typeof(object),

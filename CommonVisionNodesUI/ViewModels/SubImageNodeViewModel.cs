@@ -2,8 +2,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a crop/sub-image node.
+/// </summary>
 public partial class SubImageNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a sub-image node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public SubImageNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -28,7 +36,8 @@ public partial class SubImageNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
+    /// <inheritdoc/>
+    public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
 
     partial void OnAreaXChanged(int value)
     {
@@ -54,6 +63,7 @@ public partial class SubImageNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;

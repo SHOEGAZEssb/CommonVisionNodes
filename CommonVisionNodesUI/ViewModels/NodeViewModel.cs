@@ -5,45 +5,91 @@ using Windows.UI;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// Base view model for a graph node shown on the editor canvas.
+/// </summary>
 public abstract partial class NodeViewModel : ObservableObject
 {
     private readonly Dictionary<string, NodePropertyDefinitionDto> _propertyDefinitions;
 
+    /// <summary>
+    /// Fixed node width in canvas units.
+    /// </summary>
     public const double NodeWidth = 200;
+
+    /// <summary>
+    /// Fixed node header height in canvas units.
+    /// </summary>
     public const double HeaderHeight = 36;
+
+    /// <summary>
+    /// Fixed vertical spacing allocated to each port row.
+    /// </summary>
     public const double PortHeight = 28;
 
+    /// <summary>
+    /// Creates a node view model from serialized node state and catalog metadata.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition for the node type.</param>
     protected NodeViewModel(NodeDto node, NodeDefinitionDto definition)
     {
         Node = node;
         Definition = definition;
         _propertyDefinitions = definition.Properties.ToDictionary(property => property.Name, StringComparer.OrdinalIgnoreCase);
         EnsureDefaultProperties();
-		ShowPreview = ReadShowPreview();
+        ShowPreview = ReadShowPreview();
 
         InputPorts = [.. definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index))];
         OutputPorts = [.. definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index))];
 
-		X = node.X;
-		Y = node.Y;
+        X = node.X;
+        Y = node.Y;
     }
 
+    /// <summary>
+    /// Serialized node instance backing this view model.
+    /// </summary>
     public NodeDto Node { get; }
 
+    /// <summary>
+    /// Catalog definition currently describing this node type.
+    /// </summary>
     public NodeDefinitionDto Definition { get; private set; }
 
+    /// <summary>
+    /// Raised when serialized node configuration changes.
+    /// </summary>
     public event EventHandler? ConfigurationChanged;
 
+    /// <summary>
+    /// User-facing node title.
+    /// </summary>
     public string Title => Definition.DisplayName;
 
+    /// <summary>
+    /// View models for input ports.
+    /// </summary>
     public List<PortViewModel> InputPorts { get; }
 
+    /// <summary>
+    /// View models for output ports.
+    /// </summary>
     public List<PortViewModel> OutputPorts { get; }
 
+    /// <summary>
+    /// Short status/configuration text displayed inside the node.
+    /// </summary>
     public virtual string? Summary => null;
 
+    /// <summary>
+    /// Indicates whether the property panel should remain editable during continuous execution.
+    /// </summary>
     public virtual bool IsEditableWhileRunning => Definition.CanEditWhileRunning;
 
+    /// <summary>
+    /// Indicates whether this node exposes the synthetic preview toggle property.
+    /// </summary>
     public bool SupportsPreviewToggle => _propertyDefinitions.ContainsKey(NodePreviewSettings.ShowPreviewPropertyName);
 
 	[ObservableProperty]
@@ -61,8 +107,14 @@ public abstract partial class NodeViewModel : ObservableObject
 	[ObservableProperty]
 	public partial bool ShowPreview { get; set; }
 
-	public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
+    /// <summary>
+    /// Calculated node height based on the larger port count.
+    /// </summary>
+    public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
 
+    /// <summary>
+    /// Header color used to visually group node types on the canvas.
+    /// </summary>
     public Color HeaderColor => Definition.Type switch
     {
         "ImageNode" => Color.FromArgb(255, 74, 144, 217),
@@ -86,6 +138,10 @@ public abstract partial class NodeViewModel : ObservableObject
         _ => Color.FromArgb(255, 128, 128, 128)
     };
 
+    /// <summary>
+    /// Creates a detached DTO snapshot suitable for saving or sending to the backend.
+    /// </summary>
+    /// <returns>A clone of the serialized node state.</returns>
     public NodeDto ToNodeDtoClone()
         => new()
         {
@@ -98,8 +154,12 @@ public abstract partial class NodeViewModel : ObservableObject
                 Name = property.Name,
                 Value = property.Value
             })]
-		};
+        };
 
+    /// <summary>
+    /// Applies updated catalog metadata while preserving node property values.
+    /// </summary>
+    /// <param name="definition">Updated node definition.</param>
     public virtual void RefreshDefinition(NodeDefinitionDto definition)
     {
         Definition = definition;
@@ -115,6 +175,10 @@ public abstract partial class NodeViewModel : ObservableObject
         OnPropertyChanged(nameof(Summary));
     }
 
+    /// <summary>
+    /// Applies a per-node execution update received from the backend.
+    /// </summary>
+    /// <param name="update">Execution update.</param>
     public void ApplyExecutionUpdate(NodeExecutionUpdateDto update)
     {
         if (update.ExecutionDurationMs.HasValue)
@@ -123,50 +187,119 @@ public abstract partial class NodeViewModel : ObservableObject
         OnExecutionUpdate(update);
     }
 
+    /// <summary>
+    /// Applies an overall execution state update.
+    /// </summary>
+    /// <param name="state">Execution state update.</param>
     public void ApplyExecutionState(ExecutionStateDto state)
     {
         OnExecutionState(state);
     }
 
+    /// <summary>
+    /// Applies an image preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">Image preview payload, or <c>null</c> to clear it.</param>
     public virtual void ApplyImagePreview(ImagePreviewDto? preview) { }
 
+    /// <summary>
+    /// Applies a histogram preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">Histogram preview payload.</param>
     public virtual void ApplyHistogramPreview(HistogramPreviewDto preview) { }
 
+    /// <summary>
+    /// Applies a blob preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">Blob preview payload.</param>
     public virtual void ApplyBlobPreview(BlobPreviewDto preview) { }
 
+    /// <summary>
+    /// Applies a classification preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">Classification preview payload.</param>
     public virtual void ApplyClassificationPreview(ClassificationPreviewDto preview) { }
 
+    /// <summary>
+    /// Applies a text preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">Text preview payload.</param>
     public virtual void ApplyTextPreview(TextPreviewDto preview) { }
 
+    /// <summary>
+    /// Allows derived node view models to react to node execution updates.
+    /// </summary>
+    /// <param name="update">Execution update.</param>
     protected virtual void OnExecutionUpdate(NodeExecutionUpdateDto update) { }
 
+    /// <summary>
+    /// Allows derived node view models to react to overall execution state changes.
+    /// </summary>
+    /// <param name="state">Execution state update.</param>
     protected virtual void OnExecutionState(ExecutionStateDto state) { }
 
+    /// <summary>
+    /// Allows derived node view models to resynchronize option lists after catalog updates.
+    /// </summary>
     protected virtual void OnDefinitionUpdated() { }
 
+    /// <summary>
+    /// Reads a string property from the backing node.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="defaultValue">Fallback value.</param>
+    /// <returns>The stored value or fallback.</returns>
     protected string GetString(string name, string defaultValue = "")
         => GetProperty(name)?.Value ?? defaultValue;
 
+    /// <summary>
+    /// Reads an invariant-culture integer property from the backing node.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="defaultValue">Fallback value.</param>
+    /// <returns>The parsed value or fallback.</returns>
     protected int GetInt(string name, int defaultValue = 0)
         => int.TryParse(GetProperty(name)?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? value
             : defaultValue;
 
+    /// <summary>
+    /// Reads an invariant-culture floating-point property from the backing node.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="defaultValue">Fallback value.</param>
+    /// <returns>The parsed value or fallback.</returns>
     protected double GetDouble(string name, double defaultValue = 0)
         => double.TryParse(GetProperty(name)?.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value)
             ? value
             : defaultValue;
 
+    /// <summary>
+    /// Reads a Boolean property from the backing node.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="defaultValue">Fallback value.</param>
+    /// <returns>The parsed value or fallback.</returns>
     protected bool GetBool(string name, bool defaultValue = false)
         => bool.TryParse(GetProperty(name)?.Value, out var value)
             ? value
             : defaultValue;
 
+    /// <summary>
+    /// Gets catalog options for an enum-like property.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <returns>Available options, or an empty list.</returns>
     protected IReadOnlyList<PropertyOptionDto> GetOptions(string name)
         => _propertyDefinitions.TryGetValue(name, out var definition)
             ? definition.Options.ToList()
             : [];
 
+    /// <summary>
+    /// Stores a string property value and raises configuration change notifications.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="value">Serialized value.</param>
     protected void SetString(string name, string? value)
     {
         EnsureProperty(name).Value = value;
@@ -174,15 +307,33 @@ public abstract partial class NodeViewModel : ObservableObject
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Stores an integer property value using invariant-culture formatting.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="value">Property value.</param>
     protected void SetInt(string name, int value)
         => SetString(name, value.ToString(CultureInfo.InvariantCulture));
 
+    /// <summary>
+    /// Stores a floating-point property value using invariant-culture formatting.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="value">Property value.</param>
     protected void SetDouble(string name, double value)
         => SetString(name, value.ToString(CultureInfo.InvariantCulture));
 
+    /// <summary>
+    /// Stores a Boolean property value.
+    /// </summary>
+    /// <param name="name">Property name.</param>
+    /// <param name="value">Property value.</param>
     protected void SetBool(string name, bool value)
         => SetString(name, value.ToString());
 
+    /// <summary>
+    /// Raises a property notification for <see cref="Summary"/>.
+    /// </summary>
     protected void RaiseSummaryChanged() => OnPropertyChanged(nameof(Summary));
 
     partial void OnShowPreviewChanged(bool value)
@@ -268,6 +419,8 @@ public abstract partial class NodeViewModel : ObservableObject
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
 
+        // Preview properties live only on specialized view models. Reflection keeps the base
+        // class from needing an interface for every preview flavor while still clearing stale UI.
         var previewImageProperty = GetType().GetProperty("PreviewImage", flags);
         if (previewImageProperty?.CanWrite == true && previewImageProperty.PropertyType == typeof(ImagePreviewDto))
             previewImageProperty.SetValue(this, null);

@@ -7,6 +7,9 @@ using Windows.UI;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// Root view model for shell state, selected-node panel state, and status metrics.
+/// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private readonly DispatcherTimer _statusTimer;
@@ -14,6 +17,10 @@ public partial class MainViewModel : ObservableObject
     private DateTime _lastCpuCheck;
     private TimeSpan _lastCpuTime;
 
+    /// <summary>
+    /// Creates the main view model.
+    /// </summary>
+    /// <param name="graph">Graph editor view model.</param>
     public MainViewModel(NodeGraphViewModel graph)
     {
         Graph = graph;
@@ -36,6 +43,9 @@ public partial class MainViewModel : ObservableObject
         _statusTimer.Start();
     }
 
+    /// <summary>
+    /// Graph editor view model shown by the main page.
+    /// </summary>
     public NodeGraphViewModel Graph { get; }
 
 	[ObservableProperty]
@@ -96,6 +106,8 @@ public partial class MainViewModel : ObservableObject
 
             if (elapsed > 0)
             {
+                // Process.TotalProcessorTime is accumulated across all logical processors, so
+                // divide by processor count to produce a familiar task-manager style percentage.
                 var cpuPercent = cpuDelta / elapsed / Environment.ProcessorCount * 100.0;
                 CpuText = $"{cpuPercent:F1}%";
             }

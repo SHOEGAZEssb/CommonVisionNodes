@@ -8,6 +8,9 @@ using Windows.Foundation;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Interactive canvas control that renders a node, its ports, and inline previews.
+/// </summary>
 public sealed partial class NodeControl : UserControl
 {
     private NodeViewModel? _viewModel;
@@ -19,18 +22,43 @@ public sealed partial class NodeControl : UserControl
 
     internal static bool IsConnectionDragging;
 
+    /// <summary>
+    /// Raised when the node is dragged to a new position.
+    /// </summary>
     public event Action<NodeControl>? NodeMoved;
+
+    /// <summary>
+    /// Raised when the user presses a port to begin a connection gesture.
+    /// </summary>
     public event Action<NodeControl, PortViewModel, PointerRoutedEventArgs>? PortPressed;
+
+    /// <summary>
+    /// Raised when the user right-clicks a port.
+    /// </summary>
     public event Action<NodeControl, PortViewModel>? PortRightTapped;
+
+    /// <summary>
+    /// Raised when the user selects the node without dragging it.
+    /// </summary>
     public event Action<NodeControl>? NodeSelected;
 
+    /// <summary>
+    /// View model currently rendered by the control.
+    /// </summary>
     public NodeViewModel? ViewModel => _viewModel;
 
+    /// <summary>
+    /// Creates the node control.
+    /// </summary>
     public NodeControl()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Binds the control to a node view model and wires preview updates.
+    /// </summary>
+    /// <param name="vm">Node view model to render.</param>
     public void SetViewModel(NodeViewModel vm)
     {
         _viewModel = vm;
@@ -215,6 +243,10 @@ public sealed partial class NodeControl : UserControl
         }
     }
 
+    /// <summary>
+    /// Updates the selection visual state.
+    /// </summary>
+    /// <param name="selected"><c>true</c> when the node is selected.</param>
     public void SetSelected(bool selected)
     {
         NodeBorder.BorderBrush = new SolidColorBrush(

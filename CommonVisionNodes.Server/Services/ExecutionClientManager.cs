@@ -7,6 +7,9 @@ using CommonVisionNodes.Runtime.Execution;
 
 namespace CommonVisionNodes.Server.Services;
 
+/// <summary>
+/// Tracks client execution sessions, active runners, and subscribed WebSocket connections.
+/// </summary>
 public sealed class ExecutionClientManager
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -23,12 +26,23 @@ public sealed class ExecutionClientManager
         JsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
+    /// <summary>
+    /// Creates an execution client manager.
+    /// </summary>
+    /// <param name="graphFactory">Factory used by new execution runners.</param>
+    /// <param name="previewFactory">Preview factory used by new execution runners.</param>
     public ExecutionClientManager(RuntimeGraphFactory graphFactory, RuntimePreviewFactory previewFactory)
     {
         _graphFactory = graphFactory;
         _previewFactory = previewFactory;
     }
 
+    /// <summary>
+    /// Starts execution for a client, replacing any existing runner for that client.
+    /// </summary>
+    /// <param name="request">Execution request.</param>
+    /// <param name="cancellationToken">Cancellation token for request processing.</param>
+    /// <returns>Accepted execution metadata.</returns>
     public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
     {
         var session = GetSession(request.ClientId);
@@ -40,6 +54,8 @@ public sealed class ExecutionClientManager
             session.Runner = null;
         }
 
+        // Dispose the previous runner outside the session lock. Disposal waits for graph shutdown
+        // and may publish messages, so keeping the lock held here can block socket operations.
         if (previousRunner is not null)
             await previousRunner.DisposeAsync().ConfigureAwait(false);
 
@@ -63,6 +79,10 @@ public sealed class ExecutionClientManager
         };
     }
 
+    /// <summary>
+    /// Stops the active execution for a client.
+    /// </summary>
+    /// <param name="clientId">Client identifier.</param>
     public async Task StopExecutionAsync(string clientId)
     {
         var session = GetSession(clientId);
@@ -78,6 +98,11 @@ public sealed class ExecutionClientManager
             await runner.DisposeAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Updates live preview settings for the active execution.
+    /// </summary>
+    /// <param name="request">Settings update request.</param>
+    /// <returns><c>true</c> when a runner was found and updated.</returns>
     public bool UpdateExecutionSettings(UpdateExecutionSettingsRequestDto request)
     {
         var session = GetSession(request.ClientId);
@@ -93,6 +118,11 @@ public sealed class ExecutionClientManager
         return true;
     }
 
+    /// <summary>
+    /// Queues a manual trigger for the active execution.
+    /// </summary>
+    /// <param name="request">Trigger request.</param>
+    /// <returns><c>true</c> when a runner was found and the trigger was queued.</returns>
     public bool TriggerManualNode(TriggerNodeRequestDto request)
     {
         var session = GetSession(request.ClientId);
@@ -108,6 +138,11 @@ public sealed class ExecutionClientManager
         return true;
     }
 
+    /// <summary>
+    /// Updates supported live node properties on the active execution.
+    /// </summary>
+    /// <param name="request">Node property update request.</param>
+    /// <returns><c>true</c> when the runner accepted the property update.</returns>
     public bool UpdateNodeProperties(UpdateNodePropertiesRequestDto request)
     {
         var session = GetSession(request.ClientId);
@@ -119,6 +154,12 @@ public sealed class ExecutionClientManager
         return runner?.UpdateNodeProperties(request.NodeId, request.Properties) == true;
     }
 
+    /// <summary>
+    /// Attaches a WebSocket subscriber for execution messages from one client session.
+    /// </summary>
+    /// <param name="clientId">Client identifier to subscribe to.</param>
+    /// <param name="socket">Accepted WebSocket.</param>
+    /// <param name="cancellationToken">Cancellation token for socket lifetime.</param>
     public async Task AttachSocketAsync(string clientId, WebSocket socket, CancellationToken cancellationToken)
     {
         var session = GetSession(clientId);
@@ -167,6 +208,8 @@ public sealed class ExecutionClientManager
         await session.SendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // WebSocket sends are serialized per client session. ClientWebSocket instances do not
+            // permit concurrent sends, and this also keeps message order stable for the UI.
             foreach (var socketEntry in session.Sockets.ToArray())
             {
                 if (socketEntry.Value.State != WebSocketState.Open)

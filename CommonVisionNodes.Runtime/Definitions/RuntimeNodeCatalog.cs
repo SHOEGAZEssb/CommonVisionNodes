@@ -10,16 +10,34 @@ using Stemmer.Cvb.Driver;
 
 namespace CommonVisionNodes.Runtime;
 
+/// <summary>
+/// Provides the runtime node palette and creates node instances by type name.
+/// </summary>
 public sealed class RuntimeNodeCatalog
 {
+    /// <summary>
+    /// Gets all node definitions sorted for display in the UI.
+    /// </summary>
+    /// <returns>Available runtime node definitions.</returns>
     public IReadOnlyList<NodeDefinitionDto> GetDefinitions()
         => [.. CreateDefinitions()
             .OrderBy(definition => definition.Category, StringComparer.OrdinalIgnoreCase)
             .ThenBy(definition => definition.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
+    /// <summary>
+    /// Finds a node definition by runtime type name.
+    /// </summary>
+    /// <param name="type">Runtime node type name.</param>
+    /// <returns>The matching definition, or <c>null</c> when the type is unknown.</returns>
     public NodeDefinitionDto? GetDefinition(string type)
         => CreateDefinitions().FirstOrDefault(definition => string.Equals(definition.Type, type, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Creates a runtime node instance for a catalog type name.
+    /// </summary>
+    /// <param name="type">Runtime node type name.</param>
+    /// <param name="node">Created node when the type is known.</param>
+    /// <returns><c>true</c> when a node was created.</returns>
     public bool TryCreateNode(string type, out Node node)
     {
         node = type switch
@@ -464,6 +482,9 @@ public sealed class RuntimeNodeCatalog
             {
                 try
                 {
+                    // Some virtual or transient adapters throw while their IP properties are
+                    // queried. Treat adapter discovery as best effort so the catalog endpoint
+                    // stays available even on unusual machines.
                     var isLoopbackInterface = networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback;
                     if (!isLoopbackInterface && networkInterface.OperationalStatus != OperationalStatus.Up)
                         continue;
@@ -520,6 +541,8 @@ public sealed class RuntimeNodeCatalog
     {
         try
         {
+            // Device discovery touches native CVB transports and may fail when the SDK, drivers,
+            // or hardware are not present. The UI can still render the catalog with no choices.
             return [.. DeviceFactory.Discover(DiscoverFlags.IgnoreVins | DiscoverFlags.IncludeMockTL)
                 .Select(info =>
                 {
@@ -561,4 +584,3 @@ public sealed class RuntimeNodeCatalog
         return builder.ToString();
     }
 }
-

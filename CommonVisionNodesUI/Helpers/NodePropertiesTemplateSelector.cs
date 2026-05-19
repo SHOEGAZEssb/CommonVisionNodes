@@ -9,23 +9,41 @@ namespace CommonVisionNodesUI.Helpers;
 /// </summary>
 public class NodePropertiesTemplateSelector : DataTemplateSelector
 {
+    /// <summary>Template for <see cref="ImageNodeViewModel"/>.</summary>
     public DataTemplate? ImageNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="SaveImageNodeViewModel"/>.</summary>
     public DataTemplate? SaveImageNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="GevServerNodeViewModel"/>.</summary>
     public DataTemplate? GevServerNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="DeviceNodeViewModel"/>.</summary>
     public DataTemplate? DeviceNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="BinarizeNodeViewModel"/>.</summary>
     public DataTemplate? BinarizeNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="SubImageNodeViewModel"/>.</summary>
     public DataTemplate? SubImageNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="MatrixTransformNodeViewModel"/>.</summary>
     public DataTemplate? MatrixTransformNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="ImageGeneratorNodeViewModel"/>.</summary>
     public DataTemplate? ImageGeneratorNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="TimeTriggerNodeViewModel"/>.</summary>
     public DataTemplate? TimeTriggerNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="ManualTriggerNodeViewModel"/>.</summary>
     public DataTemplate? ManualTriggerNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="FilterNodeViewModel"/>.</summary>
     public DataTemplate? FilterNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="HistogramNodeViewModel"/>.</summary>
     public DataTemplate? HistogramNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="MorphologyNodeViewModel"/>.</summary>
     public DataTemplate? MorphologyNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="BlobNodeViewModel"/>.</summary>
     public DataTemplate? BlobNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="NormalizeNodeViewModel"/>.</summary>
     public DataTemplate? NormalizeNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="PolimagoClassifyNodeViewModel"/>.</summary>
     public DataTemplate? PolimagoClassifyNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="GenericVisualizerNodeViewModel"/>.</summary>
     public DataTemplate? GenericVisualizerNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="CSharpNodeViewModel"/>.</summary>
     public DataTemplate? CSharpNodeTemplate { get; set; }
 
     /// <summary>

@@ -35,6 +35,9 @@ namespace CommonVisionNodes
         /// </summary>
         public double StdDev { get; private set; }
 
+        /// <summary>
+        /// Creates a histogram node with image pass-through.
+        /// </summary>
         public HistogramNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to analyze.");

@@ -3,6 +3,9 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodes.Runtime.Execution;
 
+/// <summary>
+/// Owns one graph execution, publishes progress messages, and coordinates live updates.
+/// </summary>
 public sealed class GraphExecutionRunner : IAsyncDisposable
 {
     private readonly ExecutionRequestDto _request;
@@ -20,6 +23,14 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
     private Task? _executionTask;
     private RuntimeGraphBuildResult? _activeGraphBuildResult;
 
+    /// <summary>
+    /// Creates a graph execution runner.
+    /// </summary>
+    /// <param name="request">Execution request containing graph, client id, and execution settings.</param>
+    /// <param name="graphFactory">Factory used to build the runtime graph.</param>
+    /// <param name="previewFactory">Factory used to build preview messages.</param>
+    /// <param name="publishAsync">Callback used to publish execution messages.</param>
+    /// <param name="onCompleted">Callback invoked after the runner exits.</param>
     public GraphExecutionRunner(
         ExecutionRequestDto request,
         RuntimeGraphFactory graphFactory,
@@ -41,8 +52,14 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         ExecutionId = Guid.NewGuid().ToString("N");
     }
 
+    /// <summary>
+    /// Runtime execution identifier assigned to this runner.
+    /// </summary>
     public string ExecutionId { get; }
 
+    /// <summary>
+    /// Starts execution on a background task. Subsequent calls are ignored.
+    /// </summary>
     public void Start()
     {
         if (_executionTask is not null)
@@ -51,6 +68,10 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         _executionTask = Task.Run(() => RunAsync(_cts.Token));
     }
 
+    /// <summary>
+    /// Queues one manual trigger event for a running manual trigger node.
+    /// </summary>
+    /// <param name="nodeId">Serialized node id of the manual trigger node.</param>
     public void TriggerManualNode(string nodeId)
     {
         if (string.IsNullOrWhiteSpace(nodeId))
@@ -63,12 +84,23 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Updates preview publication settings for a running continuous execution.
+    /// </summary>
+    /// <param name="previewRefreshRate">Preview refresh rate in frames per second. A value of 1001 is treated as unlimited.</param>
+    /// <param name="previewImageMaxDimension">Maximum preview long edge, or 0 for full resolution.</param>
     public void UpdatePreviewSettings(int previewRefreshRate, int previewImageMaxDimension)
     {
         Volatile.Write(ref _previewRefreshRate, Math.Clamp(previewRefreshRate, 1, 1001));
         Volatile.Write(ref _previewImageMaxDimension, Math.Max(0, previewImageMaxDimension));
     }
 
+    /// <summary>
+    /// Updates live-editable node properties on the active runtime graph.
+    /// </summary>
+    /// <param name="nodeId">Serialized node id to update.</param>
+    /// <param name="properties">Replacement property values.</param>
+    /// <returns><c>true</c> when the update was applied.</returns>
     public bool UpdateNodeProperties(string nodeId, IEnumerable<NodePropertyDto> properties)
     {
         if (string.IsNullOrWhiteSpace(nodeId))
@@ -82,6 +114,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
                 return false;
             }
 
+            // Only the time trigger is mutated in place today. Other node edits can affect
+            // resources or topology assumptions, so the UI restarts continuous execution instead.
             if (node is not TimeTriggerNode)
                 return false;
 
@@ -90,6 +124,9 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Requests execution stop and waits for the background task to exit.
+    /// </summary>
     public async Task StopAsync()
     {
         if (_cts.IsCancellationRequested)
@@ -105,6 +142,9 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
             await _executionTask.ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Stops execution and releases runner resources.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         await StopAsync().ConfigureAwait(false);
@@ -160,6 +200,8 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
                 var previewIntervalMs = GetPreviewIntervalMilliseconds(Volatile.Read(ref _previewRefreshRate));
                 if (previewIntervalMs == 0 || previewTimer.Elapsed.TotalMilliseconds >= previewIntervalMs)
                 {
+                    // Preview generation can be expensive, especially with PNG fallbacks, so it is
+                    // throttled independently from the graph execution loop.
                     await PublishPreviewsAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
                     previewTimer.Restart();
                 }

@@ -16,6 +16,9 @@ using Windows.Storage.Pickers;
 
 namespace CommonVisionNodesUI;
 
+/// <summary>
+/// Main graph editor page.
+/// </summary>
 public sealed partial class MainPage : Page
 {
     private static readonly JsonSerializerOptions GraphJsonOptions = new(JsonSerializerDefaults.Web)
@@ -68,6 +71,9 @@ public sealed partial class MainPage : Page
         GraphJsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
+    /// <summary>
+    /// Creates the main page and wires graph editor interactions.
+    /// </summary>
     public MainPage()
     {
         this.InitializeComponent();
@@ -112,6 +118,9 @@ public sealed partial class MainPage : Page
         };
     }
 
+    /// <summary>
+    /// View model bound to the page.
+    /// </summary>
     public MainViewModel ViewModel => _viewModel;
 
     private void AddNodeControl(NodeViewModel nodeViewModel)
@@ -474,6 +483,8 @@ public sealed partial class MainPage : Page
             if (app.MainWindow is null)
                 return;
 
+            // Win32 file pickers must be associated with the native window handle. Other targets
+            // do not need this, so failures are ignored below.
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(app.MainWindow);
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
         }

@@ -1,4 +1,4 @@
-﻿using Stemmer.Cvb;
+using Stemmer.Cvb;
 
 namespace CommonVisionNodes
 {
@@ -17,6 +17,9 @@ namespace CommonVisionNodes
         /// </summary>
         public string FilePath { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Creates an image sink node with one image input.
+        /// </summary>
         public SaveImageNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The image to save to disk.");

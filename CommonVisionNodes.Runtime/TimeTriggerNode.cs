@@ -31,6 +31,9 @@ namespace CommonVisionNodes
             }
         }
 
+        /// <summary>
+        /// Creates a time trigger node with one trigger output.
+        /// </summary>
         public TimeTriggerNode()
         {
             TriggerOutput = AddOutput("Trigger", typeof(TriggerSignal), "Trigger signal emitted on the configured interval.");

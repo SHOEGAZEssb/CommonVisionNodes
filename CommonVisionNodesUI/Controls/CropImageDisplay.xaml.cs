@@ -6,6 +6,9 @@ using Microsoft.UI.Xaml.Input;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Displays an image preview and lets the user edit a crop rectangle.
+/// </summary>
 public sealed partial class CropImageDisplay : UserControl
 {
     private ImagePreviewDto? _currentImage;
@@ -14,14 +17,24 @@ public sealed partial class CropImageDisplay : UserControl
     private int _cropX, _cropY, _cropW, _cropH;
     private bool _hasCrop;
 
+    /// <summary>
+    /// Raised when the user draws a new crop rectangle.
+    /// </summary>
     public event Action<int, int, int, int>? CropAreaChanged;
 
+    /// <summary>
+    /// Creates the crop image display control.
+    /// </summary>
     public CropImageDisplay()
     {
         this.InitializeComponent();
         SizeChanged += (_, _) => RedrawCropOverlay();
     }
 
+    /// <summary>
+    /// Updates the image used behind the crop overlay.
+    /// </summary>
+    /// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
     public async void SetImage(ImagePreviewDto? preview)
     {
         _currentImage = preview;
@@ -44,6 +57,13 @@ public sealed partial class CropImageDisplay : UserControl
         RedrawCropOverlay();
     }
 
+    /// <summary>
+    /// Updates the crop overlay from image-space coordinates.
+    /// </summary>
+    /// <param name="x">Crop X origin in source pixels.</param>
+    /// <param name="y">Crop Y origin in source pixels.</param>
+    /// <param name="w">Crop width in source pixels.</param>
+    /// <param name="h">Crop height in source pixels.</param>
     public void UpdateCropOverlay(int x, int y, int w, int h)
     {
         _cropX = x;

@@ -4,6 +4,10 @@ namespace CommonVisionNodesUI;
 
 internal class Program
 {
+    /// <summary>
+    /// Starts the Uno desktop host.
+    /// </summary>
+    /// <param name="args">Command-line arguments supplied by the host.</param>
     [STAThread]
     public static void Main(string[] args)
     {

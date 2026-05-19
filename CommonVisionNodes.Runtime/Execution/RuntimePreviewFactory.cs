@@ -3,8 +3,18 @@ using Stemmer.Cvb;
 
 namespace CommonVisionNodes.Runtime.Execution;
 
+/// <summary>
+/// Creates execution preview messages from runtime node state.
+/// </summary>
 public sealed class RuntimePreviewFactory
 {
+    /// <summary>
+    /// Creates the appropriate preview message for a runtime node.
+    /// </summary>
+    /// <param name="nodeId">Serialized graph node id.</param>
+    /// <param name="node">Runtime node instance.</param>
+    /// <param name="previewImageMaxDimension">Maximum preview long edge, or 0 to keep full resolution.</param>
+    /// <returns>A preview message, or <c>null</c> when the node has no preview data.</returns>
     public ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node, int previewImageMaxDimension)
     {
         return node switch
@@ -136,6 +146,8 @@ public sealed class RuntimePreviewFactory
         if (rawPreview is not null)
             return rawPreview;
 
+        // Fallback through CVB's image writer for formats the lightweight BGRA path cannot
+        // represent. The temp file is less elegant, but it delegates all format details to CVB.
         var tempPath = Path.Combine(Path.GetTempPath(), $"cvn-preview-{Guid.NewGuid():N}.png");
         try
         {
@@ -182,6 +194,8 @@ public sealed class RuntimePreviewFactory
         if (image.Planes[0].DataType.BytesPerPixel != 1)
             return null;
 
+        // Uno can display BGRA32 directly; for mono 8-bit images this avoids a PNG round-trip
+        // and keeps high-rate previews much cheaper.
         using var previewImage = CreateScaledPreviewImage(image, previewImageMaxDimension);
         var displayImage = previewImage ?? image;
         var stride = checked(displayImage.Width * 4);
@@ -293,6 +307,8 @@ public sealed class RuntimePreviewFactory
 
         if (bytesPerPixel == 1)
         {
+            // Nearest-neighbor downscale makes high-frequency mono previews noisy. A tiny box
+            // filter is still cheap and gives the UI a closer visual match to the source image.
             BoxFilterDownscaledPlane(sourceBase, targetBase, sourceWidth, sourceHeight, targetWidth, targetHeight, sourceXInc, sourceYInc, targetXInc, targetYInc);
             return;
         }

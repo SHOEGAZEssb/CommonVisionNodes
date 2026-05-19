@@ -2,8 +2,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for an affine matrix transform node.
+/// </summary>
 public partial class MatrixTransformNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a matrix transform node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public MatrixTransformNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -32,8 +40,10 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public override string? Summary => $"{Angle:F1}°  {ScaleX:F2}x/{ScaleY:F2}x";
+    /// <inheritdoc/>
+    public override string? Summary => $"{Angle:F1}\u00B0  {ScaleX:F2}x/{ScaleY:F2}x";
 
+    /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
 
     partial void OnAngleChanged(double value)
@@ -66,6 +76,7 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;

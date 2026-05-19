@@ -2,6 +2,9 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a GigE Vision server output node.
+/// </summary>
 public partial class GevServerNodeViewModel : NodeViewModel
 {
     private string _localAddress = "127.0.0.1";
@@ -9,6 +12,11 @@ public partial class GevServerNodeViewModel : NodeViewModel
     private PropertyOptionDto? _selectedAdapter;
     private PropertyOptionDto? _selectedDriverType;
 
+    /// <summary>
+    /// Creates a GigE Vision server node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public GevServerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -19,8 +27,14 @@ public partial class GevServerNodeViewModel : NodeViewModel
         EnsureSelectionsAreValid();
     }
 
+    /// <summary>
+    /// Network adapters available for server binding.
+    /// </summary>
     public ObservableCollection<PropertyOptionDto> AvailableAdapters { get; } = [];
 
+    /// <summary>
+    /// GigE Vision driver options available for the server.
+    /// </summary>
     public ObservableCollection<PropertyOptionDto> AvailableDriverTypes { get; } = [];
 
     [ObservableProperty]
@@ -32,10 +46,14 @@ public partial class GevServerNodeViewModel : NodeViewModel
     [ObservableProperty]
     public partial ImagePreviewDto? PreviewImage { get; set; }
 
+    /// <inheritdoc/>
     public override string? Summary => string.IsNullOrWhiteSpace(Status)
         ? $"{GetAdapterLabel(LocalAddress)} ({DriverType})"
         : Status;
 
+    /// <summary>
+    /// Selected local adapter IPv4 address.
+    /// </summary>
     public string LocalAddress
     {
         get => _localAddress;
@@ -54,6 +72,9 @@ public partial class GevServerNodeViewModel : NodeViewModel
         }
     }
 
+    /// <summary>
+    /// Selected GigE Vision driver type.
+    /// </summary>
     public string DriverType
     {
         get => _driverType;
@@ -72,6 +93,9 @@ public partial class GevServerNodeViewModel : NodeViewModel
         }
     }
 
+    /// <summary>
+    /// Selected adapter option.
+    /// </summary>
     public PropertyOptionDto? SelectedAdapter
     {
         get => _selectedAdapter;
@@ -85,6 +109,9 @@ public partial class GevServerNodeViewModel : NodeViewModel
         }
     }
 
+    /// <summary>
+    /// Selected driver type option.
+    /// </summary>
     public PropertyOptionDto? SelectedDriverType
     {
         get => _selectedDriverType;
@@ -108,12 +135,14 @@ public partial class GevServerNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     protected override void OnExecutionUpdate(NodeExecutionUpdateDto update)
     {
         if (!string.IsNullOrWhiteSpace(update.Message))
             Status = update.Message;
     }
 
+    /// <inheritdoc/>
     protected override void OnExecutionState(ExecutionStateDto state)
     {
         Status = state.Status switch
@@ -125,6 +154,7 @@ public partial class GevServerNodeViewModel : NodeViewModel
         };
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;
@@ -148,6 +178,7 @@ public partial class GevServerNodeViewModel : NodeViewModel
         SyncSelectedDriverType();
     }
 
+    /// <inheritdoc/>
     protected override void OnDefinitionUpdated()
     {
         RefreshOptions();

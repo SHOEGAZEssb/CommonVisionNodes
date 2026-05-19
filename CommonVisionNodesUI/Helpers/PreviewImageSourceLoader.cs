@@ -28,6 +28,8 @@ internal static class PreviewImageSourceLoader
         if (Volatile.Read(ref state.Version) != version)
             return false;
 
+        // Image controls can receive newer previews while an older payload is decoding. The
+        // per-control version check prevents stale async work from replacing the latest frame.
         var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
             ? await CreateBgra32BitmapAsync(preview, bytes)
             : await CreateEncodedBitmapAsync(bytes);

@@ -4,8 +4,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodes.Runtime;
 
+/// <summary>
+/// Applies serialized node property values to runtime node instances.
+/// </summary>
 public static class RuntimeNodePropertyBinder
 {
+    /// <summary>
+    /// Applies matching public writable properties to a node, using invariant-culture conversion.
+    /// </summary>
+    /// <param name="node">Runtime node instance to update.</param>
+    /// <param name="properties">Serialized properties to apply.</param>
     public static void Apply(Node node, IEnumerable<NodePropertyDto> properties)
     {
         var propertyMap = properties
@@ -39,7 +47,9 @@ public static class RuntimeNodePropertyBinder
             return value;
 
         if (string.IsNullOrWhiteSpace(value))
-            return Nullable.GetUnderlyingType(targetType) is not null ? null : null;
+            // Returning null lets nullable properties clear their value while non-nullable value
+            // types are skipped by Apply, preserving constructor/catalog defaults on bad input.
+            return null;
 
         if (actualType.IsEnum)
             return Enum.TryParse(actualType, value, ignoreCase: true, out var enumValue) ? enumValue : null;

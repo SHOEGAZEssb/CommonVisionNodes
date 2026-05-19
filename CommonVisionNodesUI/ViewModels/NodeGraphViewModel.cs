@@ -7,8 +7,16 @@ using Windows.Storage;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// Option shown by the UI for the maximum preview image dimension.
+/// </summary>
+/// <param name="Value">Maximum preview long edge in pixels, or 0 to disable downscaling.</param>
+/// <param name="Label">User-facing option label.</param>
 public sealed record PreviewImageMaxDimensionOption(int Value, string Label);
 
+/// <summary>
+/// View model that owns graph editing, execution control, and backend message handling.
+/// </summary>
 public partial class NodeGraphViewModel : ObservableObject
 {
     private const int DefaultPreviewRefreshRate = 30;
@@ -31,6 +39,10 @@ public partial class NodeGraphViewModel : ObservableObject
     private CancellationTokenSource? _previewSettingsDebounceCts;
     private CancellationTokenSource? _nodePropertiesDebounceCts;
 
+    /// <summary>
+    /// Creates the graph view model.
+    /// </summary>
+    /// <param name="backendClient">Backend API client.</param>
     public NodeGraphViewModel(IBackendClient backendClient)
     {
         _backendClient = backendClient;
@@ -39,10 +51,19 @@ public partial class NodeGraphViewModel : ObservableObject
 		PreviewImageMaxDimension = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
     }
 
+    /// <summary>
+    /// Nodes currently present on the canvas.
+    /// </summary>
     public ObservableCollection<NodeViewModel> Nodes { get; } = [];
 
+    /// <summary>
+    /// Connections currently present on the canvas.
+    /// </summary>
     public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
 
+    /// <summary>
+    /// Supported preview downscale options.
+    /// </summary>
     public IReadOnlyList<PreviewImageMaxDimensionOption> PreviewImageMaxDimensionOptions { get; } =
     [
         new(0, "Off (full resolution)"),
@@ -73,9 +94,20 @@ public partial class NodeGraphViewModel : ObservableObject
 	[ObservableProperty]
 	public partial int PreviewImageMaxDimension { get; set; } = DefaultPreviewImageMaxDimension;
 
-	public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+    /// <summary>
+    /// Text representation of the preview refresh rate.
+    /// </summary>
+    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Text representation of the preview image downscale limit.
+    /// </summary>
     public string PreviewImageMaxDimensionText => PreviewImageMaxDimension <= 0 ? "Off" : $"{PreviewImageMaxDimension}px";
 
+    /// <summary>
+    /// Initializes node definitions and starts the execution message listener once.
+    /// </summary>
+    /// <returns>A task that completes when initialization is done.</returns>
     public Task InitializeAsync()
     {
         if (_initialized)
@@ -100,6 +132,10 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Reloads node definitions from the backend and refreshes existing node view models.
+    /// </summary>
+    /// <returns>A task that completes when definitions have been refreshed.</returns>
     public async Task RefreshNodeDefinitionsAsync()
     {
         var definitions = await _backendClient.GetNodeDefinitionsAsync();
@@ -114,6 +150,10 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Selects a node and updates selection state on the previous selection.
+    /// </summary>
+    /// <param name="node">Node to select, or <c>null</c> to clear selection.</param>
     public void SelectNode(NodeViewModel? node)
     {
         SelectedNode?.IsSelected = false;
@@ -122,6 +162,10 @@ public partial class NodeGraphViewModel : ObservableObject
         node?.IsSelected = true;
     }
 
+    /// <summary>
+    /// Serializes the current editor graph to a DTO.
+    /// </summary>
+    /// <returns>Graph DTO representing the current editor state.</returns>
     public GraphDto ToGraphDto()
         => new()
         {
@@ -133,8 +177,13 @@ public partial class NodeGraphViewModel : ObservableObject
                 InputNodeId = connection.Connection.InputNodeId,
                 InputPortName = connection.Connection.InputPortName
             })]
-		};
+        };
 
+    /// <summary>
+    /// Replaces the current editor graph from a serialized DTO.
+    /// </summary>
+    /// <param name="graph">Graph DTO to load.</param>
+    /// <returns>A task that completes when the graph is loaded.</returns>
     public async Task LoadGraphAsync(GraphDto graph)
     {
         await InitializeAsync();
@@ -162,6 +211,12 @@ public partial class NodeGraphViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Attempts to connect two ports, replacing an existing input connection when necessary.
+    /// </summary>
+    /// <param name="portA">First port involved in the connection gesture.</param>
+    /// <param name="portB">Second port involved in the connection gesture.</param>
+    /// <returns><c>true</c> when a connection was created.</returns>
     public bool TryConnect(PortViewModel portA, PortViewModel portB)
     {
         var outputPort = portA.Port.Direction == PortDirectionDto.Output ? portA : portB;
@@ -197,6 +252,10 @@ public partial class NodeGraphViewModel : ObservableObject
         return true;
     }
 
+    /// <summary>
+    /// Removes every connection attached to a port.
+    /// </summary>
+    /// <param name="port">Port to disconnect.</param>
     public void DisconnectPort(PortViewModel port)
     {
         var toRemove = Connections
@@ -389,6 +448,9 @@ public partial class NodeGraphViewModel : ObservableObject
         await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
     }
 
+    /// <summary>
+    /// Clears all graph nodes, connections, and selection state.
+    /// </summary>
     public void ClearGraph()
     {
         SelectNode(null);
@@ -406,8 +468,15 @@ public partial class NodeGraphViewModel : ObservableObject
         _nextNodeY = 50;
     }
 
+    /// <summary>
+    /// Requests standalone generated code for the current graph.
+    /// </summary>
+    /// <returns>Generated C# source code.</returns>
     public Task<string> GenerateCodeAsync() => _backendClient.GenerateCodeAsync(ToGraphDto());
 
+    /// <summary>
+    /// Stops background listeners and releases debounce timers.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         CancelPendingExecutionRestart();
@@ -698,6 +767,8 @@ public partial class NodeGraphViewModel : ObservableObject
             if (cts.IsCancellationRequested || !IsRunning)
                 return;
 
+            // Preview settings are debounced because slider changes can arrive much faster than
+            // the backend needs to reconfigure a running graph.
             await _backendClient.UpdateExecutionSettingsAsync(
                 new UpdateExecutionSettingsRequestDto
                 {
@@ -743,6 +814,8 @@ public partial class NodeGraphViewModel : ObservableObject
             if (cts.IsCancellationRequested || !IsRunning)
                 return;
 
+            // Most node property edits require rebuilding runtime resources, so the running graph
+            // is replaced after the user pauses editing briefly.
             await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous), cts.Token);
         }
         catch (OperationCanceledException)
@@ -777,6 +850,8 @@ public partial class NodeGraphViewModel : ObservableObject
             if (cts.IsCancellationRequested || !IsRunning)
                 return;
 
+            // Time trigger properties are safe to mutate in place, so they take the lighter path
+            // instead of restarting the whole continuous execution.
             await _backendClient.UpdateNodePropertiesAsync(
                 new UpdateNodePropertiesRequestDto
                 {

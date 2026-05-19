@@ -46,6 +46,9 @@ namespace CommonVisionNodes
         /// </summary>
         public double TranslateY { get; set; }
 
+        /// <summary>
+        /// Creates an affine-transform node with one image input and one image output.
+        /// </summary>
         public MatrixTransformNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to transform.");

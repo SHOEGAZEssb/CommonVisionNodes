@@ -3,8 +3,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for an image-save sink node.
+/// </summary>
 public partial class SaveImageNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a save-image node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public SaveImageNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -17,7 +25,8 @@ public partial class SaveImageNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public override string? Summary => string.IsNullOrEmpty(FilePath)
+    /// <inheritdoc/>
+    public override string? Summary => string.IsNullOrEmpty(FilePath)
         ? "No output path"
         : Path.GetFileName(FilePath);
 
@@ -27,6 +36,7 @@ public partial class SaveImageNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;

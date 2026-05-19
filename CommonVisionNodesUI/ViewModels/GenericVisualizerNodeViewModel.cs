@@ -2,8 +2,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for the generic visualizer node.
+/// </summary>
 public partial class GenericVisualizerNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a generic visualizer node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public GenericVisualizerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -18,8 +26,10 @@ public partial class GenericVisualizerNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial string DisplayText { get; set; } = string.Empty;
 
-	public override string? Summary => TypeDescription;
+    /// <inheritdoc/>
+    public override string? Summary => TypeDescription;
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;
@@ -28,6 +38,7 @@ public partial class GenericVisualizerNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyTextPreview(TextPreviewDto preview)
     {
         PreviewImage = null;

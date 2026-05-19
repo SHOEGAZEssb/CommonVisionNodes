@@ -53,6 +53,9 @@ return filtered;
     /// </summary>
     public bool IsCompiled => _compiledFunction != null && _lastCompiledCode == Code;
 
+    /// <summary>
+    /// Creates a C# script node with one image input and one image output.
+    /// </summary>
     public CSharpNode()
     {
         ImageInput = AddInput("Image", typeof(Image), "The source image to process.");
@@ -111,7 +114,8 @@ public class UserCode
 
             var syntaxTree = CSharpSyntaxTree.ParseText(wrappedCode);
 
-            // Get references - include all currently loaded assemblies
+            // Get references from loaded assemblies so user code can see the same CVB and BCL
+            // surface as the host process without maintaining a fragile hard-coded reference list.
             var references = new List<MetadataReference>();
 
             // Add all loaded assemblies that have a location

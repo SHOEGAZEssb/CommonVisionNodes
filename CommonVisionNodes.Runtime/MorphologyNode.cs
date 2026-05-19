@@ -19,12 +19,12 @@ namespace CommonVisionNodes
         Erode,
 
         /// <summary>
-        /// Erosion followed by dilation — removes small bright spots.
+        /// Erosion followed by dilation; removes small bright spots.
         /// </summary>
         Open,
 
         /// <summary>
-        /// Dilation followed by erosion — fills small dark gaps.
+        /// Dilation followed by erosion; fills small dark gaps.
         /// </summary>
         Close
     }
@@ -57,6 +57,9 @@ namespace CommonVisionNodes
         /// </summary>
         public KernelSize KernelSize { get; set; } = KernelSize.Kernel3x3;
 
+        /// <summary>
+        /// Creates a morphology node with one image input and one image output.
+        /// </summary>
         public MorphologyNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image (typically binary) to process.");
@@ -90,6 +93,8 @@ namespace CommonVisionNodes
 
         private static Image ApplyOpenClose(Image source, int radius, bool openOp)
         {
+            // Open/close are composed from the same primitive operation so runtime behavior and
+            // generated code stay in lockstep.
             using var intermediate = openOp
                 ? ApplyMorphology(source, radius, erode: true)
                 : ApplyMorphology(source, radius, erode: false);

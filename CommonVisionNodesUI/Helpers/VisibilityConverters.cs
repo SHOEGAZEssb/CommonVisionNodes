@@ -9,9 +9,11 @@ namespace CommonVisionNodesUI.Helpers;
 /// </summary>
 public sealed class NullToCollapsedConverter : IValueConverter
 {
+    /// <inheritdoc/>
     public object Convert(object? value, Type targetType, object? parameter, string language) =>
         value is null ? Visibility.Collapsed : Visibility.Visible;
 
+    /// <inheritdoc/>
     public object ConvertBack(object value, Type targetType, object? parameter, string language) =>
         throw new NotSupportedException();
 }
@@ -22,18 +24,25 @@ public sealed class NullToCollapsedConverter : IValueConverter
 /// </summary>
 public sealed class EmptyToCollapsedConverter : IValueConverter
 {
+    /// <inheritdoc/>
     public object Convert(object? value, Type targetType, object? parameter, string language) =>
         value is string s && s.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+    /// <inheritdoc/>
     public object ConvertBack(object value, Type targetType, object? parameter, string language) =>
         throw new NotSupportedException();
 }
 
+/// <summary>
+/// Returns <see cref="Visibility.Visible"/> for <c>true</c> and <see cref="Visibility.Collapsed"/> otherwise.
+/// </summary>
 public sealed class BoolToVisibilityConverter : IValueConverter
 {
+    /// <inheritdoc/>
     public object Convert(object? value, Type targetType, object? parameter, string language) =>
         value is true ? Visibility.Visible : Visibility.Collapsed;
 
+    /// <inheritdoc/>
     public object ConvertBack(object value, Type targetType, object? parameter, string language) =>
         throw new NotSupportedException();
 }

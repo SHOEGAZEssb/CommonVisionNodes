@@ -2,10 +2,18 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a synthetic image generator node.
+/// </summary>
 public partial class ImageGeneratorNodeViewModel : NodeViewModel
 {
     private readonly IReadOnlyList<string> _availablePatterns;
 
+    /// <summary>
+    /// Creates an image generator node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public ImageGeneratorNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -16,6 +24,9 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
 		Speed = GetInt("Speed", 2);
     }
 
+    /// <summary>
+    /// Available test pattern names.
+    /// </summary>
     public IReadOnlyList<string> AvailablePatterns => _availablePatterns;
 
 	[ObservableProperty]
@@ -32,10 +43,15 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public override string? Summary => $"{ImageWidth}x{ImageHeight}  {Pattern}";
+    /// <inheritdoc/>
+    public override string? Summary => $"{ImageWidth}x{ImageHeight}  {Pattern}";
 
+    /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
 
+    /// <summary>
+    /// Selected test pattern name.
+    /// </summary>
     public string Pattern
     {
         get => _pattern;
@@ -71,6 +87,7 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;

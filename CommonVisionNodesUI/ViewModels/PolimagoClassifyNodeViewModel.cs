@@ -3,8 +3,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a Polimago classification node.
+/// </summary>
 public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a Polimago classification node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public PolimagoClassifyNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -24,12 +32,17 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public int ResultCount => Results.Count;
+    /// <summary>
+    /// Number of classification results in the latest preview.
+    /// </summary>
+    public int ResultCount => Results.Count;
 
+    /// <inheritdoc/>
     public override string? Summary => string.IsNullOrEmpty(ClassifierPath)
         ? "No classifier loaded"
         : $"{Path.GetFileName(ClassifierPath)} ({ResultCount} result(s))";
 
+    /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
 
     partial void OnClassifierPathChanged(string value)
@@ -44,6 +57,7 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyClassificationPreview(ClassificationPreviewDto preview)
     {
         PreviewImage = preview.Image;

@@ -10,17 +10,30 @@ using CommonVisionNodesUI.ViewModels;
 
 namespace CommonVisionNodesUI;
 
+/// <summary>
+/// Uno application entry point and dependency-injection host setup.
+/// </summary>
 public partial class App : Application
 {
+    /// <summary>
+    /// Creates the application instance.
+    /// </summary>
     public App()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Main application window.
+    /// </summary>
     public Window? MainWindow { get; private set; }
 
+    /// <summary>
+    /// Application host used for dependency resolution.
+    /// </summary>
     public IHost? Host { get; private set; }
 
+    /// <inheritdoc/>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         var builder = this.CreateBuilder(args)

@@ -13,16 +13,30 @@ namespace CommonVisionNodes
         private List<Node>? _cachedSort;
         private Dictionary<Port, Connection>? _connectionLookup;
 
+        /// <summary>
+        /// Nodes currently contained in the graph.
+        /// </summary>
         public IReadOnlyList<Node> Nodes => _nodes;
 
+        /// <summary>
+        /// Connections currently linking output ports to input ports.
+        /// </summary>
         public IReadOnlyList<Connection> Connections => _connections;
 
+        /// <summary>
+        /// Adds a node to the graph and invalidates cached execution order.
+        /// </summary>
+        /// <param name="node">Node to add.</param>
         public void AddNode(Node node)
         {
             _nodes.Add(node);
             InvalidateCache();
         }
 
+        /// <summary>
+        /// Removes a node, removes its connections, and disposes it when it owns initialized resources.
+        /// </summary>
+        /// <param name="node">Node to remove.</param>
         public void RemoveNode(Node node)
         {
             _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
@@ -33,12 +47,22 @@ namespace CommonVisionNodes
                 initializable.Dispose();
         }
 
+        /// <summary>
+        /// Removes a connection from the graph.
+        /// </summary>
+        /// <param name="connection">Connection to remove.</param>
         public void Disconnect(Connection connection)
         {
             _connections.Remove(connection);
             InvalidateCache();
         }
 
+        /// <summary>
+        /// Connects an output port to an input port after validating direction, type, and graph shape.
+        /// </summary>
+        /// <param name="output">Source output port.</param>
+        /// <param name="input">Target input port.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the ports cannot be connected.</exception>
         public void Connect(Port output, Port input)
         {
             if (output.Direction != PortDirection.Output)
@@ -60,6 +84,9 @@ namespace CommonVisionNodes
             InvalidateCache();
         }
 
+        /// <summary>
+        /// Initializes all <see cref="IInitializable"/> nodes in topological order.
+        /// </summary>
         public void Initialize()
         {
             var sorted = TopologicalSort();
@@ -70,6 +97,12 @@ namespace CommonVisionNodes
             }
         }
 
+        /// <summary>
+        /// Executes the graph once in topological order.
+        /// </summary>
+        /// <param name="beforeExecute">Optional callback invoked immediately before a node executes.</param>
+        /// <param name="afterExecute">Optional callback invoked immediately after a node executes.</param>
+        /// <exception cref="NodeExecutionException">Thrown when a node fails during execution.</exception>
         public void Execute(Action<Node>? beforeExecute = null, Action<Node>? afterExecute = null)
         {
             var sorted = _cachedSort ??= TopologicalSort();
@@ -114,6 +147,9 @@ namespace CommonVisionNodes
             }
         }
 
+        /// <summary>
+        /// Disposes initialized nodes in reverse topological order.
+        /// </summary>
         public void Dispose()
         {
             var sorted = TopologicalSort();
@@ -147,6 +183,8 @@ namespace CommonVisionNodes
             Port? triggerInput = null;
             if (node is ITriggerableNode triggerableNode && lookup.ContainsKey(triggerableNode.TriggerInput))
             {
+                // Trigger inputs gate the node for the current frame only; inactive triggers keep
+                // downstream nodes from seeing stale output values from previous graph executions.
                 triggerInput = triggerableNode.TriggerInput;
                 if (triggerInput.Value is not TriggerSignal { IsTriggered: true })
                     return false;

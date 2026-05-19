@@ -24,15 +24,18 @@ namespace CommonVisionNodes
         public Port ImageOutput { get; }
 
         /// <summary>
-        /// Lower bound of the output range (0–255).
+        /// Lower bound of the output range (0-255).
         /// </summary>
         public int OutputMin { get; set; } = 0;
 
         /// <summary>
-        /// Upper bound of the output range (0–255).
+        /// Upper bound of the output range (0-255).
         /// </summary>
         public int OutputMax { get; set; } = 255;
 
+        /// <summary>
+        /// Creates a normalization node with one image input and one image output.
+        /// </summary>
         public NormalizeNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to normalize.");
@@ -145,7 +148,7 @@ namespace CommonVisionNodes
             if (inputVar == null) return;
 
             var varName = context.GetUniqueVariable(CodeVariableName);
-            context.Builder.AppendLine($"// Normalize (output range: {OutputMin}–{OutputMax})");
+            context.Builder.AppendLine($"// Normalize (output range: {OutputMin}-{OutputMax})");
             context.Builder.AppendLine($"using var {varName} = Normalize({inputVar}, {OutputMin}, {OutputMax});");
             context.RegisterOutput(ImageOutput, varName);
         }

@@ -2,15 +2,28 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodes.Runtime.Execution;
 
+/// <summary>
+/// Converts serialized graph DTOs into executable <see cref="NodeGraph"/> instances.
+/// </summary>
 public sealed class RuntimeGraphFactory
 {
     private readonly RuntimeNodeCatalog _catalog;
 
+    /// <summary>
+    /// Creates a runtime graph factory.
+    /// </summary>
+    /// <param name="catalog">Catalog used to create node instances.</param>
     public RuntimeGraphFactory(RuntimeNodeCatalog catalog)
     {
         _catalog = catalog;
     }
 
+    /// <summary>
+    /// Builds a runtime graph, applies node properties, and connects ports.
+    /// </summary>
+    /// <param name="graphDto">Serialized graph definition.</param>
+    /// <returns>Build result containing the graph and id maps used during execution.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when nodes or connection endpoints are invalid.</exception>
     public RuntimeGraphBuildResult Build(GraphDto graphDto)
     {
         var graph = new NodeGraph();

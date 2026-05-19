@@ -2,8 +2,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a binarization node.
+/// </summary>
 public partial class BinarizeNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a binarization node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public BinarizeNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -16,7 +24,8 @@ public partial class BinarizeNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public override string? Summary => $"Threshold {Threshold}";
+    /// <inheritdoc/>
+    public override string? Summary => $"Threshold {Threshold}";
 
     partial void OnThresholdChanged(int value)
     {
@@ -24,6 +33,7 @@ public partial class BinarizeNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyImagePreview(ImagePreviewDto? preview)
     {
         PreviewImage = preview;

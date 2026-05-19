@@ -36,6 +36,9 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public bool IsInitialized { get; private set; }
 
+        /// <summary>
+        /// Creates a camera device node with an optional trigger input and one image output.
+        /// </summary>
         public DeviceNode()
         {
             TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a frame is acquired.");
@@ -71,10 +74,12 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public void Dispose()
         {
-			_stream?.TryStop();
-			_stream = null;
+            // TryStop tolerates already-stopped streams better than Stop and keeps disposal
+            // idempotent across failed initialization and normal shutdown paths.
+            _stream?.TryStop();
+            _stream = null;
 
-			_device?.Dispose();
+            _device?.Dispose();
             _device = null;
 
             _lastAcquiredImage?.Dispose();

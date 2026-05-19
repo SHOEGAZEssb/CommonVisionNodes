@@ -7,17 +7,27 @@ using Microsoft.UI.Xaml.Shapes;
 
 namespace CommonVisionNodesUI.Controls;
 
+/// <summary>
+/// Displays an image preview with Polimago classification markers.
+/// </summary>
 public sealed partial class PolimagoImageDisplay : UserControl
 {
     private ImagePreviewDto? _currentImage;
     private IReadOnlyList<ClassificationResultDto> _results = [];
 
+    /// <summary>
+    /// Creates the Polimago image display control.
+    /// </summary>
     public PolimagoImageDisplay()
     {
         this.InitializeComponent();
         SizeChanged += (_, _) => RedrawOverlays();
     }
 
+    /// <summary>
+    /// Updates the image used behind classification overlays.
+    /// </summary>
+    /// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
     public async void SetImage(ImagePreviewDto? preview)
     {
         _currentImage = preview;
@@ -40,6 +50,10 @@ public sealed partial class PolimagoImageDisplay : UserControl
         RedrawOverlays();
     }
 
+    /// <summary>
+    /// Updates classification result overlays.
+    /// </summary>
+    /// <param name="results">Classification results to draw.</param>
     public void SetResults(IReadOnlyList<ClassificationResultDto> results)
     {
         _results = results;

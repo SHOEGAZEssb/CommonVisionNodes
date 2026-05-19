@@ -2,8 +2,16 @@ using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.ViewModels;
 
+/// <summary>
+/// View model for a blob analysis node.
+/// </summary>
 public partial class BlobNodeViewModel : NodeViewModel
 {
+    /// <summary>
+    /// Creates a blob node view model.
+    /// </summary>
+    /// <param name="node">Serialized node instance.</param>
+    /// <param name="definition">Catalog definition.</param>
     public BlobNodeViewModel(NodeDto node, NodeDefinitionDto definition)
         : base(node, definition)
     {
@@ -39,10 +47,15 @@ public partial class BlobNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 
-	public int BlobCount => Blobs.Count;
+    /// <summary>
+    /// Number of blobs in the latest preview.
+    /// </summary>
+    public int BlobCount => Blobs.Count;
 
+    /// <inheritdoc/>
     public override string? Summary => $"{BlobCount} blob(s)";
 
+    /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
 
     partial void OnForegroundThresholdChanged(int value)
@@ -81,6 +94,7 @@ public partial class BlobNodeViewModel : NodeViewModel
         RaiseSummaryChanged();
     }
 
+    /// <inheritdoc/>
     public override void ApplyBlobPreview(BlobPreviewDto preview)
     {
         PreviewImage = preview.Image;

@@ -19,7 +19,7 @@ namespace CommonVisionNodes
         public string ClassName { get; init; } = string.Empty;
 
         /// <summary>
-        /// Classification quality (0.0–1.0).
+        /// Classification quality (0.0-1.0).
         /// </summary>
         public double Quality { get; init; }
 
@@ -70,7 +70,7 @@ namespace CommonVisionNodes
         public string ClassifierPath { get; set; } = string.Empty;
 
         /// <summary>
-        /// Minimum quality threshold (0.0–1.0). Results below this value are discarded.
+        /// Minimum quality threshold (0.0-1.0). Results below this value are discarded.
         /// </summary>
         public double MinQuality { get; set; } = 0.5;
 
@@ -87,6 +87,9 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public bool IsInitialized { get; private set; }
 
+        /// <summary>
+        /// Creates a Polimago classification node with image/blob inputs and result outputs.
+        /// </summary>
         public PolimagoClassifyNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The source image to classify.");

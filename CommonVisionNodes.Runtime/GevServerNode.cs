@@ -58,6 +58,9 @@ namespace CommonVisionNodes
         /// <inheritdoc/>
         public bool IsInitialized { get; private set; }
 
+        /// <summary>
+        /// Creates a GigE Vision server node with one image input.
+        /// </summary>
         public GevServerNode()
         {
             ImageInput = AddInput("Image", typeof(Image), "The image to stream through the GigE Vision server.");
@@ -136,6 +139,8 @@ namespace CommonVisionNodes
 
             DisposeServer();
 
+            // CVB servers are created for a fixed image format. Recreate when the upstream
+            // image dimensions, color model, or data type changes.
             var server = CvbGevServer.CreateWithConstSize(image.Size, image.ColorModel, dataType, DriverType);
             try
             {

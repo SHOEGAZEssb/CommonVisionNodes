@@ -36,7 +36,7 @@ namespace CommonVisionNodes
 
     /// <summary>
     /// Generates synthetic test-pattern images that animate over successive executions.
-    /// Does not require a camera or file — useful for testing pipelines.
+    /// Does not require a camera or file; useful for testing pipelines.
     /// </summary>
     public sealed class ImageGeneratorNode : Node, ITriggerableNode
     {
@@ -73,6 +73,9 @@ namespace CommonVisionNodes
         /// </summary>
         public int Speed { get; set; } = 2;
 
+        /// <summary>
+        /// Creates a synthetic image source node with an optional trigger input and one image output.
+        /// </summary>
         public ImageGeneratorNode()
         {
             TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a new generated image is sent.");
