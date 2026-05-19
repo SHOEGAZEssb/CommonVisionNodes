@@ -1,18 +1,27 @@
 using System.IO;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.WindowsRuntime;
 using CommonVisionNodes.Contracts;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage.Streams;
 
-namespace CommonVisionNodesUI.Helpers;
+namespace Cvb.Uno.Toolkit.Helpers;
 
-internal static class PreviewImageSourceLoader
+/// <summary>
+/// Loads CVB image preview payloads into Uno image controls.
+/// </summary>
+public static class PreviewImageSourceLoader
 {
     private static readonly ConditionalWeakTable<Image, ImageLoadState> LoadStates = [];
 
+    /// <summary>
+    /// Decodes a preview payload and assigns it to the provided image control.
+    /// </summary>
+    /// <param name="image">Image control to update.</param>
+    /// <param name="preview">Preview payload, or <c>null</c> to clear the source.</param>
+    /// <returns><c>true</c> when the image source was updated by this call.</returns>
     public static async Task<bool> SetImageAsync(Image image, ImagePreviewDto? preview)
     {
         var state = LoadStates.GetOrCreateValue(image);
@@ -28,8 +37,8 @@ internal static class PreviewImageSourceLoader
         if (Volatile.Read(ref state.Version) != version)
             return false;
 
-        // Image controls can receive newer previews while an older payload is decoding. The
-        // per-control version check prevents stale async work from replacing the latest frame.
+        // A control can receive newer previews while an older payload is decoding.
+        // The per-control version check keeps stale async work from replacing the latest frame.
         var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
             ? await CreateBgra32BitmapAsync(preview, bytes)
             : await CreateEncodedBitmapAsync(bytes);
@@ -39,6 +48,24 @@ internal static class PreviewImageSourceLoader
 
         image.Source = source;
         return true;
+    }
+
+    /// <summary>
+    /// Formats source and preview dimensions for display in image overlays.
+    /// </summary>
+    /// <param name="preview">Preview payload to describe.</param>
+    /// <returns>Human-readable image information.</returns>
+    public static string GetPreviewInfoText(ImagePreviewDto preview)
+    {
+        var sourceSize = $"{preview.Width} x {preview.Height}";
+        if (preview.PreviewWidth > 0 &&
+            preview.PreviewHeight > 0 &&
+            (preview.PreviewWidth != preview.Width || preview.PreviewHeight != preview.Height))
+        {
+            return $"{sourceSize} -> preview {preview.PreviewWidth} x {preview.PreviewHeight}  {preview.PixelFormat}";
+        }
+
+        return $"{sourceSize}  {preview.PixelFormat}";
     }
 
     private static async Task<ImageSource> CreateEncodedBitmapAsync(byte[] bytes)
@@ -67,19 +94,6 @@ internal static class PreviewImageSourceLoader
         await pixelStream.WriteAsync(bytes, 0, expectedByteCount);
         bitmap.Invalidate();
         return bitmap;
-    }
-
-    public static string GetPreviewInfoText(ImagePreviewDto preview)
-    {
-        var sourceSize = $"{preview.Width} x {preview.Height}";
-        if (preview.PreviewWidth > 0 &&
-            preview.PreviewHeight > 0 &&
-            (preview.PreviewWidth != preview.Width || preview.PreviewHeight != preview.Height))
-        {
-            return $"{sourceSize} -> preview {preview.PreviewWidth} x {preview.PreviewHeight}  {preview.PixelFormat}";
-        }
-
-        return $"{sourceSize}  {preview.PixelFormat}";
     }
 
     private sealed class ImageLoadState

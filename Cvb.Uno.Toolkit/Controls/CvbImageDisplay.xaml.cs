@@ -1,12 +1,12 @@
 using CommonVisionNodes.Contracts;
-using CommonVisionNodesUI.Helpers;
+using Cvb.Uno.Toolkit.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace CommonVisionNodesUI.Controls;
+namespace Cvb.Uno.Toolkit.Controls;
 
 /// <summary>
-/// Displays an image preview produced by a CVB-backed node.
+/// Displays an image preview produced by a CVB-backed source.
 /// </summary>
 public sealed partial class CvbImageDisplay : UserControl
 {

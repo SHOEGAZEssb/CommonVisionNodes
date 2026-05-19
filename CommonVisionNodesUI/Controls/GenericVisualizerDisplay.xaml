@@ -2,14 +2,14 @@
     x:Class="CommonVisionNodesUI.Controls.GenericVisualizerDisplay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:CommonVisionNodesUI.Controls">
+    xmlns:cvb="using:Cvb.Uno.Toolkit.Controls">
 
     <Grid Background="#1A1A1A"
           CornerRadius="4"
           PointerWheelChanged="Root_PointerWheelChanged">
 
         <!-- Image mode -->
-        <local:CvbImageDisplay x:Name="ImageDisplay" Visibility="Collapsed"/>
+        <cvb:CvbImageDisplay x:Name="ImageDisplay" Visibility="Collapsed"/>
 
         <!-- String list mode -->
         <ScrollViewer x:Name="ListScroll"

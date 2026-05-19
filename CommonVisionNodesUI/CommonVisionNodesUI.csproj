@@ -27,6 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Cvb.Uno.Toolkit\Cvb.Uno.Toolkit.csproj" />
     <ProjectReference Include="..\CommonVisionNodes.Contracts\CommonVisionNodes.Contracts.csproj" />
   </ItemGroup>
 
@@ -36,9 +37,6 @@
 
   <ItemGroup>
     <Page Update="Controls\NodeControl.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="Controls\CvbImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Update="Controls\CropImageDisplay.xaml">
