@@ -1,6 +1,6 @@
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Saves the input image to a file.

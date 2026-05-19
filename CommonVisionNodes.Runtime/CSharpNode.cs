@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Emit;
 using Stemmer.Cvb;
 using Stemmer.Cvb.Foundation;
 
-namespace CommonVisionNodes;
+namespace CommonVisionNodes.Runtime;
 
 /// <summary>
 /// Allows custom C# code to process an image at runtime.
@@ -65,16 +65,14 @@ return filtered;
     /// <inheritdoc/>
     public override void Execute()
     {
-        var inputImage = ImageInput.Value as Image;
+		if (ImageInput.Value is not Image inputImage)
+		{
+			ImageOutput.Value = null;
+			return;
+		}
 
-        if (inputImage == null)
-        {
-            ImageOutput.Value = null;
-            return;
-        }
-
-        // Compile if needed
-        if (_compiledFunction == null || _lastCompiledCode != Code)
+		// Compile if needed
+		if (_compiledFunction == null || _lastCompiledCode != Code)
         {
             if (!TryCompile())
             {
@@ -146,7 +144,7 @@ public class UserCode
 
             var compilation = CSharpCompilation.Create(
                 "UserCodeAssembly",
-                new[] { syntaxTree },
+                [syntaxTree],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -177,7 +175,7 @@ public class UserCode
                 return false;
             }
 
-            _compiledFunction = (Image input) => (Image)method.Invoke(null, new object[] { input })!;
+            _compiledFunction = input => (Image)method.Invoke(null, [input])!;
             _lastCompiledCode = Code;
             _lastCompilationError = null;
             return true;

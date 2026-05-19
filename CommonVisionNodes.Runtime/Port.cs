@@ -1,4 +1,4 @@
-﻿namespace CommonVisionNodes
+﻿namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Specifies whether a port is an input or an output.

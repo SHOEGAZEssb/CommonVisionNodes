@@ -5,22 +5,18 @@ namespace CommonVisionNodesUI.ViewModels;
 /// <summary>
 /// View model for a manual trigger node.
 /// </summary>
-public partial class ManualTriggerNodeViewModel : NodeViewModel
+/// <remarks>
+/// Creates a manual trigger node view model.
+/// </remarks>
+/// <param name="node">Serialized node instance.</param>
+/// <param name="definition">Catalog definition.</param>
+public partial class ManualTriggerNodeViewModel(NodeDto node, NodeDefinitionDto definition) : NodeViewModel(node, definition)
 {
-    /// <summary>
-    /// Creates a manual trigger node view model.
-    /// </summary>
-    /// <param name="node">Serialized node instance.</param>
-    /// <param name="definition">Catalog definition.</param>
-    public ManualTriggerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
-        : base(node, definition)
-    {
-    }
 
-    /// <summary>
-    /// Raised when the user requests a trigger pulse.
-    /// </summary>
-    public event EventHandler? TriggerRequested;
+	/// <summary>
+	/// Raised when the user requests a trigger pulse.
+	/// </summary>
+	public event EventHandler? TriggerRequested;
 
     [ObservableProperty]
     public partial string Status { get; set; } = "Ready";

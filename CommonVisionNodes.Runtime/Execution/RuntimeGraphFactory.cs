@@ -1,30 +1,26 @@
 using CommonVisionNodes.Contracts;
+using CommonVisionNodes.Runtime.Definitions;
 
 namespace CommonVisionNodes.Runtime.Execution;
 
 /// <summary>
 /// Converts serialized graph DTOs into executable <see cref="NodeGraph"/> instances.
 /// </summary>
-public sealed class RuntimeGraphFactory
+/// <remarks>
+/// Creates a runtime graph factory.
+/// </remarks>
+/// <param name="catalog">Catalog used to create node instances.</param>
+public sealed class RuntimeGraphFactory(RuntimeNodeCatalog catalog)
 {
-    private readonly RuntimeNodeCatalog _catalog;
+    private readonly RuntimeNodeCatalog _catalog = catalog;
 
-    /// <summary>
-    /// Creates a runtime graph factory.
-    /// </summary>
-    /// <param name="catalog">Catalog used to create node instances.</param>
-    public RuntimeGraphFactory(RuntimeNodeCatalog catalog)
-    {
-        _catalog = catalog;
-    }
-
-    /// <summary>
-    /// Builds a runtime graph, applies node properties, and connects ports.
-    /// </summary>
-    /// <param name="graphDto">Serialized graph definition.</param>
-    /// <returns>Build result containing the graph and id maps used during execution.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when nodes or connection endpoints are invalid.</exception>
-    public RuntimeGraphBuildResult Build(GraphDto graphDto)
+	/// <summary>
+	/// Builds a runtime graph, applies node properties, and connects ports.
+	/// </summary>
+	/// <param name="graphDto">Serialized graph definition.</param>
+	/// <returns>Build result containing the graph and id maps used during execution.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when nodes or connection endpoints are invalid.</exception>
+	public RuntimeGraphBuildResult Build(GraphDto graphDto)
     {
         var graph = new NodeGraph();
         var nodesById = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
@@ -52,15 +48,10 @@ public sealed class RuntimeGraphFactory
             if (!nodesById.TryGetValue(connectionDto.InputNodeId, out var inputNode))
                 throw new InvalidOperationException($"Unknown input node '{connectionDto.InputNodeId}'.");
 
-            var outputPort = outputNode.Outputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.OutputPortName, StringComparison.OrdinalIgnoreCase));
-            if (outputPort is null)
-                throw new InvalidOperationException($"Unknown output port '{connectionDto.OutputPortName}' on node '{connectionDto.OutputNodeId}'.");
+			var outputPort = outputNode.Outputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.OutputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown output port '{connectionDto.OutputPortName}' on node '{connectionDto.OutputNodeId}'.");
 
-            var inputPort = inputNode.Inputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.InputPortName, StringComparison.OrdinalIgnoreCase));
-            if (inputPort is null)
-                throw new InvalidOperationException($"Unknown input port '{connectionDto.InputPortName}' on node '{connectionDto.InputNodeId}'.");
-
-            graph.Connect(outputPort, inputPort);
+			var inputPort = inputNode.Inputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.InputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown input port '{connectionDto.InputPortName}' on node '{connectionDto.InputNodeId}'.");
+			graph.Connect(outputPort, inputPort);
         }
 
         return new RuntimeGraphBuildResult(graph, nodesById, nodeIdsByRuntime);

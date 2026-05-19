@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace CommonVisionNodes;
+namespace CommonVisionNodes.Runtime;
 
 /// <summary>
 /// Provides context for code generation, including variable tracking,

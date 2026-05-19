@@ -1,3 +1,4 @@
+using CommonVisionNodes.Runtime;
 using Stemmer.Cvb;
 
 namespace CommonVisionNodes.Test
@@ -10,12 +11,15 @@ namespace CommonVisionNodes.Test
             // Arrange & Act
             var node = new ImageNode();
 
-            // Assert
-            Assert.That(node.Outputs, Has.Count.EqualTo(1));
-            Assert.That(node.ImageOutput.Name, Is.EqualTo("Image"));
-            Assert.That(node.ImageOutput.Type, Is.EqualTo(typeof(Image)));
-            Assert.That(node.ImageOutput.Direction, Is.EqualTo(PortDirection.Output));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				// Assert
+				Assert.That(node.Outputs, Has.Count.EqualTo(1));
+				Assert.That(node.ImageOutput.Name, Is.EqualTo("Image"));
+				Assert.That(node.ImageOutput.Type, Is.EqualTo(typeof(Image)));
+				Assert.That(node.ImageOutput.Direction, Is.EqualTo(PortDirection.Output));
+			}
+		}
 
         [Test]
         public void Constructor_ShouldCreateTriggerInputPort()
@@ -23,12 +27,15 @@ namespace CommonVisionNodes.Test
             // Arrange & Act
             var node = new ImageNode();
 
-            // Assert
-            Assert.That(node.Inputs, Has.Count.EqualTo(1));
-            Assert.That(node.TriggerInput.Name, Is.EqualTo("Trigger"));
-            Assert.That(node.TriggerInput.Type, Is.EqualTo(typeof(TriggerSignal)));
-            Assert.That(node.TriggerInput.Direction, Is.EqualTo(PortDirection.Input));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				// Assert
+				Assert.That(node.Inputs, Has.Count.EqualTo(1));
+				Assert.That(node.TriggerInput.Name, Is.EqualTo("Trigger"));
+				Assert.That(node.TriggerInput.Type, Is.EqualTo(typeof(TriggerSignal)));
+				Assert.That(node.TriggerInput.Direction, Is.EqualTo(PortDirection.Input));
+			}
+		}
 
         [Test]
         public void Constructor_ShouldImplementIInitializable()
@@ -196,12 +203,15 @@ namespace CommonVisionNodes.Test
             // Arrange & Act
             var node = new SaveImageNode();
 
-            // Assert
-            Assert.That(node.Inputs, Has.Count.EqualTo(1));
-            Assert.That(node.ImageInput.Name, Is.EqualTo("Image"));
-            Assert.That(node.ImageInput.Type, Is.EqualTo(typeof(Image)));
-            Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				// Assert
+				Assert.That(node.Inputs, Has.Count.EqualTo(1));
+				Assert.That(node.ImageInput.Name, Is.EqualTo("Image"));
+				Assert.That(node.ImageInput.Type, Is.EqualTo(typeof(Image)));
+				Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
+			}
+		}
 
         [Test]
         public void Constructor_ShouldHaveNoOutputPorts()
@@ -255,12 +265,15 @@ namespace CommonVisionNodes.Test
         {
             var node = new GevServerNode();
 
-            Assert.That(node.Inputs, Has.Count.EqualTo(1));
-            Assert.That(node.ImageInput.Name, Is.EqualTo("Image"));
-            Assert.That(node.ImageInput.Type, Is.EqualTo(typeof(Image)));
-            Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
-            Assert.That(node.Outputs, Is.Empty);
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(node.Inputs, Has.Count.EqualTo(1));
+				Assert.That(node.ImageInput.Name, Is.EqualTo("Image"));
+				Assert.That(node.ImageInput.Type, Is.EqualTo(typeof(Image)));
+				Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
+				Assert.That(node.Outputs, Is.Empty);
+			}
+		}
 
         [Test]
         public void Initialize_WithValidLocalAddress_ShouldSetInitialized()
@@ -269,9 +282,12 @@ namespace CommonVisionNodes.Test
 
             node.Initialize();
 
-            Assert.That(node.IsInitialized, Is.True);
-            Assert.That(node.LastStatus, Is.EqualTo("Waiting for first image."));
-            node.Dispose();
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(node.IsInitialized, Is.True);
+				Assert.That(node.LastStatus, Is.EqualTo("Waiting for first image."));
+			}
+			node.Dispose();
         }
 
         [Test]
@@ -309,10 +325,13 @@ namespace CommonVisionNodes.Test
                 graph.Initialize();
                 graph.Execute();
 
-                // Assert
-                Assert.That(imageNode.IsInitialized, Is.True);
-                Assert.That(File.Exists(destPath), Is.True);
-                using var loadedImage = Image.FromFile(destPath);
+				using (Assert.EnterMultipleScope())
+				{
+					// Assert
+					Assert.That(imageNode.IsInitialized, Is.True);
+					Assert.That(File.Exists(destPath), Is.True);
+				}
+				using var loadedImage = Image.FromFile(destPath);
                 Assert.That(loadedImage, Is.Not.Null);
             }
             finally

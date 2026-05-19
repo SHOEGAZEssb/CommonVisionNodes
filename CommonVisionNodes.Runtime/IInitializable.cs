@@ -1,4 +1,4 @@
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// A node that requires one-time initialization before execution

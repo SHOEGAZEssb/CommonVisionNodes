@@ -2,7 +2,7 @@ using System.Runtime.Intrinsics;
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Applies binary thresholding to an image. Pixels at or above

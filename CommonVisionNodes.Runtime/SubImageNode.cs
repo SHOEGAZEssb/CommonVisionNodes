@@ -1,7 +1,7 @@
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Crops a rectangular region from the input image.

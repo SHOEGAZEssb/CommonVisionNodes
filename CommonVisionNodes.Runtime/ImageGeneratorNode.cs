@@ -1,7 +1,7 @@
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Available test pattern types for <see cref="ImageGeneratorNode"/>.

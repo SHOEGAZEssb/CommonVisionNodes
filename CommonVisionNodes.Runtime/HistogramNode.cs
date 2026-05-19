@@ -1,7 +1,7 @@
 using Stemmer.Cvb;
 using Stemmer.Cvb.Foundation;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Computes the histogram of the input image and passes the image through.

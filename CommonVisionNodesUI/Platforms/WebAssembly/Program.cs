@@ -1,6 +1,6 @@
 using Uno.UI.Hosting;
 
-namespace CommonVisionNodesUI;
+namespace CommonVisionNodesUI.Platforms.WebAssembly;
 
 /// <summary>
 /// Browser WebAssembly host entry point.

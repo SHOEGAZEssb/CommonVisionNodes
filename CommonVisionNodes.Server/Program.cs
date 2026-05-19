@@ -7,6 +7,7 @@ using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
 using CommonVisionNodes.Runtime.Execution;
 using CommonVisionNodes.Server.Services;
+using CommonVisionNodes.Runtime.Definitions;
 
 var builder = WebApplication.CreateBuilder(args);
 var urls = builder.Configuration["Urls"] ?? "http://localhost:5077";

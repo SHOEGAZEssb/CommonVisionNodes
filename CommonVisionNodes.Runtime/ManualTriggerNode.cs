@@ -1,6 +1,4 @@
-using System.Threading;
-
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Emits a trigger signal when requested by the host application.

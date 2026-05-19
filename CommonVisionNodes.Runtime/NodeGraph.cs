@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// A directed acyclic graph of <see cref="Node"/> instances connected via <see cref="Port"/>s.

@@ -1,7 +1,7 @@
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Applies min-max normalization (histogram stretching) to an image.

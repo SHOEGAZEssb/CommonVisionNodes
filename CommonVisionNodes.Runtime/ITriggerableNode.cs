@@ -1,4 +1,4 @@
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Marks a node whose execution can be gated by a trigger input.

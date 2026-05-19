@@ -1,4 +1,4 @@
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Represents an execution trigger produced by trigger nodes.

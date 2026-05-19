@@ -1,6 +1,7 @@
 using System.Reflection;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
+using CommonVisionNodes.Runtime.Definitions;
 using CommonVisionNodes.Runtime.Execution;
 
 namespace CommonVisionNodes.Test;
@@ -47,19 +48,22 @@ public sealed class RuntimeGraphFactoryTests
 
         using var result = factory.Build(graphDto);
 
-        Assert.That(result.NodesById.Keys, Is.EquivalentTo(new[] { "generator", "visualizer" }));
-        Assert.That(result.Graph.Connections, Has.Count.EqualTo(1));
-        Assert.That(result.NodesById["generator"], Is.TypeOf<ImageGeneratorNode>());
-        Assert.That(result.NodesById["visualizer"], Is.TypeOf<GenericVisualizerNode>());
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(result.NodesById.Keys, Is.EquivalentTo(["generator", "visualizer"]));
+			Assert.That(result.Graph.Connections, Has.Count.EqualTo(1));
+			Assert.That(result.NodesById["generator"], Is.TypeOf<ImageGeneratorNode>());
+			Assert.That(result.NodesById["visualizer"], Is.TypeOf<GenericVisualizerNode>());
+		}
 
-        var generator = (ImageGeneratorNode)result.NodesById["generator"];
-        Assert.Multiple(() =>
-        {
+		var generator = (ImageGeneratorNode)result.NodesById["generator"];
+		using (Assert.EnterMultipleScope())
+		{
             Assert.That(generator.Width, Is.EqualTo(32));
             Assert.That(generator.Height, Is.EqualTo(16));
             Assert.That(generator.Pattern, Is.EqualTo(TestPattern.Rings));
             Assert.That(generator.Speed, Is.EqualTo(5));
-        });
+        }
     }
 
     [Test]
@@ -175,30 +179,33 @@ public sealed class GraphExecutionRunnerTests
         await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.DisposeAsync();
 
-        Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
-        Assert.That(messages.Select(message => message.ExecutionState?.Status).Where(status => status.HasValue),
-            Does.Contain(ExecutionStatusDto.Starting)
-                .And.Contain(ExecutionStatusDto.Initializing)
-                .And.Contain(ExecutionStatusDto.Running)
-                .And.Contain(ExecutionStatusDto.Completed));
-        Assert.That(messages.Any(message =>
-            message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
-            message.NodeUpdate?.NodeId == "generator" &&
-            message.NodeUpdate.Status == NodeExecutionStatusDto.Succeeded), Is.True);
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
+			Assert.That(messages.Select(message => message.ExecutionState?.Status).Where(status => status.HasValue),
+				Does.Contain(ExecutionStatusDto.Starting)
+					.And.Contain(ExecutionStatusDto.Initializing)
+					.And.Contain(ExecutionStatusDto.Running)
+					.And.Contain(ExecutionStatusDto.Completed));
+			Assert.That(messages.Any(message =>
+				message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+				message.NodeUpdate?.NodeId == "generator" &&
+				message.NodeUpdate.Status == NodeExecutionStatusDto.Succeeded), Is.True);
+		}
 
-        var imagePreview = messages
+		var imagePreview = messages
             .Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
             .Select(message => message.ImagePreview)
             .SingleOrDefault(preview => preview?.NodeId == "generator");
 
         Assert.That(imagePreview, Is.Not.Null);
-        Assert.Multiple(() =>
-        {
+		using (Assert.EnterMultipleScope())
+		{
             Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
             Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-bgra32"));
-            Assert.That(imagePreview.Base64Data.Length, Is.GreaterThan(0));
+            Assert.That(imagePreview.Base64Data, Is.Not.Empty);
             Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth * 4));
-        });
+        }
     }
 
     [Test]
@@ -223,9 +230,12 @@ public sealed class GraphExecutionRunnerTests
 
         var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
         Assert.That(failure, Is.Not.Null);
-        Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
-        Assert.That(failure.ExecutionState?.Message, Does.Contain("Unknown node type"));
-    }
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
+			Assert.That(failure.ExecutionState?.Message, Does.Contain("Unknown node type"));
+		}
+	}
 
     [Test]
     public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
@@ -271,9 +281,12 @@ public sealed class GraphExecutionRunnerTests
 
         await runner.DisposeAsync();
 
-        Assert.That(updated, Is.True);
-        Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
-    }
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(updated, Is.True);
+			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
+		}
+	}
 
     [TestCase(0, 1000.0)]
     [TestCase(1, 1000.0)]
@@ -315,14 +328,14 @@ public sealed class GraphExecutionRunnerTests
             .SingleOrDefault(preview => preview?.NodeId == "generator");
 
         Assert.That(imagePreview, Is.Not.Null);
-        Assert.Multiple(() =>
-        {
+		using (Assert.EnterMultipleScope())
+		{
             Assert.That(imagePreview!.Width, Is.EqualTo(32));
             Assert.That(imagePreview.Height, Is.EqualTo(16));
             Assert.That(imagePreview.PreviewWidth, Is.EqualTo(expectedPreviewWidth));
             Assert.That(imagePreview.PreviewHeight, Is.EqualTo(expectedPreviewHeight));
             Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth * 4));
-        });
+        }
     }
 
     private static GraphExecutionRunner CreateRunner(

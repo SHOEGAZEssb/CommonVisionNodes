@@ -1,7 +1,7 @@
 using Stemmer.Cvb;
 using Stemmer.Cvb.Foundation;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Available filter types for <see cref="FilterNode"/>.

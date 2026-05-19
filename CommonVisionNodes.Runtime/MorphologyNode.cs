@@ -1,7 +1,7 @@
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Available morphological operations for <see cref="MorphologyNode"/>.

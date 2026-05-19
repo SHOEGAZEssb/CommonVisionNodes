@@ -5,40 +5,34 @@ namespace CommonVisionNodesUI.ViewModels;
 /// <summary>
 /// View model for one rendered node port.
 /// </summary>
-public partial class PortViewModel : ObservableObject
+/// <remarks>
+/// Creates a port view model.
+/// </remarks>
+/// <param name="port">Port metadata.</param>
+/// <param name="parentNode">Node that owns the port.</param>
+/// <param name="index">Zero-based port row index.</param>
+public partial class PortViewModel(PortDto port, NodeViewModel parentNode, int index) : ObservableObject
 {
-    /// <summary>
-    /// Creates a port view model.
-    /// </summary>
-    /// <param name="port">Port metadata.</param>
-    /// <param name="parentNode">Node that owns the port.</param>
-    /// <param name="index">Zero-based port row index.</param>
-    public PortViewModel(PortDto port, NodeViewModel parentNode, int index)
-    {
-        Port = port;
-        ParentNode = parentNode;
-        Index = index;
-    }
 
-    /// <summary>
-    /// Port metadata.
-    /// </summary>
-    public PortDto Port { get; }
+	/// <summary>
+	/// Port metadata.
+	/// </summary>
+	public PortDto Port { get; } = port;
 
-    /// <summary>
-    /// Node view model that owns the port.
-    /// </summary>
-    public NodeViewModel ParentNode { get; }
+	/// <summary>
+	/// Node view model that owns the port.
+	/// </summary>
+	public NodeViewModel ParentNode { get; } = parentNode;
 
-    /// <summary>
-    /// Zero-based port row index.
-    /// </summary>
-    public int Index { get; }
+	/// <summary>
+	/// Zero-based port row index.
+	/// </summary>
+	public int Index { get; } = index;
 
-    /// <summary>
-    /// Display type name for the port.
-    /// </summary>
-    public string TypeName => Port.Type;
+	/// <summary>
+	/// Display type name for the port.
+	/// </summary>
+	public string TypeName => Port.Type;
 
     /// <summary>
     /// Tooltip text composed from the port name, type, and description.

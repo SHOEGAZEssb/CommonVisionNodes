@@ -1,7 +1,7 @@
 using System.Text;
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Bounding rectangle of a detected blob, suitable for passing to downstream

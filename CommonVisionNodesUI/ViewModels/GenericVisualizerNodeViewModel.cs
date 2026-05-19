@@ -5,18 +5,13 @@ namespace CommonVisionNodesUI.ViewModels;
 /// <summary>
 /// View model for the generic visualizer node.
 /// </summary>
-public partial class GenericVisualizerNodeViewModel : NodeViewModel
+/// <remarks>
+/// Creates a generic visualizer node view model.
+/// </remarks>
+/// <param name="node">Serialized node instance.</param>
+/// <param name="definition">Catalog definition.</param>
+public partial class GenericVisualizerNodeViewModel(NodeDto node, NodeDefinitionDto definition) : NodeViewModel(node, definition)
 {
-    /// <summary>
-    /// Creates a generic visualizer node view model.
-    /// </summary>
-    /// <param name="node">Serialized node instance.</param>
-    /// <param name="definition">Catalog definition.</param>
-    public GenericVisualizerNodeViewModel(NodeDto node, NodeDefinitionDto definition)
-        : base(node, definition)
-    {
-    }
-
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
 

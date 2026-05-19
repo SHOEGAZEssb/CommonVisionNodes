@@ -1,4 +1,4 @@
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// A sink node that accepts any value from a connected port and exposes it for visual inspection.

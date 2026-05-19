@@ -15,7 +15,7 @@ public sealed class RuntimePreviewFactory
     /// <param name="node">Runtime node instance.</param>
     /// <param name="previewImageMaxDimension">Maximum preview long edge, or 0 to keep full resolution.</param>
     /// <returns>A preview message, or <c>null</c> when the node has no preview data.</returns>
-    public ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node, int previewImageMaxDimension)
+    public static ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node, int previewImageMaxDimension)
     {
         return node switch
         {
@@ -39,7 +39,7 @@ public sealed class RuntimePreviewFactory
         };
     }
 
-    private ExecutionMessageDto? CreateImagePreviewMessage(string nodeId, Image? image, int previewImageMaxDimension)
+    private static ExecutionMessageDto? CreateImagePreviewMessage(string nodeId, Image? image, int previewImageMaxDimension)
     {
         var preview = CreateImagePreview(nodeId, image, previewImageMaxDimension);
         return preview is null
@@ -51,7 +51,7 @@ public sealed class RuntimePreviewFactory
             };
     }
 
-    private ExecutionMessageDto CreateHistogramPreviewMessage(string nodeId, HistogramNode node)
+    private static ExecutionMessageDto CreateHistogramPreviewMessage(string nodeId, HistogramNode node)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.HistogramPreview,
@@ -65,7 +65,7 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto CreateBlobPreviewMessage(string nodeId, BlobNode node, int previewImageMaxDimension)
+    private static ExecutionMessageDto CreateBlobPreviewMessage(string nodeId, BlobNode node, int previewImageMaxDimension)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.BlobPreview,
@@ -88,7 +88,7 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto CreateClassificationPreviewMessage(string nodeId, PolimagoClassifyNode node, int previewImageMaxDimension)
+    private static ExecutionMessageDto CreateClassificationPreviewMessage(string nodeId, PolimagoClassifyNode node, int previewImageMaxDimension)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.ClassificationPreview,
@@ -108,7 +108,7 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
+    private static ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
     {
         return value switch
         {

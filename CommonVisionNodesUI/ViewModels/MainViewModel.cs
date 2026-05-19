@@ -121,7 +121,7 @@ public partial class MainViewModel : ObservableObject
             MemoryText = "N/A";
         }
 
-        var gpuUtil = _gpuMonitor.GetUtilization();
+        var gpuUtil = GpuMonitor.GetUtilization();
         GpuText = gpuUtil.HasValue ? $"{gpuUtil.Value:F1}%" : "N/A";
     }
 

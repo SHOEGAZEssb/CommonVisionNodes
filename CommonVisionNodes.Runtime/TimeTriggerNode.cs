@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Emits a trigger signal at a fixed interval.

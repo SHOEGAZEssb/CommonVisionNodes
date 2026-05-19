@@ -8,7 +8,7 @@ using CommonVisionNodes.Contracts;
 using Stemmer.Cvb;
 using Stemmer.Cvb.Driver;
 
-namespace CommonVisionNodes.Runtime;
+namespace CommonVisionNodes.Runtime.Definitions;
 
 /// <summary>
 /// Provides the runtime node palette and creates node instances by type name.
@@ -473,7 +473,7 @@ public sealed class RuntimeNodeCatalog
             Options = options
         };
 
-    private static IList<PropertyOptionDto> GetAdapterOptions()
+    private static List<PropertyOptionDto> GetAdapterOptions()
     {
         try
         {

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Base class for all processing nodes in a <see cref="NodeGraph"/>.

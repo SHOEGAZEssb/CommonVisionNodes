@@ -335,9 +335,8 @@ public sealed partial class NodeControl : UserControl
         if (_viewModel == null) return;
         _isDragging = true;
         _hasMoved = false;
-        var canvas = Parent as UIElement;
-        if (canvas == null) return;
-        _dragStart = e.GetCurrentPoint(canvas).Position;
+		if (Parent is not UIElement canvas) return;
+		_dragStart = e.GetCurrentPoint(canvas).Position;
         _startX = _viewModel.X;
         _startY = _viewModel.Y;
         ((UIElement)sender).CapturePointer(e.Pointer);
@@ -347,9 +346,8 @@ public sealed partial class NodeControl : UserControl
     private void Header_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (!_isDragging || _viewModel == null) return;
-        var canvas = Parent as UIElement;
-        if (canvas == null) return;
-        var current = e.GetCurrentPoint(canvas).Position;
+		if (Parent is not UIElement canvas) return;
+		var current = e.GetCurrentPoint(canvas).Position;
         _viewModel.X = _startX + (current.X - _dragStart.X);
         _viewModel.Y = _startY + (current.Y - _dragStart.Y);
         Canvas.SetLeft(this, _viewModel.X);

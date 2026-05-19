@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
+using CommonVisionNodes.Runtime.Definitions;
 
 namespace CommonVisionNodes.Test
 {
@@ -10,17 +11,20 @@ namespace CommonVisionNodes.Test
         [Test]
         public void NodePreviewSettings_ShouldHonorDefaultsAndExplicitFlags()
         {
-            Assert.That(NodePreviewSettings.IsEnabled("ImageNode", []), Is.False);
-            Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode", []), Is.True);
-            Assert.That(NodePreviewSettings.IsEnabled("ImageNode",
-            [
-                new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }
-            ]), Is.True);
-            Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode",
-            [
-                new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
-            ]), Is.False);
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(NodePreviewSettings.IsEnabled("ImageNode", []), Is.False);
+				Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode", []), Is.True);
+				Assert.That(NodePreviewSettings.IsEnabled("ImageNode",
+				[
+					new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }
+				]), Is.True);
+				Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode",
+				[
+					new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
+				]), Is.False);
+			}
+		}
 
         [Test]
         public void RuntimeNodeCatalog_ShouldExposePreviewToggleDefaults()
@@ -40,13 +44,19 @@ namespace CommonVisionNodes.Test
             Assert.That(histogramDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.False);
 
             var gevServerDefinition = definitions.Single(definition => definition.Type == nameof(GevServerNode));
-            Assert.That(gevServerDefinition.InputPorts.Single().Type, Is.EqualTo("Image"));
-            Assert.That(gevServerDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.True);
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(gevServerDefinition.InputPorts.Single().Type, Is.EqualTo("Image"));
+				Assert.That(gevServerDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.True);
+			}
 
-            var adapterProperty = gevServerDefinition.Properties.Single(property => property.Name == nameof(GevServerNode.LocalAddress));
-            Assert.That(adapterProperty.ValueKind, Is.EqualTo(NodePropertyValueKindDto.Enum));
-            Assert.That(adapterProperty.Options, Is.Not.Empty);
-        }
+			var adapterProperty = gevServerDefinition.Properties.Single(property => property.Name == nameof(GevServerNode.LocalAddress));
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(adapterProperty.ValueKind, Is.EqualTo(NodePropertyValueKindDto.Enum));
+				Assert.That(adapterProperty.Options, Is.Not.Empty);
+			}
+		}
 
         [Test]
         public void RuntimeNodeCatalog_Definitions_ShouldSerializeForApi()

@@ -6,61 +6,48 @@ namespace CommonVisionNodes.Runtime.Execution;
 /// <summary>
 /// Owns one graph execution, publishes progress messages, and coordinates live updates.
 /// </summary>
-public sealed class GraphExecutionRunner : IAsyncDisposable
+/// <remarks>
+/// Creates a graph execution runner.
+/// </remarks>
+/// <param name="request">Execution request containing graph, client id, and execution settings.</param>
+/// <param name="graphFactory">Factory used to build the runtime graph.</param>
+/// <param name="previewFactory">Factory used to build preview messages.</param>
+/// <param name="publishAsync">Callback used to publish execution messages.</param>
+/// <param name="onCompleted">Callback invoked after the runner exits.</param>
+public sealed class GraphExecutionRunner(
+	ExecutionRequestDto request,
+	RuntimeGraphFactory graphFactory,
+	RuntimePreviewFactory previewFactory,
+	Func<ExecutionMessageDto, CancellationToken, Task> publishAsync,
+	Action<GraphExecutionRunner> onCompleted) : IAsyncDisposable
 {
-    private readonly ExecutionRequestDto _request;
-    private readonly RuntimeGraphFactory _graphFactory;
-    private readonly RuntimePreviewFactory _previewFactory;
-    private readonly Func<ExecutionMessageDto, CancellationToken, Task> _publishAsync;
-    private readonly Action<GraphExecutionRunner> _onCompleted;
-    private readonly HashSet<string> _previewEnabledNodeIds;
-    private readonly object _manualTriggerSync = new();
+    private readonly ExecutionRequestDto _request = request;
+    private readonly RuntimeGraphFactory _graphFactory = graphFactory;
+    private readonly RuntimePreviewFactory _previewFactory = previewFactory;
+    private readonly Func<ExecutionMessageDto, CancellationToken, Task> _publishAsync = publishAsync;
+    private readonly Action<GraphExecutionRunner> _onCompleted = onCompleted;
+    private readonly HashSet<string> _previewEnabledNodeIds = request.Graph.Nodes
+			.Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
+			.Select(node => node.Id)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private readonly Lock _manualTriggerSync = new();
     private readonly Dictionary<string, int> _manualTriggerCounts = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _graphSync = new();
+    private readonly Lock _graphSync = new();
     private readonly CancellationTokenSource _cts = new();
-    private int _previewRefreshRate;
-    private int _previewImageMaxDimension;
+    private int _previewRefreshRate = request.PreviewRefreshRate;
+    private int _previewImageMaxDimension = request.PreviewImageMaxDimension;
     private Task? _executionTask;
     private RuntimeGraphBuildResult? _activeGraphBuildResult;
 
-    /// <summary>
-    /// Creates a graph execution runner.
-    /// </summary>
-    /// <param name="request">Execution request containing graph, client id, and execution settings.</param>
-    /// <param name="graphFactory">Factory used to build the runtime graph.</param>
-    /// <param name="previewFactory">Factory used to build preview messages.</param>
-    /// <param name="publishAsync">Callback used to publish execution messages.</param>
-    /// <param name="onCompleted">Callback invoked after the runner exits.</param>
-    public GraphExecutionRunner(
-        ExecutionRequestDto request,
-        RuntimeGraphFactory graphFactory,
-        RuntimePreviewFactory previewFactory,
-        Func<ExecutionMessageDto, CancellationToken, Task> publishAsync,
-        Action<GraphExecutionRunner> onCompleted)
-    {
-        _request = request;
-        _graphFactory = graphFactory;
-        _previewFactory = previewFactory;
-        _publishAsync = publishAsync;
-        _onCompleted = onCompleted;
-        _previewEnabledNodeIds = request.Graph.Nodes
-            .Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
-            .Select(node => node.Id)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _previewRefreshRate = request.PreviewRefreshRate;
-        _previewImageMaxDimension = request.PreviewImageMaxDimension;
-        ExecutionId = Guid.NewGuid().ToString("N");
-    }
+	/// <summary>
+	/// Runtime execution identifier assigned to this runner.
+	/// </summary>
+	public string ExecutionId { get; } = Guid.NewGuid().ToString("N");
 
-    /// <summary>
-    /// Runtime execution identifier assigned to this runner.
-    /// </summary>
-    public string ExecutionId { get; }
-
-    /// <summary>
-    /// Starts execution on a background task. Subsequent calls are ignored.
-    /// </summary>
-    public void Start()
+	/// <summary>
+	/// Starts execution on a background task. Subsequent calls are ignored.
+	/// </summary>
+	public void Start()
     {
         if (_executionTask is not null)
             return;
@@ -272,7 +259,7 @@ public sealed class GraphExecutionRunner : IAsyncDisposable
                 continue;
 
             var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
-            var preview = _previewFactory.CreatePreviewMessage(pair.Value, pair.Key, previewImageMaxDimension);
+            var preview = RuntimePreviewFactory.CreatePreviewMessage(pair.Value, pair.Key, previewImageMaxDimension);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);
         }

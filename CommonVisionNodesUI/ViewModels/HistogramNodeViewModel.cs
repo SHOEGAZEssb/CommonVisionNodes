@@ -5,18 +5,13 @@ namespace CommonVisionNodesUI.ViewModels;
 /// <summary>
 /// View model for a histogram analysis node.
 /// </summary>
-public partial class HistogramNodeViewModel : NodeViewModel
+/// <remarks>
+/// Creates a histogram node view model.
+/// </remarks>
+/// <param name="node">Serialized node instance.</param>
+/// <param name="definition">Catalog definition.</param>
+public partial class HistogramNodeViewModel(NodeDto node, NodeDefinitionDto definition) : NodeViewModel(node, definition)
 {
-    /// <summary>
-    /// Creates a histogram node view model.
-    /// </summary>
-    /// <param name="node">Serialized node instance.</param>
-    /// <param name="definition">Catalog definition.</param>
-    public HistogramNodeViewModel(NodeDto node, NodeDefinitionDto definition)
-        : base(node, definition)
-    {
-    }
-
 	[ObservableProperty]
 	public partial long[] Bins { get; set; } = [];
 

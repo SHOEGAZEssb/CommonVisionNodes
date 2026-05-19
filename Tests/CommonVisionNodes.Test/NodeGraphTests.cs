@@ -1,3 +1,5 @@
+using CommonVisionNodes.Runtime;
+
 namespace CommonVisionNodes.Test
 {
     public class NodeGraphTests
@@ -26,18 +28,21 @@ namespace CommonVisionNodes.Test
             graph.AddNode(node1);
             graph.AddNode(node2);
 
-            var outputPort = node1.Outputs.First();
-            var inputPort = node2.Inputs.First();
+            var outputPort = node1.Outputs[0];
+            var inputPort = node2.Inputs[0];
 
             // Act
             graph.Connect(outputPort, inputPort);
 
             // Assert
             var connection = graph.Connections.FirstOrDefault();
-            Assert.That(connection, Is.Not.Null);
-            Assert.That(outputPort, Is.EqualTo(connection.Output));
-            Assert.That(inputPort, Is.EqualTo(connection.Input));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(connection, Is.Not.Null);
+				Assert.That(outputPort, Is.EqualTo(connection.Output));
+				Assert.That(inputPort, Is.EqualTo(connection.Input));
+			}
+		}
 
         [Test]
         public void Connect_ShouldThrowExceptionForInvalidPortDirection()
@@ -49,8 +54,8 @@ namespace CommonVisionNodes.Test
             graph.AddNode(node1);
             graph.AddNode(node2);
 
-            var invalidOutputPort = node2.Inputs.First();
-            var inputPort = node1.Outputs.First();
+            var invalidOutputPort = node2.Inputs[0];
+            var inputPort = node1.Outputs[0];
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => graph.Connect(invalidOutputPort, inputPort));
@@ -78,8 +83,8 @@ namespace CommonVisionNodes.Test
             graph.AddNode(node1);
             graph.AddNode(node2);
 
-            var outputPort = node1.Outputs.First();
-            var inputPort = node2.Inputs.First();
+            var outputPort = node1.Outputs[0];
+            var inputPort = node2.Inputs[0];
 
             graph.Connect(outputPort, inputPort);
 
@@ -137,9 +142,12 @@ namespace CommonVisionNodes.Test
 
             // Assert
             Assert.That(executionOrder, Has.Count.EqualTo(2));
-            Assert.That(executionOrder[0], Is.SameAs(source));
-            Assert.That(executionOrder[1], Is.SameAs(sink));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(executionOrder[0], Is.SameAs(source));
+				Assert.That(executionOrder[1], Is.SameAs(sink));
+			}
+		}
 
         [Test]
         public void Execute_ThreeNodeChain_ShouldPropagateDataThroughMiddle()
@@ -179,10 +187,13 @@ namespace CommonVisionNodes.Test
             // Act
             graph.Execute();
 
-            // Assert
-            Assert.That(sink1.ReceivedValue, Is.EqualTo("shared"));
-            Assert.That(sink2.ReceivedValue, Is.EqualTo("shared"));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				// Assert
+				Assert.That(sink1.ReceivedValue, Is.EqualTo("shared"));
+				Assert.That(sink2.ReceivedValue, Is.EqualTo("shared"));
+			}
+		}
 
         [Test]
         public void Execute_DisconnectedInput_ShouldHaveNullValue()
@@ -239,9 +250,12 @@ namespace CommonVisionNodes.Test
 
             // Assert
             Assert.That(executionOrder, Has.Count.EqualTo(4));
-            Assert.That(executionOrder[0], Is.SameAs(source));
-            Assert.That(executionOrder[^1], Is.SameAs(sink));
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(executionOrder[0], Is.SameAs(source));
+				Assert.That(executionOrder[^1], Is.SameAs(sink));
+			}
+		}
 
         [Test]
         public void Execute_TriggerableNodeWithDisconnectedTrigger_ShouldExecuteNormally()
@@ -257,13 +271,13 @@ namespace CommonVisionNodes.Test
             // Act
             graph.Execute();
 
-            // Assert
-            Assert.Multiple(() =>
-            {
+			// Assert
+			using (Assert.EnterMultipleScope())
+			{
                 Assert.That(source.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
-            });
+            }
         }
 
         [Test]
@@ -283,35 +297,35 @@ namespace CommonVisionNodes.Test
             // Act
             graph.Execute();
 
-            // Assert
-            Assert.Multiple(() =>
-            {
+			// Assert
+			using (Assert.EnterMultipleScope())
+			{
                 Assert.That(source.ExecuteCount, Is.Zero);
                 Assert.That(sink.ExecuteCount, Is.Zero);
                 Assert.That(sink.ReceivedValue, Is.Null);
-            });
+            }
 
             // Act
             trigger.Trigger();
             graph.Execute();
 
-            // Assert
-            Assert.Multiple(() =>
-            {
+			// Assert
+			using (Assert.EnterMultipleScope())
+			{
                 Assert.That(source.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
-            });
+            }
 
             // Act
             graph.Execute();
 
-            // Assert
-            Assert.Multiple(() =>
-            {
+			// Assert
+			using (Assert.EnterMultipleScope())
+			{
                 Assert.That(source.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ExecuteCount, Is.EqualTo(1));
-            });
+            }
         }
 
         [Test]
@@ -332,13 +346,13 @@ namespace CommonVisionNodes.Test
             graph.Execute();
             graph.Execute();
 
-            // Assert
-            Assert.Multiple(() =>
-            {
+			// Assert
+			using (Assert.EnterMultipleScope())
+			{
                 Assert.That(source.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ExecuteCount, Is.EqualTo(1));
                 Assert.That(sink.ReceivedValue, Is.EqualTo("frame"));
-            });
+            }
         }
 
         [Test]
@@ -378,9 +392,12 @@ namespace CommonVisionNodes.Test
 
             // Assert
             Assert.That(initLog, Has.Count.EqualTo(1));
-            Assert.That(initLog[0], Is.SameAs(source));
-            Assert.That(source.IsInitialized, Is.True);
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(initLog[0], Is.SameAs(source));
+				Assert.That(source.IsInitialized, Is.True);
+			}
+		}
 
         [Test]
         public void Initialize_ShouldSkipNonInitializableNodes()
@@ -463,12 +480,15 @@ namespace CommonVisionNodes.Test
             graph.Execute();
             graph.Dispose();
 
-            // Assert
-            Assert.That(initLog, Has.Count.EqualTo(1));
-            Assert.That(execLog, Has.Count.EqualTo(2));
-            Assert.That(sink.ReceivedValue, Is.EqualTo("initialized"));
-            Assert.That(source.IsInitialized, Is.False);
-        }
+			using (Assert.EnterMultipleScope())
+			{
+				// Assert
+				Assert.That(initLog, Has.Count.EqualTo(1));
+				Assert.That(execLog, Has.Count.EqualTo(2));
+				Assert.That(sink.ReceivedValue, Is.EqualTo("initialized"));
+				Assert.That(source.IsInitialized, Is.False);
+			}
+		}
     }
 
     internal sealed class SourceNode : Node

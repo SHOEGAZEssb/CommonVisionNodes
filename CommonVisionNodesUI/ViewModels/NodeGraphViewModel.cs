@@ -17,15 +17,19 @@ public sealed record PreviewImageMaxDimensionOption(int Value, string Label);
 /// <summary>
 /// View model that owns graph editing, execution control, and backend message handling.
 /// </summary>
-public partial class NodeGraphViewModel : ObservableObject
+/// <remarks>
+/// Creates the graph view model.
+/// </remarks>
+/// <param name="backendClient">Backend API client.</param>
+public partial class NodeGraphViewModel(IBackendClient backendClient) : ObservableObject
 {
     private const int DefaultPreviewRefreshRate = 30;
     private const int DefaultPreviewImageMaxDimension = 1280;
     private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
     private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
 
-    private readonly IBackendClient _backendClient;
-    private readonly DispatcherQueue _dispatcherQueue;
+    private readonly IBackendClient _backendClient = backendClient;
+    private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     private readonly Dictionary<string, NodeDefinitionDto> _nodeDefinitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, NodeViewModel> _nodesById = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _clientId = Guid.NewGuid().ToString("N");
@@ -39,22 +43,10 @@ public partial class NodeGraphViewModel : ObservableObject
     private CancellationTokenSource? _previewSettingsDebounceCts;
     private CancellationTokenSource? _nodePropertiesDebounceCts;
 
-    /// <summary>
-    /// Creates the graph view model.
-    /// </summary>
-    /// <param name="backendClient">Backend API client.</param>
-    public NodeGraphViewModel(IBackendClient backendClient)
-    {
-        _backendClient = backendClient;
-        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
-		PreviewRefreshRate = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
-		PreviewImageMaxDimension = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
-    }
-
-    /// <summary>
-    /// Nodes currently present on the canvas.
-    /// </summary>
-    public ObservableCollection<NodeViewModel> Nodes { get; } = [];
+	/// <summary>
+	/// Nodes currently present on the canvas.
+	/// </summary>
+	public ObservableCollection<NodeViewModel> Nodes { get; } = [];
 
     /// <summary>
     /// Connections currently present on the canvas.
@@ -89,15 +81,15 @@ public partial class NodeGraphViewModel : ObservableObject
 	[ObservableProperty]
 	public partial string LastExecutionTimeText { get; set; } = "-";
 	[ObservableProperty]
-	public partial int PreviewRefreshRate { get; set; } = DefaultPreviewRefreshRate;
+	public partial int PreviewRefreshRate { get; set; } = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
 
 	[ObservableProperty]
-	public partial int PreviewImageMaxDimension { get; set; } = DefaultPreviewImageMaxDimension;
+	public partial int PreviewImageMaxDimension { get; set; } = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
 
-    /// <summary>
-    /// Text representation of the preview refresh rate.
-    /// </summary>
-    public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+	/// <summary>
+	/// Text representation of the preview refresh rate.
+	/// </summary>
+	public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Text representation of the preview image downscale limit.

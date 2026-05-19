@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CommonVisionNodes;
+namespace CommonVisionNodes.Runtime;
 
 /// <summary>
 /// Generates standalone C# code from a <see cref="NodeGraph"/> that uses the
@@ -44,8 +44,8 @@ public static class CodeGenerator
         var context = new CodeEmitContext(
             sb,
             graph.Connections,
-            new Dictionary<Port, string>(),
-            new Dictionary<string, int>());
+            [],
+            []);
 
         for (int i = 0; i < sorted.Count; i++)
         {

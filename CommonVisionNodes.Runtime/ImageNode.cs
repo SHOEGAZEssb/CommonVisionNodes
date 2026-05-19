@@ -1,6 +1,6 @@
 using Stemmer.Cvb;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Loads an image from a file and provides it as output.

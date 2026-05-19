@@ -4,7 +4,7 @@ using Stemmer.Cvb;
 using CvbGevServer = Stemmer.Cvb.GevServer.GevServer;
 using DriverType = Stemmer.Cvb.GevServer.DriverType;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Streams incoming images through a Common Vision Blox GigE Vision Server.
@@ -80,23 +80,19 @@ namespace CommonVisionNodes
             if (!IsInitialized)
                 throw new InvalidOperationException($"{nameof(GevServerNode)} must be initialized before execution.");
 
-            var image = ImageInput.Value as Image;
-            if (image is null)
-            {
-                LastStatus = "No image connected.";
-                return;
-            }
+			if (ImageInput.Value is not Image image)
+			{
+				LastStatus = "No image connected.";
+				return;
+			}
 
-            if (image.IsDisposed)
+			if (image.IsDisposed)
                 throw new InvalidOperationException("Cannot stream a disposed image.");
 
             EnsureServer(image);
 
-            var stream = _server!.Stream;
-            if (stream is null)
-                throw new InvalidOperationException("The GigE Vision server was not created with a stream.");
-
-            if (!stream.IsRunning)
+			var stream = _server!.Stream ?? throw new InvalidOperationException("The GigE Vision server was not created with a stream.");
+			if (!stream.IsRunning)
             {
                 LastStatus = $"Listening on {LocalAddress}; waiting for acquisition.";
                 return;

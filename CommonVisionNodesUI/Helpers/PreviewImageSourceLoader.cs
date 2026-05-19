@@ -11,7 +11,7 @@ namespace CommonVisionNodesUI.Helpers;
 
 internal static class PreviewImageSourceLoader
 {
-    private static readonly ConditionalWeakTable<Image, ImageLoadState> LoadStates = new();
+    private static readonly ConditionalWeakTable<Image, ImageLoadState> LoadStates = [];
 
     public static async Task<bool> SetImageAsync(Image image, ImagePreviewDto? preview)
     {

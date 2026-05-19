@@ -10,7 +10,12 @@ namespace CommonVisionNodes.Server.Services;
 /// <summary>
 /// Tracks client execution sessions, active runners, and subscribed WebSocket connections.
 /// </summary>
-public sealed class ExecutionClientManager
+/// <remarks>
+/// Creates an execution client manager.
+/// </remarks>
+/// <param name="graphFactory">Factory used by new execution runners.</param>
+/// <param name="previewFactory">Preview factory used by new execution runners.</param>
+public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, RuntimePreviewFactory previewFactory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -18,32 +23,21 @@ public sealed class ExecutionClientManager
     };
 
     private readonly ConcurrentDictionary<string, ClientSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly RuntimeGraphFactory _graphFactory;
-    private readonly RuntimePreviewFactory _previewFactory;
+    private readonly RuntimeGraphFactory _graphFactory = graphFactory;
+    private readonly RuntimePreviewFactory _previewFactory = previewFactory;
 
     static ExecutionClientManager()
     {
         JsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
-    /// <summary>
-    /// Creates an execution client manager.
-    /// </summary>
-    /// <param name="graphFactory">Factory used by new execution runners.</param>
-    /// <param name="previewFactory">Preview factory used by new execution runners.</param>
-    public ExecutionClientManager(RuntimeGraphFactory graphFactory, RuntimePreviewFactory previewFactory)
-    {
-        _graphFactory = graphFactory;
-        _previewFactory = previewFactory;
-    }
-
-    /// <summary>
-    /// Starts execution for a client, replacing any existing runner for that client.
-    /// </summary>
-    /// <param name="request">Execution request.</param>
-    /// <param name="cancellationToken">Cancellation token for request processing.</param>
-    /// <returns>Accepted execution metadata.</returns>
-    public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
+	/// <summary>
+	/// Starts execution for a client, replacing any existing runner for that client.
+	/// </summary>
+	/// <param name="request">Execution request.</param>
+	/// <param name="cancellationToken">Cancellation token for request processing.</param>
+	/// <returns>Accepted execution metadata.</returns>
+	public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
     {
         var session = GetSession(request.ClientId);
         GraphExecutionRunner? previousRunner;

@@ -1,6 +1,6 @@
 using Uno.UI.Hosting;
 
-namespace CommonVisionNodesUI;
+namespace CommonVisionNodesUI.Platforms.Desktop;
 
 internal class Program
 {

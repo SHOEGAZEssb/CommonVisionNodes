@@ -1,3 +1,5 @@
+using CommonVisionNodes.Runtime;
+
 namespace CommonVisionNodes.Test;
 
 public class CSharpNodeTests
@@ -8,10 +10,13 @@ public class CSharpNodeTests
         // Arrange
         var node = new CSharpNode();
 
-        // Assert
-        Assert.That(node.ImageInput, Is.Not.Null);
-        Assert.That(node.ImageOutput, Is.Not.Null);
-        Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
+		using (Assert.EnterMultipleScope())
+		{
+			// Assert
+			Assert.That(node.ImageInput, Is.Not.Null);
+			Assert.That(node.ImageOutput, Is.Not.Null);
+		}
+		Assert.That(node.ImageInput.Direction, Is.EqualTo(PortDirection.Input));
         Assert.That(node.ImageOutput.Direction, Is.EqualTo(PortDirection.Output));
     }
 

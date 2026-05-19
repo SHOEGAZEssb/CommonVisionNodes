@@ -1,7 +1,7 @@
 using Stemmer.Cvb;
 using Stemmer.Cvb.Polimago;
 
-namespace CommonVisionNodes
+namespace CommonVisionNodes.Runtime
 {
     /// <summary>
     /// Result of a Polimago classification for a single region.
