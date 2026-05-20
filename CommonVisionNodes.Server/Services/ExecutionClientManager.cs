@@ -40,37 +40,46 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 	public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
     {
         var session = GetSession(request.ClientId);
-        GraphExecutionRunner? previousRunner;
 
-        lock (session.RunnerSync)
+        await session.RunnerTransitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            previousRunner = session.Runner;
-            session.Runner = null;
+            GraphExecutionRunner? previousRunner;
+
+            lock (session.RunnerSync)
+            {
+                previousRunner = session.Runner;
+                session.Runner = null;
+            }
+
+            // Dispose the previous runner outside the session lock. Disposal waits for graph shutdown
+            // and may publish messages, so keeping the lock held here can block socket operations.
+            if (previousRunner is not null)
+                await previousRunner.DisposeAsync().ConfigureAwait(false);
+
+            var runner = new GraphExecutionRunner(
+                request,
+                _graphFactory,
+                _previewFactory,
+                (message, publishCancellationToken) => BroadcastAsync(request.ClientId, message, publishCancellationToken),
+                completedRunner => OnRunnerCompleted(request.ClientId, completedRunner));
+
+            lock (session.RunnerSync)
+                session.Runner = runner;
+
+            runner.Start();
+
+            return new ExecutionAcceptedDto
+            {
+                ClientId = request.ClientId,
+                ExecutionId = runner.ExecutionId,
+                Status = ExecutionStatusDto.Starting
+            };
         }
-
-        // Dispose the previous runner outside the session lock. Disposal waits for graph shutdown
-        // and may publish messages, so keeping the lock held here can block socket operations.
-        if (previousRunner is not null)
-            await previousRunner.DisposeAsync().ConfigureAwait(false);
-
-        var runner = new GraphExecutionRunner(
-            request,
-            _graphFactory,
-            _previewFactory,
-            (message, publishCancellationToken) => BroadcastAsync(request.ClientId, message, publishCancellationToken),
-            completedRunner => OnRunnerCompleted(request.ClientId, completedRunner));
-
-        lock (session.RunnerSync)
-            session.Runner = runner;
-
-        runner.Start();
-
-        return new ExecutionAcceptedDto
+        finally
         {
-            ClientId = request.ClientId,
-            ExecutionId = runner.ExecutionId,
-            Status = ExecutionStatusDto.Starting
-        };
+            session.RunnerTransitionGate.Release();
+        }
     }
 
     /// <summary>
@@ -80,16 +89,25 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     public async Task StopExecutionAsync(string clientId)
     {
         var session = GetSession(clientId);
-        GraphExecutionRunner? runner;
 
-        lock (session.RunnerSync)
+        await session.RunnerTransitionGate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            runner = session.Runner;
-            session.Runner = null;
-        }
+            GraphExecutionRunner? runner;
 
-        if (runner is not null)
-            await runner.DisposeAsync().ConfigureAwait(false);
+            lock (session.RunnerSync)
+            {
+                runner = session.Runner;
+                session.Runner = null;
+            }
+
+            if (runner is not null)
+                await runner.DisposeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            session.RunnerTransitionGate.Release();
+        }
     }
 
     /// <summary>
@@ -105,7 +123,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         lock (session.RunnerSync)
             runner = session.Runner;
 
-        if (runner is null)
+        if (runner is null || !TargetsRunner(request.ExecutionId, runner))
             return false;
 
         runner.UpdatePreviewSettings(request.PreviewRefreshRate, request.PreviewImageMaxDimension);
@@ -145,7 +163,10 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         lock (session.RunnerSync)
             runner = session.Runner;
 
-        return runner?.UpdateNodeProperties(request.NodeId, request.Properties) == true;
+        if (runner is null || !TargetsRunner(request.ExecutionId, runner))
+            return false;
+
+        return runner.UpdateNodeProperties(request.NodeId, request.Properties);
     }
 
     /// <summary>
@@ -263,11 +284,17 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     private ClientSession GetSession(string clientId)
         => _sessions.GetOrAdd(clientId, _ => new ClientSession());
 
+    private static bool TargetsRunner(string? executionId, GraphExecutionRunner runner)
+        => string.IsNullOrWhiteSpace(executionId) ||
+            string.Equals(executionId, runner.ExecutionId, StringComparison.OrdinalIgnoreCase);
+
     private sealed class ClientSession
     {
         public ConcurrentDictionary<Guid, WebSocket> Sockets { get; } = [];
 
         public SemaphoreSlim SendGate { get; } = new(1, 1);
+
+        public SemaphoreSlim RunnerTransitionGate { get; } = new(1, 1);
 
         public object RunnerSync { get; } = new();
 

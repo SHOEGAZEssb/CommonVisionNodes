@@ -29,7 +29,7 @@ public static class PreviewImageSourceLoader
 
         if (preview is null || string.IsNullOrWhiteSpace(preview.Base64Data))
         {
-            image.Source = null;
+            ClearImage(image);
             return true;
         }
 
@@ -66,6 +66,17 @@ public static class PreviewImageSourceLoader
         }
 
         return $"{sourceSize}  {preview.PixelFormat}";
+    }
+
+    /// <summary>
+    /// Clears an image control and invalidates any in-flight preview decode for it.
+    /// </summary>
+    /// <param name="image">Image control to clear.</param>
+    public static void ClearImage(Image image)
+    {
+        var state = LoadStates.GetOrCreateValue(image);
+        Interlocked.Increment(ref state.Version);
+        image.Source = null;
     }
 
     private static async Task<ImageSource> CreateEncodedBitmapAsync(byte[] bytes)

@@ -42,6 +42,9 @@ namespace CommonVisionNodes.Runtime
     {
         private Image? _currentImage;
         private int _frameCounter;
+        private int _width = 640;
+        private int _height = 480;
+        private int _speed = 2;
 
         /// <summary>
         /// Optional trigger input that gates when a new generated image is sent downstream.
@@ -56,12 +59,20 @@ namespace CommonVisionNodes.Runtime
         /// <summary>
         /// Width of the generated image in pixels.
         /// </summary>
-        public int Width { get; set; } = 640;
+        public int Width
+        {
+            get => _width;
+            set => _width = Math.Clamp(value, 1, 4096);
+        }
 
         /// <summary>
         /// Height of the generated image in pixels.
         /// </summary>
-        public int Height { get; set; } = 480;
+        public int Height
+        {
+            get => _height;
+            set => _height = Math.Clamp(value, 1, 4096);
+        }
 
         /// <summary>
         /// The test pattern to generate.
@@ -71,7 +82,11 @@ namespace CommonVisionNodes.Runtime
         /// <summary>
         /// Speed multiplier for the animation. Higher values move faster.
         /// </summary>
-        public int Speed { get; set; } = 2;
+        public int Speed
+        {
+            get => _speed;
+            set => _speed = Math.Clamp(value, 1, 50);
+        }
 
         /// <summary>
         /// Creates a synthetic image source node with an optional trigger input and one image output.

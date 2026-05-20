@@ -182,6 +182,7 @@ public sealed class GraphExecutionRunnerTests
 
 		using (Assert.EnterMultipleScope())
 		{
+			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
 			Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
 			Assert.That(messages.Select(message => message.ExecutionState?.Status).Where(status => status.HasValue),
 				Does.Contain(ExecutionStatusDto.Starting)
@@ -288,6 +289,92 @@ public sealed class GraphExecutionRunnerTests
 			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
 		}
 	}
+
+    [Test]
+    public async Task ContinuousExecution_ShouldUpdateImageGeneratorSpeedWithoutRestartingGraph()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: false);
+        request.Mode = ExecutionModeDto.Continuous;
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+
+        var updated = false;
+        for (var attempt = 0; attempt < 100 && !updated; attempt++)
+        {
+            updated = runner.UpdateNodeProperties(
+                "generator",
+                [
+                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
+                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
+                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.GradientH) },
+                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "8" },
+                    new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
+                ]);
+
+            if (!updated)
+                await Task.Delay(20);
+        }
+
+        await runner.DisposeAsync();
+
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(updated, Is.True);
+			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
+			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
+		}
+    }
+
+    [Test]
+    public async Task ContinuousExecution_ShouldToggleNodePreviewWithoutRestartingGraph()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: false);
+        request.Mode = ExecutionModeDto.Continuous;
+        request.PreviewRefreshRate = 30;
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+
+        var updated = false;
+        for (var attempt = 0; attempt < 100 && !updated; attempt++)
+        {
+            updated = runner.UpdateNodeProperties(
+                "generator",
+                [new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }]);
+
+            if (!updated)
+                await Task.Delay(20);
+        }
+
+        var previewReceived = false;
+        for (var attempt = 0; attempt < 100 && !previewReceived; attempt++)
+        {
+            lock (messages)
+            {
+                previewReceived = messages.Any(message =>
+                    message.MessageType == ExecutionMessageTypeDto.ImagePreview &&
+                    message.ImagePreview?.NodeId == "generator");
+            }
+
+            if (!previewReceived)
+                await Task.Delay(20);
+        }
+
+        await runner.DisposeAsync();
+
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(updated, Is.True);
+			Assert.That(previewReceived, Is.True);
+			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
+			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
+		}
+    }
 
     [TestCase(0, 1000.0)]
     [TestCase(1, 1000.0)]

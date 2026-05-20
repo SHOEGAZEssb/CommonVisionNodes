@@ -30,6 +30,7 @@ public sealed class GraphExecutionRunner(
 			.Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
 			.Select(node => node.Id)
 			.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private readonly Lock _previewSync = new();
     private readonly Lock _manualTriggerSync = new();
     private readonly Dictionary<string, int> _manualTriggerCounts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _graphSync = new();
@@ -101,12 +102,14 @@ public sealed class GraphExecutionRunner(
                 return false;
             }
 
-            // Only the time trigger is mutated in place today. Other node edits can affect
-            // resources or topology assumptions, so the UI restarts continuous execution instead.
-            if (node is not TimeTriggerNode)
-                return false;
+            var propertyList = properties.ToList();
+            var previewUpdated = TryUpdatePreviewEnabled(nodeId, propertyList);
+            var liveProperties = GetLiveProperties(node, propertyList).ToList();
 
-            RuntimeNodePropertyBinder.Apply(node, properties);
+            if (liveProperties.Count == 0)
+                return previewUpdated;
+
+            RuntimeNodePropertyBinder.Apply(node, liveProperties);
             return true;
         }
     }
@@ -255,7 +258,7 @@ public sealed class GraphExecutionRunner(
     {
         foreach (var pair in graphBuildResult.NodeIdsByRuntime)
         {
-            if (!_previewEnabledNodeIds.Contains(pair.Value))
+            if (!IsPreviewEnabled(pair.Value))
                 continue;
 
             var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
@@ -361,8 +364,60 @@ public sealed class GraphExecutionRunner(
         }
     }
 
+    private bool TryUpdatePreviewEnabled(string nodeId, IEnumerable<NodePropertyDto> properties)
+    {
+        foreach (var property in properties)
+        {
+            if (!string.Equals(property.Name, NodePreviewSettings.ShowPreviewPropertyName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!bool.TryParse(property.Value, out var enabled))
+                return false;
+
+            lock (_previewSync)
+            {
+                if (enabled)
+                    _previewEnabledNodeIds.Add(nodeId);
+                else
+                    _previewEnabledNodeIds.Remove(nodeId);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsPreviewEnabled(string nodeId)
+    {
+        lock (_previewSync)
+            return _previewEnabledNodeIds.Contains(nodeId);
+    }
+
+    private static IEnumerable<NodePropertyDto> GetLiveProperties(Node node, IEnumerable<NodePropertyDto> properties)
+    {
+        foreach (var property in properties)
+        {
+            if (string.Equals(property.Name, NodePreviewSettings.ShowPreviewPropertyName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (node is PolimagoClassifyNode &&
+                string.Equals(property.Name, nameof(PolimagoClassifyNode.MinQuality), StringComparison.OrdinalIgnoreCase))
+            {
+                yield return property;
+                continue;
+            }
+
+            if (node is IInitializable)
+                continue;
+
+            yield return property;
+        }
+    }
+
     private async Task PublishAsync(ExecutionMessageDto message, CancellationToken cancellationToken)
     {
+        message.ExecutionId = ExecutionId;
         message.TimestampUtc = DateTimeOffset.UtcNow;
         await _publishAsync(message, cancellationToken).ConfigureAwait(false);
     }

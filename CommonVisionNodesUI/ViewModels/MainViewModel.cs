@@ -64,6 +64,12 @@ public partial class MainViewModel : ObservableObject
 	public partial bool IsPropertiesContentEnabled { get; set; } = true;
 
 	[ObservableProperty]
+	public partial Visibility RuntimeEditNoticeVisibility { get; set; } = Visibility.Collapsed;
+
+	[ObservableProperty]
+	public partial string RuntimeEditNoticeText { get; set; } = string.Empty;
+
+	[ObservableProperty]
 	public partial bool IsEditingEnabled { get; set; } = true;
 
 	[ObservableProperty]
@@ -172,8 +178,12 @@ public partial class MainViewModel : ObservableObject
 
     private void UpdatePropertiesEnabled()
     {
-        IsPropertiesContentEnabled = !Graph.IsRunning
-            || (Graph.SelectedNode?.IsEditableWhileRunning ?? false);
+        var selected = Graph.SelectedNode;
+        var locked = Graph.IsRunning && selected is not null && !selected.IsEditableWhileRunning;
+
+        IsPropertiesContentEnabled = !locked;
+        RuntimeEditNoticeVisibility = locked ? Visibility.Visible : Visibility.Collapsed;
+        RuntimeEditNoticeText = locked ? selected!.RuntimeEditLockMessage : string.Empty;
     }
 
     [RelayCommand]

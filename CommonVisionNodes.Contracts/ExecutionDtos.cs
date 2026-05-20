@@ -208,6 +208,11 @@ public sealed class UpdateExecutionSettingsRequestDto
     public string ClientId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Runtime execution identifier the update targets. Empty values are accepted for compatibility.
+    /// </summary>
+    public string ExecutionId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Requested preview refresh rate in frames per second. A value of 1001 is treated as unlimited.
     /// </summary>
     public int PreviewRefreshRate { get; set; } = 30;
@@ -227,6 +232,11 @@ public sealed class UpdateNodePropertiesRequestDto
     /// Client identifier that owns the running graph.
     /// </summary>
     public string ClientId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Runtime execution identifier the update targets. Empty values are accepted for compatibility.
+    /// </summary>
+    public string ExecutionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Graph node identifier whose properties should be updated.
@@ -342,6 +352,11 @@ public sealed class NodeExecutionUpdateDto
 /// </summary>
 public sealed class ExecutionMessageDto
 {
+    /// <summary>
+    /// Runtime execution identifier associated with this message.
+    /// </summary>
+    public string ExecutionId { get; set; } = string.Empty;
+
     /// <summary>
     /// Discriminator indicating which payload property is populated.
     /// </summary>

@@ -1,5 +1,6 @@
 using System.IO;
 using CommonVisionNodes.Contracts;
+using Microsoft.UI.Xaml;
 
 namespace CommonVisionNodesUI.ViewModels;
 
@@ -37,6 +38,16 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
     /// </summary>
     public int ResultCount => Results.Count;
 
+    /// <summary>
+    /// Classifier files are loaded during node initialization and cannot be swapped live.
+    /// </summary>
+    public bool IsClassifierPathEditable => !IsGraphRunning;
+
+    /// <summary>
+    /// Shows the classifier-path runtime lock hint while execution is active.
+    /// </summary>
+    public Visibility ClassifierPathRuntimeLockVisibility => IsGraphRunning ? Visibility.Visible : Visibility.Collapsed;
+
     /// <inheritdoc/>
     public override string? Summary => string.IsNullOrEmpty(ClassifierPath)
         ? "No classifier loaded"
@@ -44,6 +55,13 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 
     /// <inheritdoc/>
     public override bool IsEditableWhileRunning => true;
+
+    /// <inheritdoc/>
+    protected override void OnRuntimeEditStateChanged()
+    {
+        OnPropertyChanged(nameof(IsClassifierPathEditable));
+        OnPropertyChanged(nameof(ClassifierPathRuntimeLockVisibility));
+    }
 
     partial void OnClassifierPathChanged(string value)
     {

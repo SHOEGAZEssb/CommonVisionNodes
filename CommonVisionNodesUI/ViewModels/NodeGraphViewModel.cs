@@ -35,13 +35,20 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     private readonly string _clientId = Guid.NewGuid().ToString("N");
     private CancellationTokenSource? _listenerCts;
     private Task? _listenerTask;
+    private readonly SemaphoreSlim _executionRestartGate = new(1, 1);
+    private readonly SemaphoreSlim _nodePropertiesUpdateGate = new(1, 1);
+    private readonly object _nodePropertiesUpdateSync = new();
+    private readonly Dictionary<string, CancellationTokenSource> _nodePropertiesDebounceCtsByNodeId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long> _nodePropertiesUpdateVersionsByNodeId = new(StringComparer.OrdinalIgnoreCase);
     private double _nextNodeX = 50;
     private double _nextNodeY = 50;
     private bool _initialized;
     private Task? _initializeTask;
     private CancellationTokenSource? _graphRestartDebounceCts;
     private CancellationTokenSource? _previewSettingsDebounceCts;
-    private CancellationTokenSource? _nodePropertiesDebounceCts;
+    private long _executionRestartVersion;
+    private string? _activeExecutionId;
+    private readonly HashSet<string> _terminalExecutionIds = new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
 	/// Nodes currently present on the canvas.
@@ -151,7 +158,11 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         SelectedNode?.IsSelected = false;
 
         SelectedNode = node;
-        node?.IsSelected = true;
+        if (node is not null)
+        {
+            node.IsSelected = true;
+            node.IsGraphRunning = IsRunning;
+        }
     }
 
     /// <summary>
@@ -417,7 +428,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     private async Task ExecuteGraphAsync()
     {
         await InitializeAsync();
-        await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Single));
+        var accepted = await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Single));
+        ApplyExecutionAccepted(accepted);
     }
 
     [RelayCommand]
@@ -427,17 +439,29 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
         if (IsRunning)
         {
+            InvalidatePendingExecutionRestarts();
             CancelPendingExecutionRestart();
             CancelPendingPreviewSettingsUpdate();
             CancelPendingNodePropertiesUpdate();
-            await _backendClient.StopAsync(_clientId);
+            await _executionRestartGate.WaitAsync();
+            try
+            {
+                await _backendClient.StopAsync(_clientId);
+            }
+            finally
+            {
+                _executionRestartGate.Release();
+            }
+
             IsRunning = false;
             return;
         }
 
+        InvalidatePendingExecutionRestarts();
         CancelPendingExecutionRestart();
         CancelPendingNodePropertiesUpdate();
-        await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
+        var accepted = await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
+        ApplyExecutionAccepted(accepted);
     }
 
     /// <summary>
@@ -471,6 +495,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     /// </summary>
     public async ValueTask DisposeAsync()
     {
+        InvalidatePendingExecutionRestarts();
         CancelPendingExecutionRestart();
         CancelPendingPreviewSettingsUpdate();
         CancelPendingNodePropertiesUpdate();
@@ -520,6 +545,12 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         ScheduleRunningPreviewSettingsUpdate();
     }
 
+    partial void OnIsRunningChanged(bool value)
+    {
+        foreach (var node in Nodes)
+            node.IsGraphRunning = value;
+    }
+
     private void AddNode(string type)
     {
         if (!_nodeDefinitions.TryGetValue(type, out var definition))
@@ -552,6 +583,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     {
         viewModel.ConfigurationChanged += OnNodeConfigurationChanged;
         viewModel.PropertyChanged += OnNodePropertyChanged;
+        viewModel.IsGraphRunning = IsRunning;
         if (viewModel is ManualTriggerNodeViewModel manualTriggerNode)
             manualTriggerNode.TriggerRequested += OnManualTriggerRequested;
 
@@ -591,21 +623,15 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         if (sender is not NodeViewModel node || !IsRunning || !node.IsEditableWhileRunning)
             return;
 
-        if (node is TimeTriggerNodeViewModel)
-        {
-            await UpdateRunningNodePropertiesAsync(node);
-            return;
-        }
-
-        await RestartContinuousExecutionAsync();
+        await UpdateRunningNodePropertiesAsync(node);
     }
 
     private async void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(NodeViewModel.ShowPreview) || !IsRunning || sender is not NodeViewModel node || node.IsEditableWhileRunning)
+        if (e.PropertyName != nameof(NodeViewModel.ShowPreview) || !IsRunning || sender is not NodeViewModel node)
             return;
 
-        await RestartContinuousExecutionAsync();
+        await UpdateRunningNodePropertiesAsync(node);
     }
 
     private async Task HandleExecutionMessageAsync(ExecutionMessageDto message)
@@ -615,6 +641,11 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     private void ApplyExecutionMessage(ExecutionMessageDto message)
     {
+        TrackStartingExecution(message);
+
+        if (IsStaleExecutionMessage(message))
+            return;
+
         switch (message.MessageType)
         {
             case ExecutionMessageTypeDto.ExecutionState:
@@ -662,6 +693,18 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
         foreach (var node in Nodes)
             node.ApplyExecutionState(state);
+
+        if (state.Status is ExecutionStatusDto.Completed or ExecutionStatusDto.Stopped or ExecutionStatusDto.Failed &&
+            IsCurrentExecutionId(state.ExecutionId))
+        {
+            _activeExecutionId = null;
+        }
+
+        if (state.Status is ExecutionStatusDto.Completed or ExecutionStatusDto.Stopped or ExecutionStatusDto.Failed &&
+            !string.IsNullOrWhiteSpace(state.ExecutionId))
+        {
+            _terminalExecutionIds.Add(state.ExecutionId);
+        }
     }
 
     private Task EnqueueAsync(Action action)
@@ -740,9 +783,13 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     private void CancelPendingNodePropertiesUpdate()
     {
-        _nodePropertiesDebounceCts?.Cancel();
-        _nodePropertiesDebounceCts?.Dispose();
-        _nodePropertiesDebounceCts = null;
+        lock (_nodePropertiesUpdateSync)
+        {
+            foreach (var cts in _nodePropertiesDebounceCtsByNodeId.Values)
+                cts.Cancel();
+
+            _nodePropertiesDebounceCtsByNodeId.Clear();
+        }
     }
 
     private async Task UpdateRunningPreviewSettingsAsync()
@@ -765,10 +812,11 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
                 new UpdateExecutionSettingsRequestDto
                 {
                     ClientId = _clientId,
+                    ExecutionId = _activeExecutionId ?? string.Empty,
                     PreviewRefreshRate = PreviewRefreshRate,
                     PreviewImageMaxDimension = Math.Max(0, PreviewImageMaxDimension)
                 },
-                cts.Token);
+                CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
@@ -794,6 +842,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     private async Task RestartContinuousExecutionAsync()
     {
+        var restartVersion = Interlocked.Increment(ref _executionRestartVersion);
         CancelPendingExecutionRestart();
 
         var cts = new CancellationTokenSource();
@@ -803,16 +852,33 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         {
             await Task.Delay(200, cts.Token);
 
-            if (cts.IsCancellationRequested || !IsRunning)
+            if (cts.IsCancellationRequested || !IsRunning || restartVersion != Interlocked.Read(ref _executionRestartVersion))
                 return;
 
             // Most node property edits require rebuilding runtime resources, so the running graph
             // is replaced after the user pauses editing briefly.
-            await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous), cts.Token);
+            await _executionRestartGate.WaitAsync();
+            try
+            {
+                if (!IsRunning || restartVersion != Interlocked.Read(ref _executionRestartVersion))
+                    return;
+
+                var accepted = await _backendClient.ExecuteAsync(CreateExecutionRequest(ExecutionModeDto.Continuous));
+                if (restartVersion == Interlocked.Read(ref _executionRestartVersion))
+                    ApplyExecutionAccepted(accepted);
+            }
+            finally
+            {
+                _executionRestartGate.Release();
+            }
         }
         catch (OperationCanceledException)
         {
             // A newer change superseded this restart request.
+        }
+        catch
+        {
+            // The active run may have stopped or the backend may still be replacing a previous run.
         }
         finally
         {
@@ -828,51 +894,150 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         }
     }
 
+    private void ApplyExecutionAccepted(ExecutionAcceptedDto accepted)
+    {
+        if (!string.IsNullOrWhiteSpace(accepted.ExecutionId))
+        {
+            if (_terminalExecutionIds.Contains(accepted.ExecutionId))
+                return;
+
+            _activeExecutionId = accepted.ExecutionId;
+        }
+
+        IsRunning = accepted.Status is ExecutionStatusDto.Starting or ExecutionStatusDto.Initializing or ExecutionStatusDto.Running;
+    }
+
+    private bool IsStaleExecutionMessage(ExecutionMessageDto message)
+    {
+        var messageExecutionId = GetMessageExecutionId(message);
+
+        return !string.IsNullOrWhiteSpace(messageExecutionId) &&
+            !string.IsNullOrWhiteSpace(_activeExecutionId) &&
+            !string.Equals(messageExecutionId, _activeExecutionId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void TrackStartingExecution(ExecutionMessageDto message)
+    {
+        if (message.ExecutionState?.Status != ExecutionStatusDto.Starting)
+            return;
+
+        var messageExecutionId = GetMessageExecutionId(message);
+        if (!string.IsNullOrWhiteSpace(messageExecutionId))
+        {
+            if (_terminalExecutionIds.Contains(messageExecutionId))
+                return;
+
+            if (!string.IsNullOrWhiteSpace(_activeExecutionId) &&
+                !string.Equals(messageExecutionId, _activeExecutionId, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _terminalExecutionIds.Remove(messageExecutionId);
+            _activeExecutionId = messageExecutionId;
+        }
+    }
+
+    private bool IsCurrentExecutionId(string? executionId)
+        => !string.IsNullOrWhiteSpace(executionId) &&
+            string.Equals(executionId, _activeExecutionId, StringComparison.OrdinalIgnoreCase);
+
+    private static string? GetMessageExecutionId(ExecutionMessageDto message)
+        => !string.IsNullOrWhiteSpace(message.ExecutionId)
+            ? message.ExecutionId
+            : message.ExecutionState?.ExecutionId;
+
+    private void InvalidatePendingExecutionRestarts()
+        => Interlocked.Increment(ref _executionRestartVersion);
+
     private async Task UpdateRunningNodePropertiesAsync(NodeViewModel node)
     {
-        CancelPendingNodePropertiesUpdate();
-
-        var cts = new CancellationTokenSource();
-        _nodePropertiesDebounceCts = cts;
+        var nodeId = node.Node.Id;
+        var version = ScheduleNodePropertiesUpdate(nodeId, out var cts);
 
         try
         {
             await Task.Delay(150, cts.Token);
 
-            if (cts.IsCancellationRequested || !IsRunning)
-                return;
+            await _nodePropertiesUpdateGate.WaitAsync(CancellationToken.None);
+            try
+            {
+                if (!IsRunning || !IsLatestNodePropertiesUpdate(nodeId, version))
+                    return;
 
-            // Time trigger properties are safe to mutate in place, so they take the lighter path
-            // instead of restarting the whole continuous execution.
-            await _backendClient.UpdateNodePropertiesAsync(
-                new UpdateNodePropertiesRequestDto
-                {
-                    ClientId = _clientId,
-                    NodeId = node.Node.Id,
-                    Properties = [.. node.ToNodeDtoClone().Properties]
-                },
-                cts.Token);
+                var executionId = _activeExecutionId;
+                if (string.IsNullOrWhiteSpace(executionId))
+                    return;
+
+                await _backendClient.UpdateNodePropertiesAsync(
+                    new UpdateNodePropertiesRequestDto
+                    {
+                        ClientId = _clientId,
+                        ExecutionId = executionId,
+                        NodeId = nodeId,
+                        Properties = [.. node.ToNodeDtoClone().Properties]
+                    },
+                    CancellationToken.None);
+            }
+            finally
+            {
+                _nodePropertiesUpdateGate.Release();
+            }
         }
         catch (OperationCanceledException)
         {
-            // A newer property edit superseded this update request.
+            // A newer property edit superseded this debounced update.
         }
         catch
         {
-            // The active run may have stopped before the debounced update reached the backend.
+            // Live parameter updates are best-effort; unsupported edits will take effect on the next run.
         }
         finally
         {
-            if (ReferenceEquals(_nodePropertiesDebounceCts, cts))
+            CompleteNodePropertiesUpdate(nodeId, version, cts);
+        }
+    }
+
+    private long ScheduleNodePropertiesUpdate(string nodeId, out CancellationTokenSource cts)
+    {
+        lock (_nodePropertiesUpdateSync)
+        {
+            if (_nodePropertiesDebounceCtsByNodeId.TryGetValue(nodeId, out var previousCts))
+                previousCts.Cancel();
+
+            _nodePropertiesUpdateVersionsByNodeId.TryGetValue(nodeId, out var previousVersion);
+            var version = previousVersion + 1;
+
+            cts = new CancellationTokenSource();
+            _nodePropertiesUpdateVersionsByNodeId[nodeId] = version;
+            _nodePropertiesDebounceCtsByNodeId[nodeId] = cts;
+            return version;
+        }
+    }
+
+    private bool IsLatestNodePropertiesUpdate(string nodeId, long version)
+    {
+        lock (_nodePropertiesUpdateSync)
+        {
+            return _nodePropertiesUpdateVersionsByNodeId.TryGetValue(nodeId, out var currentVersion) &&
+                currentVersion == version;
+        }
+    }
+
+    private void CompleteNodePropertiesUpdate(string nodeId, long version, CancellationTokenSource cts)
+    {
+        lock (_nodePropertiesUpdateSync)
+        {
+            if (_nodePropertiesDebounceCtsByNodeId.TryGetValue(nodeId, out var currentCts) &&
+                ReferenceEquals(currentCts, cts) &&
+                _nodePropertiesUpdateVersionsByNodeId.TryGetValue(nodeId, out var currentVersion) &&
+                currentVersion == version)
             {
-                _nodePropertiesDebounceCts.Dispose();
-                _nodePropertiesDebounceCts = null;
-            }
-            else
-            {
-                cts.Dispose();
+                _nodePropertiesDebounceCtsByNodeId.Remove(nodeId);
             }
         }
+
+        cts.Dispose();
     }
 
     private static int ReadIntSetting(string key, int defaultValue)

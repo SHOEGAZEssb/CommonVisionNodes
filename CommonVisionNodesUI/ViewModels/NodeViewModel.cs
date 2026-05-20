@@ -107,10 +107,18 @@ public abstract partial class NodeViewModel : ObservableObject
 	[ObservableProperty]
 	public partial bool ShowPreview { get; set; }
 
+	[ObservableProperty]
+	public partial bool IsGraphRunning { get; set; }
+
     /// <summary>
     /// Calculated node height based on the larger port count.
     /// </summary>
     public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
+
+    /// <summary>
+    /// Explains why this node's main property editor is disabled while execution is running.
+    /// </summary>
+    public virtual string RuntimeEditLockMessage => "Stop execution to edit these properties.";
 
     /// <summary>
     /// Header color used to visually group node types on the canvas.
@@ -296,15 +304,17 @@ public abstract partial class NodeViewModel : ObservableObject
             : [];
 
     /// <summary>
-    /// Stores a string property value and raises configuration change notifications.
+    /// Stores a string property value and raises configuration change notifications when requested.
     /// </summary>
     /// <param name="name">Property name.</param>
     /// <param name="value">Serialized value.</param>
-    protected void SetString(string name, string? value)
+    /// <param name="notifyConfigurationChanged">Whether the stored value changes runtime node configuration.</param>
+    protected void SetString(string name, string? value, bool notifyConfigurationChanged = true)
     {
         EnsureProperty(name).Value = value;
         OnPropertyChanged(nameof(Summary));
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        if (notifyConfigurationChanged)
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -328,8 +338,8 @@ public abstract partial class NodeViewModel : ObservableObject
     /// </summary>
     /// <param name="name">Property name.</param>
     /// <param name="value">Property value.</param>
-    protected void SetBool(string name, bool value)
-        => SetString(name, value.ToString());
+    protected void SetBool(string name, bool value, bool notifyConfigurationChanged = true)
+        => SetString(name, value.ToString(), notifyConfigurationChanged);
 
     /// <summary>
     /// Raises a property notification for <see cref="Summary"/>.
@@ -341,10 +351,20 @@ public abstract partial class NodeViewModel : ObservableObject
         if (!SupportsPreviewToggle)
             return;
 
-        SetBool(NodePreviewSettings.ShowPreviewPropertyName, value);
+        SetBool(NodePreviewSettings.ShowPreviewPropertyName, value, notifyConfigurationChanged: false);
         if (!value)
             ClearPreviewState();
     }
+
+    partial void OnIsGraphRunningChanged(bool value)
+    {
+        OnRuntimeEditStateChanged();
+    }
+
+    /// <summary>
+    /// Allows specialized node editors to refresh per-property runtime edit state.
+    /// </summary>
+    protected virtual void OnRuntimeEditStateChanged() { }
 
     private void EnsureDefaultProperties()
     {

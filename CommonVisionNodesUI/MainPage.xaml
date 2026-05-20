@@ -314,7 +314,16 @@
             <StackPanel Spacing="12">
                 <StackPanel>
                     <TextBlock Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="13" PlaceholderText="Path to .clf file"/>
+                    <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding IsClassifierPathEditable}"
+                             FontSize="13"
+                             PlaceholderText="Path to .clf file"/>
+                    <TextBlock Text="Stop execution to change the classifier file."
+                               Visibility="{Binding ClassifierPathRuntimeLockVisibility}"
+                               FontSize="11"
+                               Foreground="#FFB74D"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Min Quality (0.0–1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
@@ -719,6 +728,19 @@
                                        Foreground="#888888"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
+
+                        <Border Background="#332A18"
+                                BorderBrush="#8D6E30"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="8"
+                                Margin="0,0,0,12"
+                                Visibility="{Binding RuntimeEditNoticeVisibility}">
+                            <TextBlock Text="{Binding RuntimeEditNoticeText}"
+                                       FontSize="11"
+                                       Foreground="#FFCC80"
+                                       TextWrapping="Wrap"/>
+                        </Border>
 
                         <ContentControl Content="{Binding Graph.SelectedNode}"
                                         ContentTemplateSelector="{StaticResource NodePropertiesSelector}"

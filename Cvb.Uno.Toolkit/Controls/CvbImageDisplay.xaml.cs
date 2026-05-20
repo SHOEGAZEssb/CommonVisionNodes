@@ -43,7 +43,7 @@ public sealed partial class CvbImageDisplay : UserControl
     /// </summary>
     public void Clear()
     {
-        DisplayImage.Source = null;
+        PreviewImageSourceLoader.ClearImage(DisplayImage);
         PlaceholderText.Visibility = Visibility.Visible;
         InfoOverlay.Visibility = Visibility.Collapsed;
     }
