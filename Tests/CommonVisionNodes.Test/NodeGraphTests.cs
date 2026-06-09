@@ -36,9 +36,9 @@ namespace CommonVisionNodes.Test
 
             // Assert
             var connection = graph.Connections.FirstOrDefault();
+			Assert.That(connection, Is.Not.Null);
 			using (Assert.EnterMultipleScope())
 			{
-				Assert.That(connection, Is.Not.Null);
 				Assert.That(outputPort, Is.EqualTo(connection.Output));
 				Assert.That(inputPort, Is.EqualTo(connection.Input));
 			}
