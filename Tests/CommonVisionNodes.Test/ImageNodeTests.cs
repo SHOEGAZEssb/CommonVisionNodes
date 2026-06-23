@@ -141,6 +141,151 @@ namespace CommonVisionNodes.Test
         }
 
         [Test]
+        public void Initialize_WithFolder_ShouldDiscoverSupportedImages()
+        {
+            // Arrange
+            var tempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempFolder);
+            CreateTestImage(tempFolder, "b.bmp", 64, 64);
+            CreateTestImage(tempFolder, "a.bmp", 32, 32);
+            File.WriteAllText(Path.Combine(tempFolder, "ignore.txt"), "not an image");
+
+            var node = new ImageNode { FilePath = tempFolder };
+
+            try
+            {
+                // Act
+                node.Initialize();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // Assert
+                    Assert.That(node.IsInitialized, Is.True);
+                    Assert.That(node.IsFolderSource, Is.True);
+                    Assert.That(node.ImageCount, Is.EqualTo(2));
+                    Assert.That(node.SelectedImageIndex, Is.EqualTo(0));
+                }
+            }
+            finally
+            {
+                node.Dispose();
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+
+        [Test]
+        public void Execute_WithFolderPlaying_ShouldAdvanceImageEachTick()
+        {
+            // Arrange
+            var tempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempFolder);
+            CreateTestImage(tempFolder, "a.bmp", 64, 64);
+            CreateTestImage(tempFolder, "b.bmp", 32, 32);
+
+            var node = new ImageNode { FilePath = tempFolder };
+
+            try
+            {
+                node.Initialize();
+
+                // Act
+                node.Execute();
+                var first = node.ImageOutput.Value;
+                var firstIndex = node.SelectedImageIndex;
+
+                node.Execute();
+                var second = node.ImageOutput.Value;
+                var secondIndex = node.SelectedImageIndex;
+
+                node.Execute();
+                var thirdIndex = node.SelectedImageIndex;
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // Assert
+                    Assert.That(firstIndex, Is.EqualTo(0));
+                    Assert.That(secondIndex, Is.EqualTo(1));
+                    Assert.That(thirdIndex, Is.EqualTo(0));
+                    Assert.That(second, Is.Not.SameAs(first));
+                }
+            }
+            finally
+            {
+                node.Dispose();
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+
+        [Test]
+        public void Execute_WithFolderStopped_ShouldKeepSelectedImage()
+        {
+            // Arrange
+            var tempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempFolder);
+            CreateTestImage(tempFolder, "a.bmp", 64, 64);
+            CreateTestImage(tempFolder, "b.bmp", 32, 32);
+
+            var node = new ImageNode
+            {
+                FilePath = tempFolder,
+                SelectedImageIndex = 1,
+                IsPlaying = false
+            };
+
+            try
+            {
+                node.Initialize();
+
+                // Act
+                node.Execute();
+                var first = node.ImageOutput.Value;
+                node.Execute();
+                var second = node.ImageOutput.Value;
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // Assert
+                    Assert.That(node.SelectedImageIndex, Is.EqualTo(1));
+                    Assert.That(second, Is.SameAs(first));
+                }
+            }
+            finally
+            {
+                node.Dispose();
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+
+        [Test]
+        public void SelectPreviousImage_WithFolder_ShouldWrapSelection()
+        {
+            // Arrange
+            var tempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempFolder);
+            CreateTestImage(tempFolder, "a.bmp", 64, 64);
+            CreateTestImage(tempFolder, "b.bmp", 32, 32);
+
+            var node = new ImageNode { FilePath = tempFolder, IsPlaying = false };
+
+            try
+            {
+                node.Initialize();
+
+                // Act
+                node.SelectPreviousImage();
+                node.Execute();
+
+                // Assert
+                Assert.That(node.SelectedImageIndex, Is.EqualTo(1));
+            }
+            finally
+            {
+                node.Dispose();
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+
+        [Test]
         public void Dispose_ShouldResetIsInitialized()
         {
             // Arrange
@@ -192,6 +337,12 @@ namespace CommonVisionNodes.Test
                 File.Delete(tempFile1);
                 File.Delete(tempFile2);
             }
+        }
+
+        private static void CreateTestImage(string folder, string fileName, int width, int height)
+        {
+            using var image = new Image(width, height);
+            image.Save(Path.Combine(folder, fileName));
         }
     }
 

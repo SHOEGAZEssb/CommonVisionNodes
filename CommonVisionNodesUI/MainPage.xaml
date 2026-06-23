@@ -13,8 +13,47 @@
         <DataTemplate x:Key="ImageNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="File Path" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="13"/>
+                    <TextBlock Text="Source Path" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding CanEditSourcePath}"
+                             FontSize="13"/>
+                </StackPanel>
+                <StackPanel Spacing="8"
+                            Visibility="{Binding IsFolderSource, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Folder" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Command="{Binding PreviousImageCommand}"
+                                ToolTipService.ToolTip="Previous image"
+                                Padding="8,6" CornerRadius="4">
+                            <FontIcon Glyph="&#xE892;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="1"
+                                Command="{Binding TogglePlaybackCommand}"
+                                ToolTipService.ToolTip="{Binding PlaybackToolTip}"
+                                Padding="10,6" CornerRadius="4"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <FontIcon Glyph="{Binding PlaybackGlyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                                <TextBlock Text="{Binding PlaybackText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2"
+                                Command="{Binding NextImageCommand}"
+                                ToolTipService.ToolTip="Next image"
+                                Padding="8,6" CornerRadius="4">
+                            <FontIcon Glyph="&#xE893;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding ImagePositionText}"
+                               FontSize="13"
+                               Foreground="White"
+                               HorizontalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>

@@ -408,6 +408,14 @@ public sealed class GraphExecutionRunner(
                 continue;
             }
 
+            if (node is ImageNode &&
+                (string.Equals(property.Name, nameof(ImageNode.SelectedImageIndex), StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(property.Name, nameof(ImageNode.IsPlaying), StringComparison.OrdinalIgnoreCase)))
+            {
+                yield return property;
+                continue;
+            }
+
             if (node is IInitializable)
                 continue;
 
@@ -430,6 +438,7 @@ public sealed class GraphExecutionRunner(
             BlobNode blobNode => $"{blobNode.BlobCount} blob(s)",
             PolimagoClassifyNode classifyNode => $"{classifyNode.ResultCount} result(s)",
             GevServerNode gevServerNode => gevServerNode.LastStatus,
+            ImageNode imageNode when imageNode.IsFolderSource => $"Image {imageNode.SelectedImageIndex + 1}/{imageNode.ImageCount} {(imageNode.IsPlaying ? "Playing" : "Stopped")}",
             CSharpNode csharpNode when !string.IsNullOrWhiteSpace(csharpNode.LastCompilationError) => csharpNode.LastCompilationError,
             _ => null
         };

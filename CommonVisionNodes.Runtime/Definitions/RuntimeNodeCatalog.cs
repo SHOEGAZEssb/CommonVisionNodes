@@ -79,7 +79,9 @@ public sealed class RuntimeNodeCatalog
                 NodePreviewKindDto.Image,
                 canEditWhileRunning: false,
                 () => new ImageNode(),
-                StringProperty("FilePath", "File Path", "Path to the source image."),
+                StringProperty("FilePath", "Source Path", "Path to the source image or folder."),
+                IntProperty("SelectedImageIndex", "Selected Image", "Selected image index when the source path is a folder.", 0, null, 1),
+                BoolProperty("IsPlaying", "Play", "Cycle through folder images on each graph execution tick."),
                 PreviewToggleProperty()),
             CreateDefinition(
                 nameof(DeviceNode),
