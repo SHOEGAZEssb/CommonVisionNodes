@@ -51,7 +51,7 @@ namespace CommonVisionNodes.Runtime
             Dispose();
             _device = DeviceFactory.Open(AccessToken, AcquisitionStack.GenTL) as GenICamDevice;
 
-            if (_device?.NodeMaps[NodeMapNames.Device]["DeviceSerialNumber"] is StringNode serialNode)
+            if (_device?.NodeMaps[NodeMapNames.Device]["DeviceID"] is StringNode serialNode)
                 SerialNumber = serialNode.Value;
 
             _stream = _device!.GetStream<ImageStream>(0);

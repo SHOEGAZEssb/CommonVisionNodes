@@ -241,6 +241,54 @@ public sealed class GraphExecutionRunnerTests
 	}
 
     [Test]
+    public async Task SingleExecution_WithNodeException_ShouldPublishFailedNodeAndFailureContext()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = new ExecutionRequestDto
+        {
+            ClientId = "test-client",
+            Mode = ExecutionModeDto.Single,
+            Graph = new GraphDto
+            {
+                Nodes =
+                [
+                    new NodeDto
+                    {
+                        Id = "save",
+                        Type = nameof(SaveImageNode),
+                        Properties =
+                        [
+                            new NodePropertyDto { Name = nameof(SaveImageNode.FilePath), Value = "not-used.bmp" }
+                        ]
+                    }
+                ]
+            }
+        };
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.DisposeAsync();
+
+        var nodeFailure = messages.FirstOrDefault(message =>
+            message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+            message.NodeUpdate?.NodeId == "save" &&
+            message.NodeUpdate.Status == NodeExecutionStatusDto.Failed);
+        var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
+
+        Assert.That(nodeFailure, Is.Not.Null);
+        Assert.That(failure, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(nodeFailure!.NodeUpdate?.Message, Is.Not.Null.And.Not.Empty);
+            Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
+            Assert.That(failure.ExecutionState?.Message, Does.Contain(nameof(SaveImageNode)).And.Contain("'save'"));
+            Assert.That(failure.Error, Is.EqualTo(failure.ExecutionState?.Message));
+        }
+    }
+
+    [Test]
     public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
     {
         var messages = new List<ExecutionMessageDto>();

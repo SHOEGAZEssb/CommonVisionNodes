@@ -15,6 +15,7 @@ namespace CommonVisionNodesUI.Controls;
 public sealed partial class NodeControl : UserControl
 {
     private NodeViewModel? _viewModel;
+    private bool _isSelected;
     private bool _isDragging;
     private bool _hasMoved;
     private Point _dragStart;
@@ -77,8 +78,15 @@ public sealed partial class NodeControl : UserControl
                 UpdateSummary();
             else if (e.PropertyName == nameof(NodeViewModel.ExecutionTime))
                 UpdateExecutionTime();
+            else if (e.PropertyName is nameof(NodeViewModel.HasExecutionError) or nameof(NodeViewModel.ExecutionErrorText))
+            {
+                UpdateExecutionError();
+                UpdateNodeBorder();
+            }
         };
         UpdateSummary();
+        UpdateExecutionError();
+        UpdateNodeBorder();
 
         if (vm is ImageNodeViewModel imageVM)
         {
@@ -250,11 +258,19 @@ public sealed partial class NodeControl : UserControl
     /// <param name="selected"><c>true</c> when the node is selected.</param>
     public void SetSelected(bool selected)
     {
+        _isSelected = selected;
+        UpdateNodeBorder();
+    }
+
+    private void UpdateNodeBorder()
+    {
         NodeBorder.BorderBrush = new SolidColorBrush(
-            selected
+            _viewModel?.HasExecutionError == true
+                ? Windows.UI.Color.FromArgb(255, 229, 57, 53)
+                : _isSelected
                 ? Windows.UI.Color.FromArgb(255, 100, 180, 255)
                 : Windows.UI.Color.FromArgb(255, 85, 85, 85));
-        NodeBorder.BorderThickness = new Thickness(selected ? 2 : 1);
+        NodeBorder.BorderThickness = new Thickness(_isSelected || _viewModel?.HasExecutionError == true ? 2 : 1);
     }
 
     private static void UpdateImagePreview(CvbImageDisplay previewControl, NodeViewModel vm, CommonVisionNodes.Contracts.ImagePreviewDto? preview)
@@ -331,13 +347,30 @@ public sealed partial class NodeControl : UserControl
         }
     }
 
+    private void UpdateExecutionError()
+    {
+        var error = _viewModel?.ExecutionErrorText;
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            ExecutionErrorText.Text = error;
+            ExecutionErrorPanel.Visibility = Visibility.Visible;
+            ToolTipService.SetToolTip(ExecutionErrorPanel, error);
+        }
+        else
+        {
+            ExecutionErrorText.Text = string.Empty;
+            ExecutionErrorPanel.Visibility = Visibility.Collapsed;
+            ToolTipService.SetToolTip(ExecutionErrorPanel, null);
+        }
+    }
+
     private void Header_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (_viewModel == null) return;
         _isDragging = true;
         _hasMoved = false;
-		if (Parent is not UIElement canvas) return;
-		_dragStart = e.GetCurrentPoint(canvas).Position;
+        if (Parent is not UIElement canvas) return;
+        _dragStart = e.GetCurrentPoint(canvas).Position;
         _startX = _viewModel.X;
         _startY = _viewModel.Y;
         ((UIElement)sender).CapturePointer(e.Pointer);
@@ -347,8 +380,8 @@ public sealed partial class NodeControl : UserControl
     private void Header_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (!_isDragging || _viewModel == null) return;
-		if (Parent is not UIElement canvas) return;
-		var current = e.GetCurrentPoint(canvas).Position;
+        if (Parent is not UIElement canvas) return;
+        var current = e.GetCurrentPoint(canvas).Position;
         _viewModel.X = _startX + (current.X - _dragStart.X);
         _viewModel.Y = _startY + (current.Y - _dragStart.Y);
         Canvas.SetLeft(this, _viewModel.X);

@@ -110,6 +110,26 @@ public abstract partial class NodeViewModel : ObservableObject
 	[ObservableProperty]
 	public partial bool IsGraphRunning { get; set; }
 
+	[ObservableProperty]
+	public partial NodeExecutionStatusDto ExecutionStatus { get; set; } = NodeExecutionStatusDto.Pending;
+
+	[ObservableProperty]
+	public partial string ExecutionMessage { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Indicates whether the most recent runtime update for this node reported a failure.
+    /// </summary>
+    public bool HasExecutionError => ExecutionStatus == NodeExecutionStatusDto.Failed;
+
+    /// <summary>
+    /// Error text displayed near the node when execution fails.
+    /// </summary>
+    public string ExecutionErrorText => HasExecutionError
+        ? string.IsNullOrWhiteSpace(ExecutionMessage)
+            ? "Node execution failed."
+            : ExecutionMessage
+        : string.Empty;
+
     /// <summary>
     /// Calculated node height based on the larger port count.
     /// </summary>
@@ -192,6 +212,8 @@ public abstract partial class NodeViewModel : ObservableObject
         if (update.ExecutionDurationMs.HasValue)
             ExecutionTime = FormatExecutionTime(update.ExecutionDurationMs.Value);
 
+        ExecutionStatus = update.Status;
+        ExecutionMessage = update.Message ?? string.Empty;
         OnExecutionUpdate(update);
     }
 
@@ -201,6 +223,9 @@ public abstract partial class NodeViewModel : ObservableObject
     /// <param name="state">Execution state update.</param>
     public void ApplyExecutionState(ExecutionStateDto state)
     {
+        if (state.Status is ExecutionStatusDto.Starting or ExecutionStatusDto.Initializing)
+            ClearExecutionState();
+
         OnExecutionState(state);
     }
 
@@ -361,6 +386,18 @@ public abstract partial class NodeViewModel : ObservableObject
         OnRuntimeEditStateChanged();
     }
 
+    partial void OnExecutionStatusChanged(NodeExecutionStatusDto value)
+    {
+        OnPropertyChanged(nameof(HasExecutionError));
+        OnPropertyChanged(nameof(ExecutionErrorText));
+    }
+
+    partial void OnExecutionMessageChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasExecutionError));
+        OnPropertyChanged(nameof(ExecutionErrorText));
+    }
+
     /// <summary>
     /// Allows specialized node editors to refresh per-property runtime edit state.
     /// </summary>
@@ -434,6 +471,15 @@ public abstract partial class NodeViewModel : ObservableObject
         => executionDurationMs >= 1.0
             ? $"{executionDurationMs:F1} ms"
             : $"{executionDurationMs * 1000:F0} us";
+
+    private void ClearExecutionState()
+    {
+        if (ExecutionStatus != NodeExecutionStatusDto.Pending)
+            ExecutionStatus = NodeExecutionStatusDto.Pending;
+
+        if (!string.IsNullOrEmpty(ExecutionMessage))
+            ExecutionMessage = string.Empty;
+    }
 
     private void ClearPreviewState()
     {

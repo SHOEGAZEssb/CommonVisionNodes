@@ -87,6 +87,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
 	[ObservableProperty]
 	public partial string LastExecutionTimeText { get; set; } = "-";
+
+	[ObservableProperty]
+	public partial string LastExecutionError { get; set; } = string.Empty;
+
 	[ObservableProperty]
 	public partial int PreviewRefreshRate { get; set; } = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
 
@@ -652,6 +656,12 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
             case ExecutionMessageTypeDto.Completed:
             case ExecutionMessageTypeDto.Failure:
                 ApplyExecutionState(message.ExecutionState);
+                if (message.MessageType == ExecutionMessageTypeDto.Failure &&
+                    message.ExecutionState is null &&
+                    !string.IsNullOrWhiteSpace(message.Error))
+                {
+                    LastExecutionError = message.Error;
+                }
                 break;
             case ExecutionMessageTypeDto.NodeUpdate:
                 if (message.NodeUpdate is not null && _nodesById.TryGetValue(message.NodeUpdate.NodeId, out var node))
@@ -690,6 +700,9 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         LastExecutionTimeText = state.LastExecutionDurationMs.HasValue
             ? FormatExecutionTime(state.LastExecutionDurationMs.Value)
             : "-";
+        LastExecutionError = state.Status == ExecutionStatusDto.Failed
+            ? state.Message ?? "Execution failed."
+            : string.Empty;
 
         foreach (var node in Nodes)
             node.ApplyExecutionState(state);
@@ -905,6 +918,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         }
 
         IsRunning = accepted.Status is ExecutionStatusDto.Starting or ExecutionStatusDto.Initializing or ExecutionStatusDto.Running;
+        LastExecutionError = string.Empty;
     }
 
     private bool IsStaleExecutionMessage(ExecutionMessageDto message)

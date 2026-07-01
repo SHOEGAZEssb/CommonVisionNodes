@@ -656,6 +656,36 @@
                             <CompositeTransform x:Name="CanvasTransform"/>
                         </Canvas.RenderTransform>
                     </Canvas>
+                    <Border Background="#3A1717"
+                            BorderBrush="#D32F2F"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="10,8"
+                            Margin="12"
+                            MaxWidth="760"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            IsHitTestVisible="False"
+                            Visibility="{Binding Graph.LastExecutionError, Converter={StaticResource EmptyToCollapsed}}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="&#xE783;"
+                                       FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                       FontSize="14"
+                                       Foreground="#FFCDD2"
+                                       VerticalAlignment="Top"/>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Execution failed"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FFCDD2"/>
+                                <TextBlock Text="{Binding Graph.LastExecutionError}"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           TextWrapping="WrapWholeWords"
+                                           MaxWidth="700"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 

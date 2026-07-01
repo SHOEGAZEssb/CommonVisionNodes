@@ -213,7 +213,7 @@ public sealed class GraphExecutionRunner(
         }
         catch (Exception ex)
         {
-            await PublishFailureAsync(ex, framesProcessed).ConfigureAwait(false);
+            await PublishFailureAsync(ex, graphBuildResult, framesProcessed).ConfigureAwait(false);
         }
         finally
         {
@@ -251,7 +251,7 @@ public sealed class GraphExecutionRunner(
                     CancellationToken.None).ConfigureAwait(false);
             }
 
-            throw nodeExecutionException.InnerException ?? nodeExecutionException;
+            throw;
         }
 
         executionTimer.Stop();
@@ -334,9 +334,9 @@ public sealed class GraphExecutionRunner(
             cancellationToken);
     }
 
-    private Task PublishFailureAsync(Exception exception, long framesProcessed)
+    private Task PublishFailureAsync(Exception exception, RuntimeGraphBuildResult? graphBuildResult, long framesProcessed)
     {
-        var message = exception.Message;
+        var message = FormatFailureMessage(exception, graphBuildResult);
         return PublishStateAsync(
             ExecutionStatusDto.Failed,
             message,
@@ -345,6 +345,24 @@ public sealed class GraphExecutionRunner(
             null,
             ExecutionMessageTypeDto.Failure,
             CancellationToken.None);
+    }
+
+    private static string FormatFailureMessage(Exception exception, RuntimeGraphBuildResult? graphBuildResult)
+    {
+        if (exception is not NodeExecutionException nodeExecutionException)
+            return exception.Message;
+
+        var nodeType = nodeExecutionException.Node.GetType().Name;
+        string? nodeId = null;
+        graphBuildResult?.NodeIdsByRuntime.TryGetValue(nodeExecutionException.Node, out nodeId);
+        var reason = nodeExecutionException.InnerException?.Message;
+        var nodeDescription = string.IsNullOrWhiteSpace(nodeId)
+            ? nodeType
+            : $"{nodeType} '{nodeId}'";
+
+        return string.IsNullOrWhiteSpace(reason)
+            ? $"{nodeDescription} failed."
+            : $"{nodeDescription} failed: {reason}";
     }
 
     private void ConfigureManualTriggerNodes(RuntimeGraphBuildResult graphBuildResult)
