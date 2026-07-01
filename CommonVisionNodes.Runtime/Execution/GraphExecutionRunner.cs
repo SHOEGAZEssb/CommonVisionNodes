@@ -21,6 +21,7 @@ public sealed class GraphExecutionRunner(
 	Func<ExecutionMessageDto, CancellationToken, Task> publishAsync,
 	Action<GraphExecutionRunner> onCompleted) : IAsyncDisposable
 {
+    private const double ContinuousTelemetryIntervalMilliseconds = 100.0;
     private readonly ExecutionRequestDto _request = request;
     private readonly RuntimeGraphFactory _graphFactory = graphFactory;
     private readonly RuntimePreviewFactory _previewFactory = previewFactory;
@@ -147,6 +148,7 @@ public sealed class GraphExecutionRunner(
         var framesProcessed = 0L;
         var previewTimer = Stopwatch.StartNew();
         var fpsTimer = Stopwatch.StartNew();
+        var telemetryTimer = Stopwatch.StartNew();
         var framesInWindow = 0;
 
         try
@@ -166,7 +168,7 @@ public sealed class GraphExecutionRunner(
 
             if (_request.Mode == ExecutionModeDto.Single)
             {
-                var elapsed = await ExecuteFrameAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
+                var elapsed = await ExecuteFrameAsync(graphBuildResult, publishNodeUpdates: true, cancellationToken).ConfigureAwait(false);
                 framesProcessed = 1;
                 await PublishPreviewsAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
                 await PublishStateAsync(ExecutionStatusDto.Completed, "Execution completed.", framesProcessed, null, elapsed.TotalMilliseconds, ExecutionMessageTypeDto.Completed, cancellationToken).ConfigureAwait(false);
@@ -175,7 +177,7 @@ public sealed class GraphExecutionRunner(
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var elapsed = await ExecuteFrameAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
+                var elapsed = await ExecuteFrameAsync(graphBuildResult, publishNodeUpdates: false, cancellationToken).ConfigureAwait(false);
                 framesProcessed++;
                 framesInWindow++;
 
@@ -187,6 +189,14 @@ public sealed class GraphExecutionRunner(
                     fpsTimer.Restart();
                 }
 
+                var shouldPublishTelemetry = telemetryTimer.Elapsed.TotalMilliseconds >= ContinuousTelemetryIntervalMilliseconds;
+                if (shouldPublishTelemetry)
+                {
+                    await PublishNodeUpdatesAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
+                    await PublishStateAsync(ExecutionStatusDto.Running, "Executing.", framesProcessed, fps, elapsed.TotalMilliseconds, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
+                    telemetryTimer.Restart();
+                }
+
                 var previewIntervalMs = GetPreviewIntervalMilliseconds(Volatile.Read(ref _previewRefreshRate));
                 if (previewIntervalMs == 0 || previewTimer.Elapsed.TotalMilliseconds >= previewIntervalMs)
                 {
@@ -195,8 +205,6 @@ public sealed class GraphExecutionRunner(
                     await PublishPreviewsAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
                     previewTimer.Restart();
                 }
-
-                await PublishStateAsync(ExecutionStatusDto.Running, "Executing.", framesProcessed, fps, elapsed.TotalMilliseconds, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (_cts.IsCancellationRequested)
@@ -220,7 +228,7 @@ public sealed class GraphExecutionRunner(
         }
     }
 
-    private async Task<TimeSpan> ExecuteFrameAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)
+    private async Task<TimeSpan> ExecuteFrameAsync(RuntimeGraphBuildResult graphBuildResult, bool publishNodeUpdates, CancellationToken cancellationToken)
     {
         var executionTimer = Stopwatch.StartNew();
 
@@ -248,10 +256,16 @@ public sealed class GraphExecutionRunner(
 
         executionTimer.Stop();
 
-        foreach (var pair in graphBuildResult.NodeIdsByRuntime)
-            await PublishNodeUpdateAsync(pair.Value, pair.Key, GetNodeStatus(pair.Key), GetNodeMessage(pair.Key), cancellationToken).ConfigureAwait(false);
+        if (publishNodeUpdates)
+            await PublishNodeUpdatesAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
 
         return executionTimer.Elapsed;
+    }
+
+    private async Task PublishNodeUpdatesAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)
+    {
+        foreach (var pair in graphBuildResult.NodeIdsByRuntime)
+            await PublishNodeUpdateAsync(pair.Value, pair.Key, GetNodeStatus(pair.Key), GetNodeMessage(pair.Key), cancellationToken).ConfigureAwait(false);
     }
 
     private async Task PublishPreviewsAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)

@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="Directory.Packages.props" />
     <File Path="global.json" />
+    <File Path="NuGet.config" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/CommonVisionNodes.Test/CommonVisionNodes.Test.csproj" Id="0ae627a9-0750-4b2f-a68c-e458f03f75e4" />

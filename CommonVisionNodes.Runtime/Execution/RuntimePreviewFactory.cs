@@ -162,7 +162,7 @@ public sealed class RuntimePreviewFactory
             return new ImagePreviewDto
             {
                 NodeId = nodeId,
-                Base64Data = Convert.ToBase64String(bytes),
+                BinaryData = bytes,
                 Width = image.Width,
                 Height = image.Height,
                 PreviewWidth = previewImage?.Width ?? image.Width,
@@ -211,7 +211,7 @@ public sealed class RuntimePreviewFactory
             NodeId = nodeId,
             MediaType = "application/x-bgra32",
             Encoding = ImagePreviewEncodingDto.Bgra32,
-            Base64Data = Convert.ToBase64String(bytes),
+            BinaryData = bytes,
             Width = image.Width,
             Height = image.Height,
             PreviewWidth = displayImage.Width,

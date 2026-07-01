@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CommonVisionNodes.Contracts;
 
 /// <summary>
@@ -32,14 +34,20 @@ public sealed class ImagePreviewDto
     public string MediaType { get; set; } = "image/png";
 
     /// <summary>
-    /// Encoding of the binary data stored in <see cref="Base64Data"/>.
+    /// Encoding of the image payload.
     /// </summary>
     public ImagePreviewEncodingDto Encoding { get; set; } = ImagePreviewEncodingDto.Png;
 
     /// <summary>
-    /// Base64-encoded preview bytes.
+    /// Base64-encoded preview bytes. Used as a compatibility fallback when previews are sent as text JSON.
     /// </summary>
     public string Base64Data { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Raw preview bytes when previews are sent through the binary WebSocket path.
+    /// </summary>
+    [JsonIgnore]
+    public byte[]? BinaryData { get; set; }
 
     /// <summary>
     /// Source image width in pixels.

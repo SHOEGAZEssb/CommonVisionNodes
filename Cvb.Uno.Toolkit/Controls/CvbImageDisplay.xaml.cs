@@ -30,12 +30,13 @@ public sealed partial class CvbImageDisplay : UserControl
             return;
         }
 
-        if (!await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview))
+        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        if (appliedPreview is null)
             return;
 
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
-        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);
+        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(appliedPreview);
     }
 
     /// <summary>

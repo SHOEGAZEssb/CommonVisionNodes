@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
@@ -205,7 +206,7 @@ public sealed class GraphExecutionRunnerTests
 		{
             Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
             Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-bgra32"));
-            Assert.That(imagePreview.Base64Data, Is.Not.Empty);
+            Assert.That(imagePreview.BinaryData, Is.Not.Null.And.Not.Empty);
             Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth * 4));
         }
     }
@@ -374,6 +375,54 @@ public sealed class GraphExecutionRunnerTests
 			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
 			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
 		}
+    }
+
+    [Test]
+    public async Task ContinuousExecution_ShouldThrottleTelemetryMessages()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: false);
+        request.Mode = ExecutionModeDto.Continuous;
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+
+        var started = false;
+        for (var attempt = 0; attempt < 100 && !started; attempt++)
+        {
+            lock (messages)
+            {
+                started = messages.Any(message =>
+                    message.ExecutionState?.Status == ExecutionStatusDto.Running);
+            }
+
+            if (!started)
+                await Task.Delay(10);
+        }
+
+        var telemetryWindow = Stopwatch.StartNew();
+        await Task.Delay(500);
+        telemetryWindow.Stop();
+        await runner.DisposeAsync();
+
+        List<ExecutionMessageDto> snapshot;
+        lock (messages)
+            snapshot = [.. messages];
+
+        var runningTelemetryCount = snapshot.Count(message =>
+            message.ExecutionState?.Status == ExecutionStatusDto.Running &&
+            string.Equals(message.ExecutionState.Message, "Executing.", StringComparison.Ordinal));
+        var nodeUpdateCount = snapshot.Count(message => message.MessageType == ExecutionMessageTypeDto.NodeUpdate);
+        var expectedTelemetryLimit = (int)Math.Ceiling(telemetryWindow.Elapsed.TotalMilliseconds / 100.0) + 3;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(started, Is.True);
+            Assert.That(runningTelemetryCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
+            Assert.That(nodeUpdateCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
+            Assert.That(snapshot.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
+        }
     }
 
     [TestCase(0, 1000.0)]

@@ -34,19 +34,20 @@ public sealed partial class BlobImageDisplay : UserControl
 
         if (preview is null)
         {
-            DisplayImage.Source = null;
+            PreviewImageSourceLoader.ClearImage(DisplayImage);
             PlaceholderText.Visibility = Visibility.Visible;
             InfoOverlay.Visibility = Visibility.Collapsed;
             OverlayCanvas.Children.Clear();
             return;
         }
 
-        if (!await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview))
+        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        if (appliedPreview is null)
             return;
 
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
-        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(preview);
+        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(appliedPreview);
         RedrawOverlays();
     }
 

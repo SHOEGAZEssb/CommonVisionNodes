@@ -1,4 +1,5 @@
 using System.IO;
+using System.Buffers.Binary;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -104,6 +105,7 @@ public sealed class BackendClient : IBackendClient
         {
             using var messageStream = new MemoryStream();
             WebSocketReceiveResult result;
+            WebSocketMessageType? messageType = null;
             do
             {
                 // Execution messages can exceed a single WebSocket frame when previews are large,
@@ -112,12 +114,15 @@ public sealed class BackendClient : IBackendClient
                 if (result.MessageType == WebSocketMessageType.Close)
                     return;
 
+                messageType ??= result.MessageType;
                 messageStream.Write(buffer, 0, result.Count);
             }
             while (!result.EndOfMessage);
 
             messageStream.Position = 0;
-            var message = await JsonSerializer.DeserializeAsync<ExecutionMessageDto>(messageStream, _jsonOptions, cancellationToken);
+            var message = messageType == WebSocketMessageType.Binary
+                ? DeserializeBinaryExecutionMessage(messageStream)
+                : await JsonSerializer.DeserializeAsync<ExecutionMessageDto>(messageStream, _jsonOptions, cancellationToken);
             if (message is not null)
                 await onMessage(message);
         }
@@ -127,6 +132,46 @@ public sealed class BackendClient : IBackendClient
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         return await JsonSerializer.DeserializeAsync<T>(stream, _jsonOptions, cancellationToken);
+    }
+
+    private ExecutionMessageDto? DeserializeBinaryExecutionMessage(MemoryStream messageStream)
+    {
+        var payload = messageStream.ToArray();
+        if (payload.Length < sizeof(int))
+            return null;
+
+        var metadataLength = BinaryPrimitives.ReadInt32LittleEndian(payload.AsSpan(0, sizeof(int)));
+        if (metadataLength <= 0 || metadataLength > payload.Length - sizeof(int))
+            return null;
+
+        var metadata = payload.AsSpan(sizeof(int), metadataLength);
+        var imageBytes = payload[(sizeof(int) + metadataLength)..];
+        var message = JsonSerializer.Deserialize<ExecutionMessageDto>(metadata, _jsonOptions);
+
+        if (message is not null && TryGetImagePreview(message, out var imagePreview))
+            imagePreview.BinaryData = imageBytes;
+
+        return message;
+    }
+
+    private static bool TryGetImagePreview(ExecutionMessageDto message, out ImagePreviewDto imagePreview)
+    {
+        imagePreview = null!;
+
+        switch (message.MessageType)
+        {
+            case ExecutionMessageTypeDto.ImagePreview when message.ImagePreview is not null:
+                imagePreview = message.ImagePreview;
+                return true;
+            case ExecutionMessageTypeDto.BlobPreview when message.BlobPreview?.Image is not null:
+                imagePreview = message.BlobPreview.Image;
+                return true;
+            case ExecutionMessageTypeDto.ClassificationPreview when message.ClassificationPreview?.Image is not null:
+                imagePreview = message.ClassificationPreview.Image;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static Uri BuildWebSocketBaseUri(Uri httpBaseUri)

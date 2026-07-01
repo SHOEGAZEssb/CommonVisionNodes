@@ -21,33 +21,30 @@ public static class PreviewImageSourceLoader
     /// </summary>
     /// <param name="image">Image control to update.</param>
     /// <param name="preview">Preview payload, or <c>null</c> to clear the source.</param>
-    /// <returns><c>true</c> when the image source was updated by this call.</returns>
-    public static async Task<bool> SetImageAsync(Image image, ImagePreviewDto? preview)
+    /// <returns>The preview that was applied, or <c>null</c> when a newer preview superseded this call.</returns>
+    public static async Task<ImagePreviewDto?> SetImageAsync(Image image, ImagePreviewDto? preview)
     {
         var state = LoadStates.GetOrCreateValue(image);
-        var version = Interlocked.Increment(ref state.Version);
 
-        if (preview is null || string.IsNullOrWhiteSpace(preview.Base64Data))
+        if (preview is null || !HasImageData(preview))
         {
             ClearImage(image);
-            return true;
+            return null;
         }
 
-        var bytes = await Task.Run(() => Convert.FromBase64String(preview.Base64Data));
-        if (Volatile.Read(ref state.Version) != version)
-            return false;
+        lock (state.Sync)
+        {
+            state.Version++;
+            state.PendingPreview = preview;
+            state.HasPendingPreview = true;
 
-        // A control can receive newer previews while an older payload is decoding.
-        // The per-control version check keeps stale async work from replacing the latest frame.
-        var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
-            ? await CreateBgra32BitmapAsync(preview, bytes)
-            : await CreateEncodedBitmapAsync(bytes);
+            if (state.IsProcessing)
+                return null;
 
-        if (Volatile.Read(ref state.Version) != version)
-            return false;
+            state.IsProcessing = true;
+        }
 
-        image.Source = source;
-        return true;
+        return await ProcessLatestPreviewAsync(image, state);
     }
 
     /// <summary>
@@ -75,8 +72,84 @@ public static class PreviewImageSourceLoader
     public static void ClearImage(Image image)
     {
         var state = LoadStates.GetOrCreateValue(image);
-        Interlocked.Increment(ref state.Version);
+        lock (state.Sync)
+        {
+            state.Version++;
+            state.PendingPreview = null;
+            state.HasPendingPreview = true;
+            state.BgraBitmap = null;
+            state.BgraWidth = 0;
+            state.BgraHeight = 0;
+            state.BgraStride = 0;
+        }
+
         image.Source = null;
+    }
+
+    private static async Task<ImagePreviewDto?> ProcessLatestPreviewAsync(Image image, ImageLoadState state)
+    {
+        ImagePreviewDto? appliedPreview = null;
+
+        while (true)
+        {
+            ImagePreviewDto? preview;
+            int version;
+
+            lock (state.Sync)
+            {
+                if (!state.HasPendingPreview)
+                {
+                    state.IsProcessing = false;
+                    return appliedPreview;
+                }
+
+                preview = state.PendingPreview;
+                version = state.Version;
+                state.HasPendingPreview = false;
+            }
+
+            if (preview is null || !HasImageData(preview))
+            {
+                image.Source = null;
+                appliedPreview = null;
+                continue;
+            }
+
+            var bytes = await GetPreviewBytesAsync(preview);
+            if (HasNewerPreview(state, version))
+                continue;
+
+            // A control can receive newer previews while an older payload is decoding.
+            // Only one worker per control is allowed, and it always jumps to the newest frame.
+            var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
+                ? await CreateBgra32BitmapAsync(state, preview, bytes)
+                : await CreateEncodedBitmapAsync(bytes);
+
+            if (HasNewerPreview(state, version))
+                continue;
+
+            if (!ReferenceEquals(image.Source, source))
+                image.Source = source;
+
+            appliedPreview = preview;
+        }
+    }
+
+    private static bool HasNewerPreview(ImageLoadState state, int version)
+    {
+        lock (state.Sync)
+            return state.Version != version && state.HasPendingPreview;
+    }
+
+    private static bool HasImageData(ImagePreviewDto preview)
+        => (preview.BinaryData is { Length: > 0 }) || !string.IsNullOrWhiteSpace(preview.Base64Data);
+
+    private static Task<byte[]> GetPreviewBytesAsync(ImagePreviewDto preview)
+    {
+        if (preview.BinaryData is { Length: > 0 } binaryData)
+            return Task.FromResult(binaryData);
+
+        return Task.Run(() => Convert.FromBase64String(preview.Base64Data));
     }
 
     private static async Task<ImageSource> CreateEncodedBitmapAsync(byte[] bytes)
@@ -90,7 +163,7 @@ public static class PreviewImageSourceLoader
         return bitmap;
     }
 
-    private static async Task<ImageSource> CreateBgra32BitmapAsync(ImagePreviewDto preview, byte[] bytes)
+    private static async Task<ImageSource> CreateBgra32BitmapAsync(ImageLoadState state, ImagePreviewDto preview, byte[] bytes)
     {
         var width = Math.Max(1, preview.PreviewWidth);
         var height = Math.Max(1, preview.PreviewHeight);
@@ -100,15 +173,52 @@ public static class PreviewImageSourceLoader
         if (bytes.Length < expectedByteCount)
             throw new InvalidDataException("BGRA preview payload is smaller than the declared dimensions.");
 
-        var bitmap = new WriteableBitmap(width, height);
+        var bitmap = GetOrCreateBgraBitmap(state, width, height, stride);
         using var pixelStream = bitmap.PixelBuffer.AsStream();
+        pixelStream.Position = 0;
         await pixelStream.WriteAsync(bytes, 0, expectedByteCount);
         bitmap.Invalidate();
         return bitmap;
     }
 
+    private static WriteableBitmap GetOrCreateBgraBitmap(ImageLoadState state, int width, int height, int stride)
+    {
+        lock (state.Sync)
+        {
+            if (state.BgraBitmap is not null &&
+                state.BgraWidth == width &&
+                state.BgraHeight == height &&
+                state.BgraStride == stride)
+            {
+                return state.BgraBitmap;
+            }
+
+            state.BgraBitmap = new WriteableBitmap(width, height);
+            state.BgraWidth = width;
+            state.BgraHeight = height;
+            state.BgraStride = stride;
+            return state.BgraBitmap;
+        }
+    }
+
     private sealed class ImageLoadState
     {
+        public object Sync { get; } = new();
+
         public int Version;
+
+        public bool IsProcessing;
+
+        public bool HasPendingPreview;
+
+        public ImagePreviewDto? PendingPreview;
+
+        public WriteableBitmap? BgraBitmap;
+
+        public int BgraWidth;
+
+        public int BgraHeight;
+
+        public int BgraStride;
     }
 }
