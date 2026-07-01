@@ -23,8 +23,8 @@ public sealed record PreviewImageMaxDimensionOption(int Value, string Label);
 /// <param name="backendClient">Backend API client.</param>
 public partial class NodeGraphViewModel(IBackendClient backendClient) : ObservableObject
 {
-    private const int DefaultPreviewRefreshRate = 30;
-    private const int DefaultPreviewImageMaxDimension = 1280;
+    private const int DefaultPreviewRefreshRate = 15;
+    private const int DefaultPreviewImageMaxDimension = 960;
     private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
     private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
 

@@ -8,6 +8,8 @@ namespace CommonVisionNodes.Runtime.Execution;
 /// </summary>
 public sealed class RuntimePreviewFactory
 {
+    private const int BgraBytesPerPixel = 4;
+
     /// <summary>
     /// Creates the appropriate preview message for a runtime node.
     /// </summary>
@@ -188,23 +190,16 @@ public sealed class RuntimePreviewFactory
 
     private static ImagePreviewDto? CreateBgra32Preview(string nodeId, Image image, int previewImageMaxDimension)
     {
-        if (image.Planes.Count != 1)
+        if (!TryGetBgra32Source(image, out var source))
             return null;
 
-        if (image.Planes[0].DataType.BytesPerPixel != 1)
-            return null;
+        // Uno can display BGRA32 directly. Keeping the preview in this raw format avoids
+        // a PNG encode/decode round-trip for the common mono and RGB preview cases.
+        var previewSize = GetPreviewSize(image, previewImageMaxDimension);
+        var stride = checked(previewSize.Width * BgraBytesPerPixel);
+        var bytes = new byte[checked(stride * previewSize.Height)];
 
-        // Uno can display BGRA32 directly; for mono 8-bit images this avoids a PNG round-trip
-        // and keeps high-rate previews much cheaper.
-        using var previewImage = CreateScaledPreviewImage(image, previewImageMaxDimension);
-        var displayImage = previewImage ?? image;
-        var stride = checked(displayImage.Width * 4);
-        var bytes = new byte[checked(stride * displayImage.Height)];
-
-        CopyBgra32(displayImage, bytes, stride);
-
-        var sourceBitsPerPixel = image.Planes[0].DataType.BitsPerPixel;
-        var sourcePixelFormat = $"Mono {sourceBitsPerPixel}bpp";
+        CopyBgra32(image, source, bytes, stride, previewSize.Width, previewSize.Height);
 
         return new ImagePreviewDto
         {
@@ -214,79 +209,178 @@ public sealed class RuntimePreviewFactory
             BinaryData = bytes,
             Width = image.Width,
             Height = image.Height,
-            PreviewWidth = displayImage.Width,
-            PreviewHeight = displayImage.Height,
+            PreviewWidth = previewSize.Width,
+            PreviewHeight = previewSize.Height,
             Stride = stride,
-            PixelFormat = $"{sourcePixelFormat} -> BGRA32",
+            PixelFormat = $"{source.PixelFormat} -> BGRA32",
             TimestampUtc = DateTimeOffset.UtcNow
         };
     }
 
-    private static unsafe void CopyBgra32(Image image, byte[] destination, int stride)
+    private static bool TryGetBgra32Source(Image image, out Bgra32Source source)
     {
-        var bluePlane = image.Planes[0].GetLinearAccess();
-        var greenPlane = bluePlane;
-        var redPlane = bluePlane;
+        source = default;
 
-        byte* blueBase = (byte*)bluePlane.BasePtr;
-        byte* greenBase = (byte*)greenPlane.BasePtr;
-        byte* redBase = (byte*)redPlane.BasePtr;
-        long blueYInc = bluePlane.YInc.ToInt64();
-        long blueXInc = bluePlane.XInc.ToInt64();
-        long greenYInc = greenPlane.YInc.ToInt64();
-        long greenXInc = greenPlane.XInc.ToInt64();
-        long redYInc = redPlane.YInc.ToInt64();
-        long redXInc = redPlane.XInc.ToInt64();
+        if (image.Planes.Count == 1)
+        {
+            var dataType = image.Planes[0].DataType;
+            if (!IsSupportedPreviewDataType(dataType))
+                return false;
+
+            source = Bgra32Source.CreateMono(0, dataType.BitsPerPixel);
+            return true;
+        }
+
+        if (image.Planes.Count is 3 or 4 &&
+            image.ColorModel is ColorModel.RGB or ColorModel.RGBGuess)
+        {
+            for (var planeIndex = 0; planeIndex < image.Planes.Count; planeIndex++)
+            {
+                if (!IsSupportedPreviewDataType(image.Planes[planeIndex].DataType))
+                    return false;
+            }
+
+            source = Bgra32Source.CreateRgb(image.Planes.Count == 4 ? 3 : -1, image.Planes[0].DataType.BitsPerPixel);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSupportedPreviewDataType(DataType dataType)
+        => dataType.IsUnsignedInteger &&
+           dataType.BytesPerPixel is 1 or 2 &&
+           dataType.BitsPerPixel is > 0 and <= 16;
+
+    private static unsafe void CopyBgra32(Image image, Bgra32Source source, byte[] destination, int stride, int previewWidth, int previewHeight)
+    {
+        var red = new PreviewPlaneAccess(image.Planes[source.RedPlaneIndex]);
+        var green = new PreviewPlaneAccess(image.Planes[source.GreenPlaneIndex]);
+        var blue = new PreviewPlaneAccess(image.Planes[source.BluePlaneIndex]);
+        var alpha = source.AlphaPlaneIndex >= 0
+            ? new PreviewPlaneAccess(image.Planes[source.AlphaPlaneIndex])
+            : default;
+
+        if (previewWidth == image.Width && previewHeight == image.Height)
+        {
+            fixed (byte* destinationBase = destination)
+                CopyNativeSizeBgra32(source, red, green, blue, alpha, destinationBase, stride, image.Width, image.Height);
+            return;
+        }
 
         fixed (byte* destinationBase = destination)
-        {
-            for (var y = 0; y < image.Height; y++)
-            {
-                var blueRow = blueBase + y * blueYInc;
-                var greenRow = greenBase + y * greenYInc;
-                var redRow = redBase + y * redYInc;
-                var destinationRow = destinationBase + y * stride;
+            CopyDownscaledBgra32(source, red, green, blue, alpha, destinationBase, stride, image.Width, image.Height, previewWidth, previewHeight);
+    }
 
-                for (var x = 0; x < image.Width; x++)
+    private static unsafe void CopyNativeSizeBgra32(
+        Bgra32Source source,
+        PreviewPlaneAccess red,
+        PreviewPlaneAccess green,
+        PreviewPlaneAccess blue,
+        PreviewPlaneAccess alpha,
+        byte* destinationBase,
+        int stride,
+        int width,
+        int height)
+    {
+        for (var y = 0; y < height; y++)
+        {
+            var destinationRow = (uint*)(destinationBase + y * stride);
+
+            for (var x = 0; x < width; x++)
+            {
+                var redValue = red.ReadDisplayByte(x, y);
+
+                if (source.IsMono)
                 {
-                    var pixel = destinationRow + x * 4;
-                    pixel[0] = *(blueRow + x * blueXInc);
-                    pixel[1] = *(greenRow + x * greenXInc);
-                    pixel[2] = *(redRow + x * redXInc);
-                    pixel[3] = 255;
+                    destinationRow[x] = ComposeBgra32(redValue, redValue, redValue, 255);
+                    continue;
                 }
+
+                var greenValue = green.ReadDisplayByte(x, y);
+                var blueValue = blue.ReadDisplayByte(x, y);
+                var alphaValue = source.HasAlpha ? alpha.ReadDisplayByte(x, y) : (byte)255;
+                destinationRow[x] = ComposeBgra32(blueValue, greenValue, redValue, alphaValue);
             }
         }
     }
 
+    private static unsafe void CopyDownscaledBgra32(
+        Bgra32Source source,
+        PreviewPlaneAccess red,
+        PreviewPlaneAccess green,
+        PreviewPlaneAccess blue,
+        PreviewPlaneAccess alpha,
+        byte* destinationBase,
+        int stride,
+        int sourceWidth,
+        int sourceHeight,
+        int previewWidth,
+        int previewHeight)
+    {
+        for (var targetY = 0; targetY < previewHeight; targetY++)
+        {
+            var sourceY0 = targetY * sourceHeight / previewHeight;
+            var sourceY1 = Math.Max(sourceY0 + 1, (targetY + 1) * sourceHeight / previewHeight);
+            var destinationRow = (uint*)(destinationBase + targetY * stride);
+
+            for (var targetX = 0; targetX < previewWidth; targetX++)
+            {
+                var sourceX0 = targetX * sourceWidth / previewWidth;
+                var sourceX1 = Math.Max(sourceX0 + 1, (targetX + 1) * sourceWidth / previewWidth);
+                var redValue = red.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+
+                if (source.IsMono)
+                {
+                    destinationRow[targetX] = ComposeBgra32(redValue, redValue, redValue, 255);
+                    continue;
+                }
+
+                var greenValue = green.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                var blueValue = blue.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                var alphaValue = source.HasAlpha ? alpha.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1) : (byte)255;
+                destinationRow[targetX] = ComposeBgra32(blueValue, greenValue, redValue, alphaValue);
+            }
+        }
+    }
+
+    private static uint ComposeBgra32(byte blue, byte green, byte red, byte alpha)
+        => (uint)(blue | (green << 8) | (red << 16) | (alpha << 24));
+
     private static Image? CreateScaledPreviewImage(Image image, int previewImageMaxDimension)
     {
-        if (previewImageMaxDimension <= 0)
+        var previewSize = GetPreviewSize(image, previewImageMaxDimension);
+        if (previewSize.Width == image.Width && previewSize.Height == image.Height)
             return null;
 
-        if (image.Planes.Count == 0)
-            return null;
-
-        var longestEdge = Math.Max(image.Width, image.Height);
-        if (longestEdge <= previewImageMaxDimension)
-            return null;
-
-        var scale = previewImageMaxDimension / (double)longestEdge;
-        var targetWidth = Math.Max(1, (int)Math.Round(image.Width * scale));
-        var targetHeight = Math.Max(1, (int)Math.Round(image.Height * scale));
         var dataType = image.Planes[0].DataType;
 
-        var scaledImage = new Image(new Size2D(targetWidth, targetHeight), image.Planes.Count, dataType);
+        var scaledImage = new Image(new Size2D(previewSize.Width, previewSize.Height), image.Planes.Count, dataType);
 
         for (var planeIndex = 0; planeIndex < image.Planes.Count; planeIndex++)
         {
             var sourcePlane = image.Planes[planeIndex];
             var targetPlane = scaledImage.Planes[planeIndex];
             var bytesPerPixel = Math.Max(1, sourcePlane.DataType.BytesPerPixel);
-            CopyDownscaledPlane(sourcePlane.GetLinearAccess(), targetPlane.GetLinearAccess(), image.Width, image.Height, targetWidth, targetHeight, bytesPerPixel);
+            CopyDownscaledPlane(sourcePlane.GetLinearAccess(), targetPlane.GetLinearAccess(), image.Width, image.Height, previewSize.Width, previewSize.Height, bytesPerPixel);
         }
 
         return scaledImage;
+    }
+
+    private static Size2D GetPreviewSize(Image image, int previewImageMaxDimension)
+    {
+        if (previewImageMaxDimension <= 0 || image.Planes.Count == 0)
+            return new Size2D(image.Width, image.Height);
+
+        var longestEdge = Math.Max(image.Width, image.Height);
+        if (longestEdge <= previewImageMaxDimension)
+            return new Size2D(image.Width, image.Height);
+
+        var scale = previewImageMaxDimension / (double)longestEdge;
+        return new Size2D(
+            Math.Max(1, (int)Math.Round(image.Width * scale)),
+            Math.Max(1, (int)Math.Round(image.Height * scale)));
     }
 
     private static unsafe void CopyDownscaledPlane(
@@ -380,5 +474,102 @@ public sealed class RuntimePreviewFactory
 
         var mapped = ((targetCoordinate * 2L + 1L) * sourceLength) / (targetLength * 2L);
         return (int)Math.Clamp(mapped, 0L, sourceLength - 1L);
+    }
+
+    private readonly struct Bgra32Source
+    {
+        private Bgra32Source(
+            int redPlaneIndex,
+            int greenPlaneIndex,
+            int bluePlaneIndex,
+            int alphaPlaneIndex,
+            bool isMono,
+            string pixelFormat)
+        {
+            RedPlaneIndex = redPlaneIndex;
+            GreenPlaneIndex = greenPlaneIndex;
+            BluePlaneIndex = bluePlaneIndex;
+            AlphaPlaneIndex = alphaPlaneIndex;
+            IsMono = isMono;
+            PixelFormat = pixelFormat;
+        }
+
+        public int RedPlaneIndex { get; }
+
+        public int GreenPlaneIndex { get; }
+
+        public int BluePlaneIndex { get; }
+
+        public int AlphaPlaneIndex { get; }
+
+        public bool IsMono { get; }
+
+        public bool HasAlpha => AlphaPlaneIndex >= 0;
+
+        public string PixelFormat { get; }
+
+        public static Bgra32Source CreateMono(int planeIndex, int bitsPerPixel)
+            => new(planeIndex, planeIndex, planeIndex, -1, true, $"Mono {bitsPerPixel}bpp");
+
+        public static Bgra32Source CreateRgb(int alphaPlaneIndex, int bitsPerPixel)
+            => new(0, 1, 2, alphaPlaneIndex, false, alphaPlaneIndex >= 0 ? $"RGBA {bitsPerPixel}bpp" : $"RGB {bitsPerPixel}bpp");
+    }
+
+    private readonly unsafe struct PreviewPlaneAccess
+    {
+        private readonly byte* _base;
+        private readonly long _xInc;
+        private readonly long _yInc;
+        private readonly int _bytesPerPixel;
+        private readonly int _bitsPerPixel;
+
+        public PreviewPlaneAccess(ImagePlane plane)
+        {
+            var access = plane.GetLinearAccess();
+            _base = (byte*)access.BasePtr;
+            _xInc = access.XInc.ToInt64();
+            _yInc = access.YInc.ToInt64();
+            _bytesPerPixel = plane.DataType.BytesPerPixel;
+            _bitsPerPixel = plane.DataType.BitsPerPixel;
+        }
+
+        public byte ReadDisplayByte(int x, int y)
+            => ScaleRawToByte(ReadRaw(x, y));
+
+        public byte ReadAverageDisplayByte(int sourceX0, int sourceX1, int sourceY0, int sourceY1)
+        {
+            var sum = 0L;
+            var samples = 0;
+
+            for (var y = sourceY0; y < sourceY1; y++)
+            {
+                for (var x = sourceX0; x < sourceX1; x++)
+                {
+                    sum += ReadRaw(x, y);
+                    samples++;
+                }
+            }
+
+            return samples > 0
+                ? ScaleRawToByte((int)Math.Round(sum / (double)samples))
+                : (byte)0;
+        }
+
+        private int ReadRaw(int x, int y)
+        {
+            var pixel = _base + y * _yInc + x * _xInc;
+            return _bytesPerPixel == 1
+                ? *pixel
+                : pixel[0] | (pixel[1] << 8);
+        }
+
+        private byte ScaleRawToByte(int value)
+        {
+            if (_bitsPerPixel == 8)
+                return (byte)value;
+
+            var maxValue = (1 << _bitsPerPixel) - 1;
+            return (byte)Math.Clamp((value * 255L + maxValue / 2L) / maxValue, 0L, 255L);
+        }
     }
 }

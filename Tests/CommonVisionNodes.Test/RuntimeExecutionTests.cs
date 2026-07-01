@@ -473,6 +473,24 @@ public sealed class GraphExecutionRunnerTests
         }
     }
 
+    [Test]
+    public async Task ContinuousExecution_WithoutPreviewSubscribers_ShouldSkipImagePreviewMessages()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: true);
+        request.Mode = ExecutionModeDto.Continuous;
+        request.PreviewRefreshRate = 1001;
+        var runner = CreateRunner(request, messages, completed, hasPreviewSubscribers: () => false);
+
+        runner.Start();
+        await Task.Delay(150);
+        await runner.DisposeAsync();
+
+        Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview), Is.False);
+        Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
+    }
+
     [TestCase(0, 1000.0)]
     [TestCase(1, 1000.0)]
     [TestCase(30, 1000.0 / 30)]
@@ -526,7 +544,8 @@ public sealed class GraphExecutionRunnerTests
     private static GraphExecutionRunner CreateRunner(
         ExecutionRequestDto request,
         List<ExecutionMessageDto> messages,
-        TaskCompletionSource completed)
+        TaskCompletionSource completed,
+        Func<bool>? hasPreviewSubscribers = null)
     {
         var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
         var previewFactory = new RuntimePreviewFactory();
@@ -545,7 +564,8 @@ public sealed class GraphExecutionRunnerTests
 
                 return Task.CompletedTask;
             },
-            _ => completed.TrySetResult());
+            _ => completed.TrySetResult(),
+            hasPreviewSubscribers);
     }
 
     private static ExecutionRequestDto CreateSingleGeneratorRequest(bool showPreview, int previewImageMaxDimension = 64)

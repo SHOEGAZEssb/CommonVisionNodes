@@ -63,7 +63,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
                 _graphFactory,
                 _previewFactory,
                 (message, publishCancellationToken) => BroadcastAsync(request.ClientId, message, publishCancellationToken),
-                completedRunner => OnRunnerCompleted(request.ClientId, completedRunner));
+                completedRunner => OnRunnerCompleted(request.ClientId, completedRunner),
+                () => HasOpenSockets(request.ClientId));
 
             lock (session.RunnerSync)
                 session.Runner = runner;
@@ -266,32 +267,28 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 
     private static Task SendAsync(WebSocket socket, ExecutionMessageDto message, CancellationToken cancellationToken)
     {
-        var binaryPayload = TryCreateBinaryPayload(message);
-        if (binaryPayload is not null)
-            return socket.SendAsync(binaryPayload, WebSocketMessageType.Binary, endOfMessage: true, cancellationToken);
+        if (TryGetImagePreview(message, out var imagePreview))
+        {
+            var imageBytes = GetImageBytes(imagePreview);
+            if (imageBytes is { Length: > 0 })
+                return SendBinaryPayloadAsync(socket, message, imageBytes, cancellationToken);
+        }
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
         return socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
     }
 
-    private static byte[]? TryCreateBinaryPayload(ExecutionMessageDto message)
+    private static async Task SendBinaryPayloadAsync(WebSocket socket, ExecutionMessageDto message, byte[] imageBytes, CancellationToken cancellationToken)
     {
-        if (!TryGetImagePreview(message, out var imagePreview))
-            return null;
-
-        var imageBytes = GetImageBytes(imagePreview);
-        if (imageBytes is null || imageBytes.Length == 0)
-            return null;
-
         var metadata = CloneWithoutImageData(message);
         var metadataBytes = JsonSerializer.SerializeToUtf8Bytes(metadata, JsonOptions);
-        var payload = new byte[checked(sizeof(int) + metadataBytes.Length + imageBytes.Length)];
+        var metadataLengthHeader = new byte[sizeof(int)];
 
-        BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(0, sizeof(int)), metadataBytes.Length);
-        metadataBytes.CopyTo(payload.AsSpan(sizeof(int)));
-        imageBytes.CopyTo(payload.AsSpan(sizeof(int) + metadataBytes.Length));
+        BinaryPrimitives.WriteInt32LittleEndian(metadataLengthHeader, metadataBytes.Length);
 
-        return payload;
+        await socket.SendAsync(metadataLengthHeader, WebSocketMessageType.Binary, endOfMessage: false, cancellationToken).ConfigureAwait(false);
+        await socket.SendAsync(metadataBytes, WebSocketMessageType.Binary, endOfMessage: false, cancellationToken).ConfigureAwait(false);
+        await socket.SendAsync(imageBytes, WebSocketMessageType.Binary, endOfMessage: true, cancellationToken).ConfigureAwait(false);
     }
 
     private static byte[]? GetImageBytes(ImagePreviewDto imagePreview)
@@ -385,6 +382,12 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     private static bool TargetsRunner(string? executionId, GraphExecutionRunner runner)
         => string.IsNullOrWhiteSpace(executionId) ||
             string.Equals(executionId, runner.ExecutionId, StringComparison.OrdinalIgnoreCase);
+
+    private bool HasOpenSockets(string clientId)
+    {
+        return _sessions.TryGetValue(clientId, out var session) &&
+            session.Sockets.Values.Any(socket => socket.State == WebSocketState.Open);
+    }
 
     private sealed class ClientSession
     {

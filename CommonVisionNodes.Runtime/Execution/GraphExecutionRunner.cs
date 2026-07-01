@@ -19,7 +19,8 @@ public sealed class GraphExecutionRunner(
 	RuntimeGraphFactory graphFactory,
 	RuntimePreviewFactory previewFactory,
 	Func<ExecutionMessageDto, CancellationToken, Task> publishAsync,
-	Action<GraphExecutionRunner> onCompleted) : IAsyncDisposable
+	Action<GraphExecutionRunner> onCompleted,
+    Func<bool>? hasPreviewSubscribers = null) : IAsyncDisposable
 {
     private const double ContinuousTelemetryIntervalMilliseconds = 100.0;
     private readonly ExecutionRequestDto _request = request;
@@ -27,6 +28,7 @@ public sealed class GraphExecutionRunner(
     private readonly RuntimePreviewFactory _previewFactory = previewFactory;
     private readonly Func<ExecutionMessageDto, CancellationToken, Task> _publishAsync = publishAsync;
     private readonly Action<GraphExecutionRunner> _onCompleted = onCompleted;
+    private readonly Func<bool> _hasPreviewSubscribers = hasPreviewSubscribers ?? (() => true);
     private readonly HashSet<string> _previewEnabledNodeIds = request.Graph.Nodes
 			.Where(node => !string.IsNullOrWhiteSpace(node.Id) && NodePreviewSettings.IsEnabled(node.Type, node.Properties))
 			.Select(node => node.Id)
@@ -270,6 +272,9 @@ public sealed class GraphExecutionRunner(
 
     private async Task PublishPreviewsAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)
     {
+        if (!_hasPreviewSubscribers())
+            return;
+
         foreach (var pair in graphBuildResult.NodeIdsByRuntime)
         {
             if (!IsPreviewEnabled(pair.Value))

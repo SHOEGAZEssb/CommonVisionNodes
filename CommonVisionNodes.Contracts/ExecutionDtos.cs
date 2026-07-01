@@ -162,12 +162,12 @@ public sealed class ExecutionRequestDto
     /// <summary>
     /// Requested preview refresh rate in frames per second. A value of 1001 is treated as unlimited.
     /// </summary>
-    public int PreviewRefreshRate { get; set; } = 30;
+    public int PreviewRefreshRate { get; set; } = 15;
 
     /// <summary>
     /// Maximum long-edge dimension for preview images. A value of 0 disables downscaling.
     /// </summary>
-    public int PreviewImageMaxDimension { get; set; } = 1280;
+    public int PreviewImageMaxDimension { get; set; } = 960;
 }
 
 /// <summary>
@@ -215,12 +215,12 @@ public sealed class UpdateExecutionSettingsRequestDto
     /// <summary>
     /// Requested preview refresh rate in frames per second. A value of 1001 is treated as unlimited.
     /// </summary>
-    public int PreviewRefreshRate { get; set; } = 30;
+    public int PreviewRefreshRate { get; set; } = 15;
 
     /// <summary>
     /// Maximum long-edge dimension for preview images. A value of 0 disables downscaling.
     /// </summary>
-    public int PreviewImageMaxDimension { get; set; } = 1280;
+    public int PreviewImageMaxDimension { get; set; } = 960;
 }
 
 /// <summary>
