@@ -15,6 +15,8 @@ public record DiscoveredDevice(string DisplayName, string AccessToken);
 public partial class DeviceNodeViewModel : NodeViewModel
 {
     private readonly Func<Task>? _refreshDevicesAsync;
+    private bool _isSyncingSelectedDevice;
+    private DiscoveredDevice? _selectedDevice;
 
     /// <summary>
     /// Creates a device node view model.
@@ -37,8 +39,26 @@ public partial class DeviceNodeViewModel : NodeViewModel
     /// </summary>
     public ObservableCollection<DiscoveredDevice> DiscoveredDevices { get; } = [];
 
-	[ObservableProperty]
-	public partial DiscoveredDevice? SelectedDevice { get; set; }
+    /// <summary>
+    /// Currently selected discovered device.
+    /// </summary>
+    public DiscoveredDevice? SelectedDevice
+    {
+        get => _selectedDevice;
+        set
+        {
+            if (value is null && _selectedDevice is not null && !_isSyncingSelectedDevice)
+                return;
+
+            if (SetProperty(ref _selectedDevice, value))
+            {
+                if (value is not null)
+                    AccessToken = value.AccessToken;
+
+                RaiseSummaryChanged();
+            }
+        }
+    }
 
 	[ObservableProperty]
 	public partial ImagePreviewDto? PreviewImage { get; set; }
@@ -51,13 +71,8 @@ public partial class DeviceNodeViewModel : NodeViewModel
     partial void OnAccessTokenChanged(string value)
     {
         SetString("AccessToken", value);
+        SyncSelectedDevice();
         RaiseSummaryChanged();
-    }
-
-    partial void OnSelectedDeviceChanged(DiscoveredDevice? value)
-    {
-        if (value is not null)
-            AccessToken = value.AccessToken;
     }
 
     /// <inheritdoc/>
@@ -82,6 +97,23 @@ public partial class DeviceNodeViewModel : NodeViewModel
         foreach (var option in GetOptions("AccessToken"))
             DiscoveredDevices.Add(new DiscoveredDevice(option.Label, option.Value));
 
-        SelectedDevice = DiscoveredDevices.FirstOrDefault(device => device.AccessToken == AccessToken);
+        SyncSelectedDevice();
+    }
+
+    private void SyncSelectedDevice()
+    {
+        var selected = DiscoveredDevices.FirstOrDefault(device => string.Equals(device.AccessToken, AccessToken, StringComparison.Ordinal));
+        if (ReferenceEquals(SelectedDevice, selected))
+            return;
+
+        _isSyncingSelectedDevice = true;
+        try
+        {
+            SelectedDevice = selected;
+        }
+        finally
+        {
+            _isSyncingSelectedDevice = false;
+        }
     }
 }
