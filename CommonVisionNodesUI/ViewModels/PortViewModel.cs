@@ -51,7 +51,7 @@ public partial class PortViewModel(PortDto port, NodeViewModel parentNode, int i
     /// </summary>
     public double CenterX => Port.Direction == PortDirectionDto.Input
         ? ParentNode.X + 10
-        : ParentNode.X + NodeViewModel.NodeWidth - 10;
+        : ParentNode.X + ParentNode.Width - 10;
 
     /// <summary>
     /// Y coordinate of the port center on the graph canvas.

@@ -246,6 +246,99 @@ public sealed class ClassificationPreviewDto
 }
 
 /// <summary>
+/// Serializable image point for a detected CodeReader result.
+/// </summary>
+public sealed class CodeReaderPointDto
+{
+    /// <summary>
+    /// X coordinate in source image pixels.
+    /// </summary>
+    public double X { get; set; }
+
+    /// <summary>
+    /// Y coordinate in source image pixels.
+    /// </summary>
+    public double Y { get; set; }
+}
+
+/// <summary>
+/// Serializable decoded code result for image overlay previews.
+/// </summary>
+public sealed class CodeReaderResultDto
+{
+    /// <summary>
+    /// One-based result index.
+    /// </summary>
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Decoded payload.
+    /// </summary>
+    public string Data { get; set; } = string.Empty;
+
+    /// <summary>
+    /// CVB symbology name.
+    /// </summary>
+    public string Symbology { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Decode status reported by CVB.
+    /// </summary>
+    public string DecodeStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// X coordinate of the detected code center.
+    /// </summary>
+    public double CenterX { get; set; }
+
+    /// <summary>
+    /// Y coordinate of the detected code center.
+    /// </summary>
+    public double CenterY { get; set; }
+
+    /// <summary>
+    /// Four detected corner points in clockwise order.
+    /// </summary>
+    public IList<CodeReaderPointDto> Corners { get; set; } = [];
+
+    /// <summary>
+    /// 2D result quality, when available.
+    /// </summary>
+    public int? Quality { get; set; }
+}
+
+/// <summary>
+/// CodeReader preview payload containing an optional image and code corner overlays.
+/// </summary>
+public sealed class CodeReaderPreviewDto
+{
+    /// <summary>
+    /// Graph node identifier that produced the preview.
+    /// </summary>
+    public string NodeId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Image preview to draw behind code overlays.
+    /// </summary>
+    public ImagePreviewDto? Image { get; set; }
+
+    /// <summary>
+    /// Decoded code results to draw over the image.
+    /// </summary>
+    public IList<CodeReaderResultDto> Results { get; set; } = [];
+
+    /// <summary>
+    /// Indicates whether decoding hit the configured time limit.
+    /// </summary>
+    public bool TimeLimitReached { get; set; }
+
+    /// <summary>
+    /// UTC timestamp when the preview was produced.
+    /// </summary>
+    public DateTimeOffset TimestampUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
 /// Text preview payload for non-image runtime values.
 /// </summary>
 public sealed class TextPreviewDto

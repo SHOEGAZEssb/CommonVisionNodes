@@ -13,9 +13,24 @@ public abstract partial class NodeViewModel : ObservableObject
     private readonly Dictionary<string, NodePropertyDefinitionDto> _propertyDefinitions;
 
     /// <summary>
-    /// Fixed node width in canvas units.
+    /// Default node width in canvas units.
     /// </summary>
     public const double NodeWidth = 200;
+
+    /// <summary>
+    /// Default preview area height in canvas units.
+    /// </summary>
+    public const double DefaultPreviewHeight = 124;
+
+    /// <summary>
+    /// Minimum node width in canvas units.
+    /// </summary>
+    public const double MinNodeWidth = 160;
+
+    /// <summary>
+    /// Minimum node height in canvas units.
+    /// </summary>
+    public const double MinNodeHeight = 104;
 
     /// <summary>
     /// Fixed node header height in canvas units.
@@ -45,6 +60,8 @@ public abstract partial class NodeViewModel : ObservableObject
 
         X = node.X;
         Y = node.Y;
+        Width = NormalizeDimension(node.Width, NodeWidth, MinNodeWidth);
+        Height = NormalizeDimension(node.Height, GetDefaultHeight(), MinimumContentHeight);
     }
 
     /// <summary>
@@ -102,6 +119,12 @@ public abstract partial class NodeViewModel : ObservableObject
 	public partial double Y { get; set; }
 
 	[ObservableProperty]
+	public partial double Width { get; set; }
+
+	[ObservableProperty]
+	public partial double Height { get; set; }
+
+	[ObservableProperty]
 	public partial bool IsSelected { get; set; }
 
 	[ObservableProperty]
@@ -131,9 +154,9 @@ public abstract partial class NodeViewModel : ObservableObject
         : string.Empty;
 
     /// <summary>
-    /// Calculated node height based on the larger port count.
+    /// Smallest height that keeps the header and ports visible.
     /// </summary>
-    public double Height => HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 8;
+    public double MinimumContentHeight => Math.Max(MinNodeHeight, HeaderHeight + Math.Max(InputPorts.Count, OutputPorts.Count) * PortHeight + 24);
 
     /// <summary>
     /// Explains why this node's main property editor is disabled while execution is running.
@@ -178,6 +201,8 @@ public abstract partial class NodeViewModel : ObservableObject
             Type = Node.Type,
             X = X,
             Y = Y,
+            Width = Width,
+            Height = Height,
             Properties = [.. Node.Properties.Select(property => new NodePropertyDto
             {
                 Name = property.Name,
@@ -253,6 +278,12 @@ public abstract partial class NodeViewModel : ObservableObject
     /// </summary>
     /// <param name="preview">Classification preview payload.</param>
     public virtual void ApplyClassificationPreview(ClassificationPreviewDto preview) { }
+
+    /// <summary>
+    /// Applies a CodeReader preview payload to node-specific state.
+    /// </summary>
+    /// <param name="preview">CodeReader preview payload.</param>
+    public virtual void ApplyCodeReaderPreview(CodeReaderPreviewDto preview) { }
 
     /// <summary>
     /// Applies a text preview payload to node-specific state.
@@ -453,6 +484,31 @@ public abstract partial class NodeViewModel : ObservableObject
         NotifyPortPositions();
     }
 
+    partial void OnWidthChanged(double value)
+    {
+        var normalized = NormalizeDimension(value, NodeWidth, MinNodeWidth);
+        if (Math.Abs(normalized - value) > 0.01)
+        {
+            Width = normalized;
+            return;
+        }
+
+        Node.Width = normalized;
+        NotifyPortPositions();
+    }
+
+    partial void OnHeightChanged(double value)
+    {
+        var normalized = NormalizeDimension(value, GetDefaultHeight(), MinimumContentHeight);
+        if (Math.Abs(normalized - value) > 0.01)
+        {
+            Height = normalized;
+            return;
+        }
+
+        Node.Height = normalized;
+    }
+
     private void NotifyPortPositions()
     {
         if (InputPorts is not null)
@@ -472,6 +528,21 @@ public abstract partial class NodeViewModel : ObservableObject
         => executionDurationMs >= 1.0
             ? $"{executionDurationMs:F1} ms"
             : $"{executionDurationMs * 1000:F0} us";
+
+    private static double NormalizeDimension(double value, double fallback, double minimum)
+        => double.IsFinite(value) && value > 0
+            ? Math.Max(minimum, value)
+            : Math.Max(minimum, fallback);
+
+    private double GetDefaultHeight()
+    {
+        var hasDefaultPreviewArea = Definition.PreviewKind is NodePreviewKindDto.Histogram
+            || ShowPreview && Definition.PreviewKind is not NodePreviewKindDto.None;
+
+        return hasDefaultPreviewArea
+            ? MinimumContentHeight + DefaultPreviewHeight
+            : MinimumContentHeight;
+    }
 
     private void ClearExecutionState()
     {

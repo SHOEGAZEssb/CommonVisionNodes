@@ -36,7 +36,7 @@ public sealed class RuntimePreviewFactory
             HistogramNode histogramNode => CreateHistogramPreviewMessage(nodeId, histogramNode),
             BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension),
             PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension),
-            CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode),
+            CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode, previewImageMaxDimension),
             GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension),
             _ => null
         };
@@ -111,11 +111,33 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ExecutionMessageDto CreateCodeReaderPreviewMessage(string nodeId, CodeReaderNode node)
-        => CreateTextPreviewMessage(
-            nodeId,
-            "CodeReader[]",
-            CodeReaderNode.FormatResultsForPreview(node.Results, node.TimeLimitReached));
+    private static ExecutionMessageDto CreateCodeReaderPreviewMessage(string nodeId, CodeReaderNode node, int previewImageMaxDimension)
+        => new()
+        {
+            MessageType = ExecutionMessageTypeDto.CodeReaderPreview,
+            CodeReaderPreview = new CodeReaderPreviewDto
+            {
+                NodeId = nodeId,
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
+                Results = [.. node.Results.Select(result => new CodeReaderResultDto
+                {
+                    Index = result.Index,
+                    Data = result.Data,
+                    Symbology = result.Symbology,
+                    DecodeStatus = result.DecodeStatus,
+                    CenterX = result.CenterX,
+                    CenterY = result.CenterY,
+                    Corners = [.. result.Corners.Select(corner => new CodeReaderPointDto
+                    {
+                        X = corner.X,
+                        Y = corner.Y
+                    })],
+                    Quality = result.Quality
+                })],
+                TimeLimitReached = node.TimeLimitReached,
+                TimestampUtc = DateTimeOffset.UtcNow
+            }
+        };
 
     private static ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
     {

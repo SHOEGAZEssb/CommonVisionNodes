@@ -8,14 +8,15 @@
     <Border x:Name="NodeBorder" CornerRadius="8"
             BorderBrush="#555555" BorderThickness="1"
             Background="#2D2D2D"
-            Width="200">
+            MinWidth="160"
+            MinHeight="104">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Header (drag handle) -->
@@ -104,33 +105,58 @@
         
             <!-- Image preview -->
             <cvb:CvbImageDisplay x:Name="ImagePreview" Grid.Row="4"
-                                 Height="120" Margin="4,0,4,4"
+                                 Margin="4,0,4,4"
                                  Visibility="Collapsed"/>
 
             <!-- Crop image preview (SubImage node) -->
             <local:CropImageDisplay x:Name="CropPreview" Grid.Row="4"
-                                    Height="120" Margin="4,0,4,4"
+                                    Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
 
             <!-- Histogram preview -->
             <local:HistogramDisplay x:Name="HistogramPreview" Grid.Row="4"
-                                    Height="120" Margin="4,0,4,4"
+                                    Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
 
             <!-- Blob image preview with bounding boxes -->
             <local:BlobImageDisplay x:Name="BlobPreview" Grid.Row="4"
-                                    Height="120" Margin="4,0,4,4"
+                                    Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
 
             <!-- Polimago preview with classification result overlays -->
             <local:PolimagoImageDisplay x:Name="PolimagoPreview" Grid.Row="4"
-                                        Height="120" Margin="4,0,4,4"
+                                        Margin="4,0,4,4"
                                         Visibility="Collapsed"/>
+
+            <!-- CodeReader preview with decoded code corner overlays -->
+            <local:CodeReaderImageDisplay x:Name="CodeReaderPreview" Grid.Row="4"
+                                          Margin="4,0,4,4"
+                                          Visibility="Collapsed"/>
 
             <!-- Generic visualizer preview -->
             <local:GenericVisualizerDisplay x:Name="GenericVisualizerPreview" Grid.Row="4"
-                                            Height="120" Margin="4,0,4,4"
+                                            Margin="4,0,4,4"
                                             Visibility="Collapsed"/>
+
+            <Border x:Name="ResizeGrip"
+                    Grid.RowSpan="5"
+                    Width="18"
+                    Height="18"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Background="#00000000"
+                    PointerPressed="ResizeGrip_PointerPressed"
+                    PointerMoved="ResizeGrip_PointerMoved"
+                    PointerReleased="ResizeGrip_PointerReleased"
+                    ToolTipService.ToolTip="Resize node">
+                <Path Data="M 4 14 L 14 4 M 8 14 L 14 8 M 12 14 L 14 12"
+                      Stroke="#888888"
+                      StrokeThickness="1.4"
+                      Stretch="None"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      IsHitTestVisible="False"/>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

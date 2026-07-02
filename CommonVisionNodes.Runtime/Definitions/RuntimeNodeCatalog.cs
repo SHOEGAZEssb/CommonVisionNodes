@@ -281,7 +281,7 @@ public sealed class RuntimeNodeCatalog
                 "Analysis",
                 "Decode 1D and 2D barcodes with CVB CodeReader.",
                 "&#xE8A5;",
-                NodePreviewKindDto.Text,
+                NodePreviewKindDto.CodeReader,
                 canEditWhileRunning: true,
                 () => new CodeReaderNode(),
                 EnumProperty<CodeReaderSymbologySelection>("Symbologies", "Symbologies", "Barcode symbology preset to enable."),

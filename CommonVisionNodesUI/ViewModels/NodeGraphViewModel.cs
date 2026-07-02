@@ -690,6 +690,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
                 if (message.ClassificationPreview is not null && _nodesById.TryGetValue(message.ClassificationPreview.NodeId, out var classifyNode))
                     classifyNode.ApplyClassificationPreview(message.ClassificationPreview);
                 break;
+            case ExecutionMessageTypeDto.CodeReaderPreview:
+                if (message.CodeReaderPreview is not null && _nodesById.TryGetValue(message.CodeReaderPreview.NodeId, out var codeReaderNode))
+                    codeReaderNode.ApplyCodeReaderPreview(message.CodeReaderPreview);
+                break;
             case ExecutionMessageTypeDto.TextPreview:
                 if (message.TextPreview is not null && _nodesById.TryGetValue(message.TextPreview.NodeId, out var textNode))
                     textNode.ApplyTextPreview(message.TextPreview);

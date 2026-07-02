@@ -48,6 +48,9 @@
     <Page Update="Controls\BlobImageDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Update="Controls\CodeReaderImageDisplay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Controls\GenericVisualizerDisplay.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Controls;
 using CommonVisionNodesUI.ViewModels;
+using Microsoft.UI.Input;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -34,18 +35,24 @@ public sealed partial class MainPage : Page
     private PortViewModel? _connectionDragSource;
     private Path? _pendingConnectionPath;
     private NodeControl? _selectedControl;
+    private InputCursor? _propertiesPanelResizeCursor;
 
     private bool _isPanning;
     private bool _panHasMoved;
+    private bool _isResizingPropertiesPanel;
     private Point _panStart;
+    private Point _propertiesPanelResizeStart;
     private double _panStartTranslateX;
     private double _panStartTranslateY;
+    private double _propertiesPanelResizeStartWidth;
 
     private const double MinZoom = 0.1;
     private const double MaxZoom = 3.0;
     private const double ZoomFactor = 1.1;
     private const double MinorGridSpacing = 25;
     private const double MajorGridSpacing = 100;
+    private const double MinPropertiesPanelWidth = 240;
+    private const double MaxPropertiesPanelWidth = 560;
 
     private readonly Path _minorGridPath = new()
     {
@@ -77,6 +84,8 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         this.InitializeComponent();
+        _propertiesPanelResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+
         _viewModel = ((App)Application.Current).Host!.Services.GetRequiredService<MainViewModel>();
         DataContext = _viewModel;
 
@@ -396,6 +405,53 @@ public sealed partial class MainPage : Page
             _viewModel.RemoveSelectedNodeCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    private void PropertiesPanelSplitter_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        _isResizingPropertiesPanel = true;
+        ProtectedCursor = _propertiesPanelResizeCursor;
+        _propertiesPanelResizeStart = e.GetCurrentPoint(this).Position;
+        _propertiesPanelResizeStartWidth = PropertiesPanel.Width;
+        ((UIElement)sender).CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    private void PropertiesPanelSplitter_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        ProtectedCursor = _propertiesPanelResizeCursor;
+    }
+
+    private void PropertiesPanelSplitter_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_isResizingPropertiesPanel)
+            ProtectedCursor = null;
+    }
+
+    private void PropertiesPanelSplitter_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_isResizingPropertiesPanel)
+            return;
+
+        var current = e.GetCurrentPoint(this).Position;
+        var deltaX = current.X - _propertiesPanelResizeStart.X;
+        PropertiesPanel.Width = Math.Clamp(
+            _propertiesPanelResizeStartWidth - deltaX,
+            MinPropertiesPanelWidth,
+            MaxPropertiesPanelWidth);
+        RedrawGrid();
+        e.Handled = true;
+    }
+
+    private void PropertiesPanelSplitter_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_isResizingPropertiesPanel)
+            return;
+
+        _isResizingPropertiesPanel = false;
+        ProtectedCursor = null;
+        ((UIElement)sender).ReleasePointerCapture(e.Pointer);
+        e.Handled = true;
     }
 
     private async void GenerateCodeButton_Click(object sender, RoutedEventArgs e)

@@ -47,7 +47,7 @@ namespace CommonVisionNodes.Test
             var codeReaderDefinition = definitions.Single(definition => definition.Type == nameof(CodeReaderNode));
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(codeReaderDefinition.PreviewKind, Is.EqualTo(NodePreviewKindDto.Text));
+                Assert.That(codeReaderDefinition.PreviewKind, Is.EqualTo(NodePreviewKindDto.CodeReader));
                 Assert.That(codeReaderDefinition.InputPorts.Single().Type, Is.EqualTo("Image"));
                 Assert.That(codeReaderDefinition.OutputPorts.Single(port => port.Name == "Data").Type, Is.EqualTo("String"));
                 Assert.That(codeReaderDefinition.Properties.Single(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName).DefaultValue, Is.EqualTo(bool.TrueString));

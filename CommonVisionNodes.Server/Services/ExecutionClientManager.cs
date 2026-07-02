@@ -316,6 +316,9 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
             case ExecutionMessageTypeDto.ClassificationPreview when message.ClassificationPreview?.Image is not null:
                 imagePreview = message.ClassificationPreview.Image;
                 return true;
+            case ExecutionMessageTypeDto.CodeReaderPreview when message.CodeReaderPreview?.Image is not null:
+                imagePreview = message.CodeReaderPreview.Image;
+                return true;
             default:
                 return false;
         }
@@ -343,6 +346,14 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
                 Image = message.ClassificationPreview.Image is null ? null : CloneImageMetadata(message.ClassificationPreview.Image),
                 Results = message.ClassificationPreview.Results,
                 TimestampUtc = message.ClassificationPreview.TimestampUtc
+            },
+            CodeReaderPreview = message.CodeReaderPreview is null ? null : new CodeReaderPreviewDto
+            {
+                NodeId = message.CodeReaderPreview.NodeId,
+                Image = message.CodeReaderPreview.Image is null ? null : CloneImageMetadata(message.CodeReaderPreview.Image),
+                Results = message.CodeReaderPreview.Results,
+                TimeLimitReached = message.CodeReaderPreview.TimeLimitReached,
+                TimestampUtc = message.CodeReaderPreview.TimestampUtc
             },
             TextPreview = message.TextPreview,
             Error = message.Error,

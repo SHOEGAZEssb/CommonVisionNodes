@@ -698,6 +698,7 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="6"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
@@ -751,8 +752,22 @@
                 </Grid>
             </Border>
 
+            <Border x:Name="PropertiesPanelSplitter"
+                    Grid.Column="1"
+                    Background="#00000000"
+                    PointerEntered="PropertiesPanelSplitter_PointerEntered"
+                    PointerExited="PropertiesPanelSplitter_PointerExited"
+                    PointerPressed="PropertiesPanelSplitter_PointerPressed"
+                    PointerMoved="PropertiesPanelSplitter_PointerMoved"
+                    PointerReleased="PropertiesPanelSplitter_PointerReleased"
+                    ToolTipService.ToolTip="Resize panel">
+                <Border Width="1"
+                        HorizontalAlignment="Center"
+                        Background="#3C3C3C"/>
+            </Border>
+
             <!-- Properties Panel -->
-            <Border Grid.Column="1" Width="280" Background="#252525"
+            <Border x:Name="PropertiesPanel" Grid.Column="2" Width="280" Background="#252525"
                     BorderBrush="#3C3C3C" BorderThickness="1,0,0,0">
                 <Grid>
                     <!-- No selection placeholder -->
@@ -762,121 +777,126 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                     <!-- Properties editor -->
-                    <StackPanel Visibility="{Binding PropertiesPanelVisibility}" Padding="16">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding SelectedNodeTitle}" FontSize="16" FontWeight="Bold"
-                                           Foreground="White" Margin="0,0,0,4"/>
-                                <TextBlock Text="{Binding SelectedNodeTypeName}" FontSize="12"
-                                           Foreground="#888888"/>
+                    <ScrollViewer Visibility="{Binding PropertiesPanelVisibility}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  HorizontalScrollMode="Disabled">
+                        <StackPanel Padding="16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding SelectedNodeTitle}" FontSize="16" FontWeight="Bold"
+                                               Foreground="White" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding SelectedNodeTypeName}" FontSize="12"
+                                               Foreground="#888888"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="&#xE74D;"
+                                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                        Command="{Binding RemoveSelectedNodeCommand}"
+                                        IsEnabled="{Binding IsEditingEnabled}"
+                                        ToolTipService.ToolTip="Remove node (Delete)"
+                                        Padding="8,6" CornerRadius="4"
+                                        Background="#D32F2F" Foreground="White"
+                                        VerticalAlignment="Top"/>
+                            </Grid>
+
+                            <Border Margin="0,12,0,0"/>
+
+                            <!-- Port Info -->
+                            <StackPanel Spacing="4" Margin="0,0,0,12"
+                                        Visibility="{Binding Graph.SelectedNode, Converter={StaticResource NullToCollapsed}}">
+                                <TextBlock Text="Ports" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+
+                                <!-- Inputs -->
+                                <ItemsControl ItemsSource="{Binding Graph.SelectedNode.InputPorts}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnSpacing="6" Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#4FC3F7"
+                                                         VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="{Binding Port.Name}" FontSize="12"
+                                                                   Foreground="White" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding TypeName}" FontSize="11"
+                                                                   Foreground="#777777"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Port.Description}" FontSize="11"
+                                                               Foreground="#888888" TextWrapping="Wrap"
+                                                               Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Outputs -->
+                                <ItemsControl ItemsSource="{Binding Graph.SelectedNode.OutputPorts}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnSpacing="6" Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#FFB74D"
+                                                         VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="{Binding Port.Name}" FontSize="12"
+                                                                   Foreground="White" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding TypeName}" FontSize="11"
+                                                                   Foreground="#777777"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Port.Description}" FontSize="11"
+                                                               Foreground="#888888" TextWrapping="Wrap"
+                                                               Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="&#xE74D;"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    Command="{Binding RemoveSelectedNodeCommand}"
-                                    IsEnabled="{Binding IsEditingEnabled}"
-                                    ToolTipService.ToolTip="Remove node (Delete)"
-                                    Padding="8,6" CornerRadius="4"
-                                    Background="#D32F2F" Foreground="White"
-                                    VerticalAlignment="Top"/>
-                        </Grid>
 
-                        <Border Margin="0,12,0,0"/>
+                            <StackPanel Spacing="6"
+                                        Margin="0,0,0,12"
+                                        Visibility="{Binding Graph.SelectedNode.SupportsPreviewToggle, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Preview" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,2"/>
+                                <CheckBox Content="Show node preview"
+                                          IsChecked="{Binding Graph.SelectedNode.ShowPreview, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Foreground="White"
+                                          FontSize="13"/>
+                                <TextBlock Text="Disable previews you do not need to reduce image encoding and UI work."
+                                           FontSize="11"
+                                           Foreground="#888888"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
 
-                        <!-- Port Info -->
-                        <StackPanel Spacing="4" Margin="0,0,0,12"
-                                    Visibility="{Binding Graph.SelectedNode, Converter={StaticResource NullToCollapsed}}">
-                            <TextBlock Text="Ports" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-
-                            <!-- Inputs -->
-                            <ItemsControl ItemsSource="{Binding Graph.SelectedNode.InputPorts}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnSpacing="6" Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#4FC3F7"
-                                                     VerticalAlignment="Center"/>
-                                            <StackPanel Grid.Column="1">
-                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <TextBlock Text="{Binding Port.Name}" FontSize="12"
-                                                               Foreground="White" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding TypeName}" FontSize="11"
-                                                               Foreground="#777777"/>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Port.Description}" FontSize="11"
-                                                           Foreground="#888888" TextWrapping="Wrap"
-                                                           Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <!-- Outputs -->
-                            <ItemsControl ItemsSource="{Binding Graph.SelectedNode.OutputPorts}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnSpacing="6" Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="#FFB74D"
-                                                     VerticalAlignment="Center"/>
-                                            <StackPanel Grid.Column="1">
-                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <TextBlock Text="{Binding Port.Name}" FontSize="12"
-                                                               Foreground="White" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding TypeName}" FontSize="11"
-                                                               Foreground="#777777"/>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Port.Description}" FontSize="11"
-                                                           Foreground="#888888" TextWrapping="Wrap"
-                                                           Visibility="{Binding Port.Description, Converter={StaticResource EmptyToCollapsed}}"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-
-                        <StackPanel Spacing="6"
+                            <Border Background="#332A18"
+                                    BorderBrush="#8D6E30"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
                                     Margin="0,0,0,12"
-                                    Visibility="{Binding Graph.SelectedNode.SupportsPreviewToggle, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="Preview" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,2"/>
-                            <CheckBox Content="Show node preview"
-                                      IsChecked="{Binding Graph.SelectedNode.ShowPreview, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Foreground="White"
-                                      FontSize="13"/>
-                            <TextBlock Text="Disable previews you do not need to reduce image encoding and UI work."
-                                       FontSize="11"
-                                       Foreground="#888888"
-                                       TextWrapping="Wrap"/>
+                                    Visibility="{Binding RuntimeEditNoticeVisibility}">
+                                <TextBlock Text="{Binding RuntimeEditNoticeText}"
+                                           FontSize="11"
+                                           Foreground="#FFCC80"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <ContentControl Content="{Binding Graph.SelectedNode}"
+                                            ContentTemplateSelector="{StaticResource NodePropertiesSelector}"
+                                            IsEnabled="{Binding IsPropertiesContentEnabled}"/>
                         </StackPanel>
-
-                        <Border Background="#332A18"
-                                BorderBrush="#8D6E30"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="8"
-                                Margin="0,0,0,12"
-                                Visibility="{Binding RuntimeEditNoticeVisibility}">
-                            <TextBlock Text="{Binding RuntimeEditNoticeText}"
-                                       FontSize="11"
-                                       Foreground="#FFCC80"
-                                       TextWrapping="Wrap"/>
-                        </Border>
-
-                        <ContentControl Content="{Binding Graph.SelectedNode}"
-                                        ContentTemplateSelector="{StaticResource NodePropertiesSelector}"
-                                        IsEnabled="{Binding IsPropertiesContentEnabled}"/>
-                    </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Grid>

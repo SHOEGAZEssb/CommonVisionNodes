@@ -117,6 +117,15 @@ public partial class CodeReaderNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial string DisplayText { get; set; } = string.Empty;
 
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
+
+	[ObservableProperty]
+	public partial IReadOnlyList<CodeReaderResultDto> Results { get; set; } = [];
+
+	[ObservableProperty]
+	public partial bool TimeLimitReached { get; set; }
+
     /// <inheritdoc/>
     public override string? Summary => ResultCount > 0
         ? $"{ResultCount} code(s)"
@@ -158,11 +167,14 @@ public partial class CodeReaderNodeViewModel : NodeViewModel
     }
 
     /// <inheritdoc/>
-    public override void ApplyTextPreview(TextPreviewDto preview)
+    public override void ApplyCodeReaderPreview(CodeReaderPreviewDto preview)
     {
-        TypeDescription = preview.TypeDescription;
-        DisplayText = preview.DisplayText;
-        ResultCount = CountResultLines(preview.DisplayText);
+        PreviewImage = preview.Image;
+        Results = [.. preview.Results];
+        TimeLimitReached = preview.TimeLimitReached;
+        ResultCount = Results.Count;
+        TypeDescription = Results.Count == 0 ? "No codes" : "CodeReader[]";
+        DisplayText = FormatResults(Results, TimeLimitReached);
         RaiseSummaryChanged();
     }
 
@@ -179,9 +191,20 @@ public partial class CodeReaderNodeViewModel : NodeViewModel
         }
     }
 
-    private static int CountResultLines(string text)
-        => string.IsNullOrWhiteSpace(text)
-            ? 0
-            : text.Split([Environment.NewLine], StringSplitOptions.None)
-                .Count(line => line.StartsWith('#'));
+    private static string FormatResults(IReadOnlyList<CodeReaderResultDto> results, bool timeLimitReached)
+    {
+        if (results.Count == 0)
+            return timeLimitReached ? "No codes found before time limit." : "No codes found.";
+
+        var lines = results.Select(result =>
+        {
+            var qualityText = result.Quality.HasValue ? $" q={result.Quality.Value}" : string.Empty;
+            return $"#{result.Index} {result.Symbology} {result.DecodeStatus} center=({result.CenterX:F0},{result.CenterY:F0}){qualityText} data={result.Data}";
+        });
+
+        var text = string.Join(Environment.NewLine, lines);
+        return timeLimitReached
+            ? $"{text}{Environment.NewLine}Time limit reached."
+            : text;
+    }
 }

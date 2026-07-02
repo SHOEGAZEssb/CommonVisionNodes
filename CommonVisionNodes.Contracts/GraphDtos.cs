@@ -83,6 +83,11 @@ public enum NodePreviewKindDto
     Classification,
 
     /// <summary>
+    /// The node publishes CodeReader code-corner overlay previews.
+    /// </summary>
+    CodeReader,
+
+    /// <summary>
     /// The node publishes text previews.
     /// </summary>
     Text
@@ -128,6 +133,16 @@ public sealed class NodeDto
     /// Vertical canvas position in UI units.
     /// </summary>
     public double Y { get; set; }
+
+    /// <summary>
+    /// Node width in UI units. A value of 0 lets the UI use its default width.
+    /// </summary>
+    public double Width { get; set; }
+
+    /// <summary>
+    /// Node height in UI units. A value of 0 lets the UI use its default height.
+    /// </summary>
+    public double Height { get; set; }
 
     /// <summary>
     /// Serialized property values for the node.

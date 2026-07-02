@@ -124,6 +124,11 @@ public enum ExecutionMessageTypeDto
     ClassificationPreview,
 
     /// <summary>
+    /// Message contains CodeReader overlay preview data.
+    /// </summary>
+    CodeReaderPreview,
+
+    /// <summary>
     /// Message contains text preview data.
     /// </summary>
     TextPreview,
@@ -391,6 +396,11 @@ public sealed class ExecutionMessageDto
     /// Classification preview payload.
     /// </summary>
     public ClassificationPreviewDto? ClassificationPreview { get; set; }
+
+    /// <summary>
+    /// CodeReader preview payload.
+    /// </summary>
+    public CodeReaderPreviewDto? CodeReaderPreview { get; set; }
 
     /// <summary>
     /// Text preview payload.

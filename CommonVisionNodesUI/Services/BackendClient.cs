@@ -181,6 +181,9 @@ public sealed class BackendClient : IBackendClient
             case ExecutionMessageTypeDto.ClassificationPreview when message.ClassificationPreview?.Image is not null:
                 imagePreview = message.ClassificationPreview.Image;
                 return true;
+            case ExecutionMessageTypeDto.CodeReaderPreview when message.CodeReaderPreview?.Image is not null:
+                imagePreview = message.CodeReaderPreview.Image;
+                return true;
             default:
                 return false;
         }

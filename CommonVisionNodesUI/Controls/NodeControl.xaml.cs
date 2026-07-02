@@ -18,9 +18,13 @@ public sealed partial class NodeControl : UserControl
     private bool _isSelected;
     private bool _isDragging;
     private bool _hasMoved;
+    private bool _isResizing;
     private Point _dragStart;
+    private Point _resizeStart;
     private double _startX;
     private double _startY;
+    private double _startWidth;
+    private double _startHeight;
 
     internal static bool IsConnectionDragging;
 
@@ -71,6 +75,7 @@ public sealed partial class NodeControl : UserControl
 
         Canvas.SetLeft(this, vm.X);
         Canvas.SetTop(this, vm.Y);
+        ApplyNodeSize();
 
         vm.PropertyChanged += (_, e) =>
         {
@@ -82,6 +87,11 @@ public sealed partial class NodeControl : UserControl
             {
                 UpdateExecutionError();
                 UpdateNodeBorder();
+            }
+            else if (e.PropertyName is nameof(NodeViewModel.Width) or nameof(NodeViewModel.Height))
+            {
+                ApplyNodeSize();
+                NodeMoved?.Invoke(this);
             }
         };
         UpdateSummary();
@@ -235,9 +245,14 @@ public sealed partial class NodeControl : UserControl
             UpdateCodeReaderPreview(vm, codeReaderVM);
             codeReaderVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(CodeReaderNodeViewModel.DisplayText)
+                if (e.PropertyName is nameof(CodeReaderNodeViewModel.PreviewImage)
                     or nameof(NodeViewModel.ShowPreview))
-                    UpdateCodeReaderPreview(vm, codeReaderVM);
+                    UpdateCodeReaderPreviewImage(vm, codeReaderVM);
+
+                if (e.PropertyName is nameof(CodeReaderNodeViewModel.Results)
+                    or nameof(CodeReaderNodeViewModel.TimeLimitReached)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdateCodeReaderPreviewResults(vm, codeReaderVM);
             };
         }
         else if (vm is GenericVisualizerNodeViewModel genericVM)
@@ -283,6 +298,15 @@ public sealed partial class NodeControl : UserControl
         NodeBorder.BorderThickness = new Thickness(_isSelected || _viewModel?.HasExecutionError == true ? 2 : 1);
     }
 
+    private void ApplyNodeSize()
+    {
+        if (_viewModel is null)
+            return;
+
+        NodeBorder.Width = _viewModel.Width;
+        NodeBorder.Height = _viewModel.Height;
+    }
+
     private static void UpdateImagePreview(CvbImageDisplay previewControl, NodeViewModel vm, CommonVisionNodes.Contracts.ImagePreviewDto? preview)
     {
         previewControl.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
@@ -315,8 +339,21 @@ public sealed partial class NodeControl : UserControl
 
     private void UpdateCodeReaderPreview(NodeViewModel vm, CodeReaderNodeViewModel codeReaderVM)
     {
-        GenericVisualizerPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
-        GenericVisualizerPreview.SetText(vm.ShowPreview ? codeReaderVM.DisplayText : null);
+        CodeReaderPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        UpdateCodeReaderPreviewImage(vm, codeReaderVM);
+        UpdateCodeReaderPreviewResults(vm, codeReaderVM);
+    }
+
+    private void UpdateCodeReaderPreviewImage(NodeViewModel vm, CodeReaderNodeViewModel codeReaderVM)
+    {
+        CodeReaderPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        CodeReaderPreview.SetImage(vm.ShowPreview ? codeReaderVM.PreviewImage : null);
+    }
+
+    private void UpdateCodeReaderPreviewResults(NodeViewModel vm, CodeReaderNodeViewModel codeReaderVM)
+    {
+        CodeReaderPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        CodeReaderPreview.SetResults(codeReaderVM.Results, codeReaderVM.TimeLimitReached);
     }
 
     private void UpdateGenericPreview(NodeViewModel vm, GenericVisualizerNodeViewModel genericVM)
@@ -383,6 +420,7 @@ public sealed partial class NodeControl : UserControl
     private void Header_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (_viewModel == null) return;
+        if (_isResizing) return;
         _isDragging = true;
         _hasMoved = false;
         if (Parent is not UIElement canvas) return;
@@ -416,6 +454,40 @@ public sealed partial class NodeControl : UserControl
         if (!_hasMoved)
             NodeSelected?.Invoke(this);
 
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        if (Parent is not UIElement canvas) return;
+
+        _isDragging = false;
+        _isResizing = true;
+        _resizeStart = e.GetCurrentPoint(canvas).Position;
+        _startWidth = _viewModel.Width;
+        _startHeight = _viewModel.Height;
+        ((UIElement)sender).CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_isResizing || _viewModel == null) return;
+        if (Parent is not UIElement canvas) return;
+
+        var current = e.GetCurrentPoint(canvas).Position;
+        _viewModel.Width = Math.Max(NodeViewModel.MinNodeWidth, _startWidth + current.X - _resizeStart.X);
+        _viewModel.Height = Math.Max(_viewModel.MinimumContentHeight, _startHeight + current.Y - _resizeStart.Y);
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_isResizing) return;
+
+        _isResizing = false;
+        ((UIElement)sender).ReleasePointerCapture(e.Pointer);
         e.Handled = true;
     }
 
