@@ -36,6 +36,7 @@ public sealed class RuntimePreviewFactory
             HistogramNode histogramNode => CreateHistogramPreviewMessage(nodeId, histogramNode),
             BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension),
             PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension),
+            CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode),
             GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension),
             _ => null
         };
@@ -110,6 +111,12 @@ public sealed class RuntimePreviewFactory
             }
         };
 
+    private static ExecutionMessageDto CreateCodeReaderPreviewMessage(string nodeId, CodeReaderNode node)
+        => CreateTextPreviewMessage(
+            nodeId,
+            "CodeReader[]",
+            CodeReaderNode.FormatResultsForPreview(node.Results, node.TimeLimitReached));
+
     private static ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
     {
         return value switch
@@ -121,6 +128,7 @@ public sealed class RuntimePreviewFactory
                 $"#{index + 1} ({rect.X},{rect.Y}) {rect.Width}x{rect.Height}"))),
             IReadOnlyList<PolimagoClassifyResultItem> results => CreateTextPreviewMessage(nodeId, "Classification[]", string.Join(Environment.NewLine, results.Select(result =>
                 $"{(result.BlobIndex >= 0 ? $"#{result.BlobIndex}" : "image")} {result.ClassName} q={result.Quality:F3} ({result.X:F0},{result.Y:F0})"))),
+            IReadOnlyList<CodeReaderResultItem> results => CreateTextPreviewMessage(nodeId, "CodeReader[]", CodeReaderNode.FormatResultsForPreview(results, timeLimitReached: false)),
             null => CreateTextPreviewMessage(nodeId, "Empty", "No data"),
             _ => CreateTextPreviewMessage(nodeId, value.GetType().Name, value.ToString() ?? value.GetType().Name)
         };

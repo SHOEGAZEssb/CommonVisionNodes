@@ -35,6 +35,7 @@ public static class NodeViewModelFactory
             "BlobNode" => new BlobNodeViewModel(node, definition),
             "NormalizeNode" => new NormalizeNodeViewModel(node, definition),
             "PolimagoClassifyNode" => new PolimagoClassifyNodeViewModel(node, definition),
+            "CodeReaderNode" => new CodeReaderNodeViewModel(node, definition),
             "GenericVisualizerNode" => new GenericVisualizerNodeViewModel(node, definition),
             "CSharpNode" => new CSharpNodeViewModel(node, definition),
             _ => throw new InvalidOperationException($"Unsupported node type '{definition.Type}'.")

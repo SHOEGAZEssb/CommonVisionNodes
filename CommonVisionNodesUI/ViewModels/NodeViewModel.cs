@@ -161,6 +161,7 @@ public abstract partial class NodeViewModel : ObservableObject
         "BlobNode" => Color.FromArgb(255, 0, 150, 136),
         "NormalizeNode" => Color.FromArgb(255, 255, 183, 77),
         "PolimagoClassifyNode" => Color.FromArgb(255, 123, 31, 162),
+        "CodeReaderNode" => Color.FromArgb(255, 0, 121, 107),
         "GenericVisualizerNode" => Color.FromArgb(255, 84, 110, 122),
         "CSharpNode" => Color.FromArgb(255, 90, 90, 90),
         _ => Color.FromArgb(255, 128, 128, 128)

@@ -41,6 +41,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
     public DataTemplate? NormalizeNodeTemplate { get; set; }
     /// <summary>Template for <see cref="PolimagoClassifyNodeViewModel"/>.</summary>
     public DataTemplate? PolimagoClassifyNodeTemplate { get; set; }
+    /// <summary>Template for <see cref="CodeReaderNodeViewModel"/>.</summary>
+    public DataTemplate? CodeReaderNodeTemplate { get; set; }
     /// <summary>Template for <see cref="GenericVisualizerNodeViewModel"/>.</summary>
     public DataTemplate? GenericVisualizerNodeTemplate { get; set; }
     /// <summary>Template for <see cref="CSharpNodeViewModel"/>.</summary>
@@ -71,6 +73,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
             BlobNodeViewModel => BlobNodeTemplate,
             NormalizeNodeViewModel => NormalizeNodeTemplate,
             PolimagoClassifyNodeViewModel => PolimagoClassifyNodeTemplate,
+            CodeReaderNodeViewModel => CodeReaderNodeTemplate,
             GenericVisualizerNodeViewModel => GenericVisualizerNodeTemplate,
             CSharpNodeViewModel => CSharpNodeTemplate,
             _ => null

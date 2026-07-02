@@ -15,6 +15,7 @@ namespace CommonVisionNodes.Test
 			{
 				Assert.That(NodePreviewSettings.IsEnabled("ImageNode", []), Is.False);
 				Assert.That(NodePreviewSettings.IsEnabled("GenericVisualizerNode", []), Is.True);
+				Assert.That(NodePreviewSettings.IsEnabled("CodeReaderNode", []), Is.True);
 				Assert.That(NodePreviewSettings.IsEnabled("ImageNode",
 				[
 					new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }
@@ -42,6 +43,15 @@ namespace CommonVisionNodes.Test
 
             var histogramDefinition = definitions.Single(definition => definition.Type == nameof(HistogramNode));
             Assert.That(histogramDefinition.Properties.Any(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName), Is.False);
+
+            var codeReaderDefinition = definitions.Single(definition => definition.Type == nameof(CodeReaderNode));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(codeReaderDefinition.PreviewKind, Is.EqualTo(NodePreviewKindDto.Text));
+                Assert.That(codeReaderDefinition.InputPorts.Single().Type, Is.EqualTo("Image"));
+                Assert.That(codeReaderDefinition.OutputPorts.Single(port => port.Name == "Data").Type, Is.EqualTo("String"));
+                Assert.That(codeReaderDefinition.Properties.Single(property => property.Name == NodePreviewSettings.ShowPreviewPropertyName).DefaultValue, Is.EqualTo(bool.TrueString));
+            }
 
             var gevServerDefinition = definitions.Single(definition => definition.Type == nameof(GevServerNode));
 			using (Assert.EnterMultipleScope())
@@ -204,6 +214,63 @@ namespace CommonVisionNodes.Test
             Assert.That(code, Does.Contain(".Clone()"));
             Assert.That(code, Does.Contain(".TryStop()"));
             Assert.That(code, Does.Contain("acquiredImage.Save(@\"C:\\output.bmp\")"));
+        }
+
+        [Test]
+        public void RuntimeNodePropertyBinder_CodeReader_ShouldApplyEnumAndNumericProperties()
+        {
+            var node = new CodeReaderNode();
+
+            RuntimeNodePropertyBinder.Apply(node,
+            [
+                new NodePropertyDto { Name = nameof(CodeReaderNode.Symbologies), Value = nameof(CodeReaderSymbologySelection.TwoDimensional) },
+                new NodePropertyDto { Name = "CodePolarity", Value = "DarkOnLight" },
+                new NodePropertyDto { Name = nameof(CodeReaderNode.DetectorDensity), Value = "9" },
+                new NodePropertyDto { Name = nameof(CodeReaderNode.MaxCodes), Value = "5" },
+                new NodePropertyDto { Name = nameof(CodeReaderNode.TimeLimitMs), Value = "250" },
+                new NodePropertyDto { Name = nameof(CodeReaderNode.BasicInkjetDpmEnabled), Value = bool.TrueString }
+            ]);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.Symbologies, Is.EqualTo(CodeReaderSymbologySelection.TwoDimensional));
+                Assert.That(node.GetType().GetProperty("CodePolarity")?.GetValue(node)?.ToString(), Is.EqualTo("DarkOnLight"));
+                Assert.That(node.DetectorDensity, Is.EqualTo(4));
+                Assert.That(node.MaxCodes, Is.EqualTo(5));
+                Assert.That(node.TimeLimitMs, Is.EqualTo(250));
+                Assert.That(node.BasicInkjetDpmEnabled, Is.True);
+            }
+        }
+
+        [Test]
+        public void Generate_ImageToCodeReader_ShouldEmitCodeReaderConfiguration()
+        {
+            var graph = new NodeGraph();
+            var imageNode = new ImageNode { FilePath = @"C:\input.bmp" };
+            var codeReaderNode = new CodeReaderNode
+            {
+                Symbologies = CodeReaderSymbologySelection.TwoDimensional,
+                MaxCodes = 5,
+                TimeLimitMs = 250
+            };
+            RuntimeNodePropertyBinder.Apply(codeReaderNode,
+            [
+                new NodePropertyDto { Name = "CodePolarity", Value = "DarkOnLight" }
+            ]);
+            graph.AddNode(imageNode);
+            graph.AddNode(codeReaderNode);
+            graph.Connect(imageNode.ImageOutput, codeReaderNode.ImageInput);
+
+            var code = CodeGenerator.Generate(graph);
+
+            Assert.That(code, Does.Contain("using Stemmer.Cvb.CodeReader;"));
+            Assert.That(code, Does.Contain("using Stemmer.Cvb.CodeReader.Config;"));
+            Assert.That(code, Does.Contain("using var decoder = Decoder.Create();"));
+            Assert.That(code, Does.Contain("decoder.GetConfig<DataMatrix>().SetEnabled(true).SetPolarity(Polarity.DarkOnLight);"));
+            Assert.That(code, Does.Contain("decoder.GetConfig<QR>().SetEnabled(true).SetPolarity(Polarity.DarkOnLight);"));
+            Assert.That(code, Does.Contain("decoder.GetConfig<Pdf417>().SetEnabled(true);"));
+            Assert.That(code, Does.Contain("decoder.ExecuteFor(sourceImage.Planes[0], TimeSpan.FromMilliseconds(250), 5)"));
+            Assert.That(code, Does.Contain("decodedData"));
         }
 
         [Test]

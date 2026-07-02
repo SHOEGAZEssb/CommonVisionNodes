@@ -242,7 +242,8 @@ public static class NodePreviewSettings
     /// <param name="nodeType">Runtime node type name.</param>
     /// <returns><c>true</c> when previews should be enabled by default.</returns>
     public static bool IsEnabledByDefault(string nodeType)
-        => string.Equals(nodeType, "GenericVisualizerNode", StringComparison.OrdinalIgnoreCase);
+        => string.Equals(nodeType, "GenericVisualizerNode", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(nodeType, "CodeReaderNode", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

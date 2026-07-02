@@ -11,6 +11,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Stemmer.Cvb.CodeReader">
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.CodeReader.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup Condition="'$(UseBuiltRuntimeReferences)' != 'true'">
     <ProjectReference Include="..\CommonVisionNodes.Contracts\CommonVisionNodes.Contracts.csproj" />
     <ProjectReference Include="..\CommonVisionNodes.Runtime\CommonVisionNodes.Runtime.csproj" />

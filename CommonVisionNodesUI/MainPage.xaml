@@ -377,6 +377,62 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="CodeReaderNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Symbologies" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableSymbologies}"
+                              SelectedItem="{Binding Symbologies, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Polarity" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailablePolarities}"
+                              SelectedItem="{Binding CodePolarity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Search Speed" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableSearchSpeeds}"
+                              SelectedItem="{Binding CodeSearchSpeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Performance" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailablePerformanceModes}"
+                              SelectedItem="{Binding PerformanceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <Grid ColumnSpacing="8" RowSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Density" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding DetectorDensity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="4" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Codes" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding MaxCodes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="256" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Time Limit" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding TimeLimitMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="60000" SmallChange="10" LargeChange="100" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </Grid>
+                <StackPanel>
+                    <CheckBox Content="Basic Inkjet DPM" IsChecked="{Binding BasicInkjetDpmEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="White" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding ResultCount}" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding DisplayText}" FontSize="11" Foreground="#CCCCCC" TextWrapping="Wrap" FontFamily="Consolas"/>
+                    </ScrollViewer>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="GenericVisualizerNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -431,6 +487,7 @@
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
             NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
             PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"
+            CodeReaderNodeTemplate="{StaticResource CodeReaderNodePropertiesTemplate}"
             GenericVisualizerNodeTemplate="{StaticResource GenericVisualizerNodePropertiesTemplate}"
             CSharpNodeTemplate="{StaticResource CSharpNodePropertiesTemplate}"/>
     </Page.Resources>
@@ -590,6 +647,11 @@
                         <MenuFlyoutItem Text="Blob" Command="{Binding Graph.AddBlobNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE8B1;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Code Reader" Command="{Binding Graph.AddCodeReaderNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8A5;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem Text="Polimago Classify" Command="{Binding Graph.AddPolimagoClassifyNodeCommand}">

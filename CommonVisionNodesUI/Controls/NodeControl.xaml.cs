@@ -230,6 +230,16 @@ public sealed partial class NodeControl : UserControl
                     UpdatePolimagoPreview(vm, polimagoVM);
             };
         }
+        else if (vm is CodeReaderNodeViewModel codeReaderVM)
+        {
+            UpdateCodeReaderPreview(vm, codeReaderVM);
+            codeReaderVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(CodeReaderNodeViewModel.DisplayText)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdateCodeReaderPreview(vm, codeReaderVM);
+            };
+        }
         else if (vm is GenericVisualizerNodeViewModel genericVM)
         {
             UpdateGenericPreview(vm, genericVM);
@@ -301,6 +311,12 @@ public sealed partial class NodeControl : UserControl
         PolimagoPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
         PolimagoPreview.SetImage(vm.ShowPreview ? polimagoVM.PreviewImage : null);
         PolimagoPreview.SetResults(polimagoVM.Results);
+    }
+
+    private void UpdateCodeReaderPreview(NodeViewModel vm, CodeReaderNodeViewModel codeReaderVM)
+    {
+        GenericVisualizerPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
+        GenericVisualizerPreview.SetText(vm.ShowPreview ? codeReaderVM.DisplayText : null);
     }
 
     private void UpdateGenericPreview(NodeViewModel vm, GenericVisualizerNodeViewModel genericVM)

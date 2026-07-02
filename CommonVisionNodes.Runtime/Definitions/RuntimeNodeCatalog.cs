@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using CommonVisionNodes.Contracts;
 using Stemmer.Cvb;
+using Stemmer.Cvb.CodeReader.Config;
 using Stemmer.Cvb.Driver;
 
 namespace CommonVisionNodes.Runtime.Definitions;
@@ -58,6 +59,7 @@ public sealed class RuntimeNodeCatalog
             nameof(BlobNode) => new BlobNode(),
             nameof(NormalizeNode) => new NormalizeNode(),
             nameof(PolimagoClassifyNode) => new PolimagoClassifyNode(),
+            nameof(CodeReaderNode) => new CodeReaderNode(),
             nameof(GenericVisualizerNode) => new GenericVisualizerNode(),
             nameof(CSharpNode) => new CSharpNode(),
             _ => null!
@@ -273,6 +275,24 @@ public sealed class RuntimeNodeCatalog
                 BoolProperty("InvertForeground", "Invert Foreground", "Treat dark pixels as foreground."),
                 BoolProperty("Use8Connectivity", "8-Connectivity", "Use diagonal connectivity when labeling blobs."),
                 PreviewToggleProperty()),
+            CreateDefinition(
+                nameof(CodeReaderNode),
+                "Code Reader",
+                "Analysis",
+                "Decode 1D and 2D barcodes with CVB CodeReader.",
+                "&#xE8A5;",
+                NodePreviewKindDto.Text,
+                canEditWhileRunning: true,
+                () => new CodeReaderNode(),
+                EnumProperty<CodeReaderSymbologySelection>("Symbologies", "Symbologies", "Barcode symbology preset to enable."),
+                EnumProperty<Polarity>("CodePolarity", "Polarity", "Polarity for Data Matrix and QR decoding."),
+                EnumProperty<CodeSearchSpeed>("CodeSearchSpeed", "Search Speed", "Code search speed/robustness trade-off."),
+                EnumProperty<CustomPerformance>("PerformanceMode", "Performance", "Optional CVB CodeReader performance mode."),
+                IntProperty("DetectorDensity", "Detector Density", "Search density from 1 to 4. Lower values are more exhaustive.", 1, 4, 1),
+                IntProperty("MaxCodes", "Max Codes", "Maximum number of codes. 0 keeps the CVB default limit.", 0, 256, 1),
+                IntProperty("TimeLimitMs", "Time Limit", "Maximum decoding time in milliseconds. 0 disables the limit.", 0, 60000, 10),
+                BoolProperty("BasicInkjetDpmEnabled", "Basic Inkjet DPM", "Enable Basic Inkjet DPM mode."),
+                PreviewToggleProperty(defaultValue: true)),
             CreateDefinition(
                 nameof(PolimagoClassifyNode),
                 "Polimago Classify",

@@ -386,6 +386,13 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     }
 
     [RelayCommand]
+    private async Task AddCodeReaderNode()
+    {
+        await InitializeAsync();
+        AddNode("CodeReaderNode");
+    }
+
+    [RelayCommand]
     private async Task AddGenericVisualizerNode()
     {
         await InitializeAsync();
