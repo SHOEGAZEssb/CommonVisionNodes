@@ -102,6 +102,19 @@ The UI reads the backend URL from `CommonVisionNodesUI/appsettings.json`:
 }
 ```
 
+## Local Folder Deployment
+
+To publish a self-contained folder with desktop and browser launch modes, see
+[`Deployment/README.md`](Deployment/README.md). The deployed launcher supports:
+
+```powershell
+.\Deployment\Deploy-CommonVisionNodes.ps1
+
+.\CommonVisionNodes.Launcher.exe --mode Desktop
+.\CommonVisionNodes.Launcher.exe --mode Web
+.\CommonVisionNodes.Launcher.exe
+```
+
 ## Backend API
 
 The server exposes these main endpoints:
@@ -144,4 +157,3 @@ Generated code includes only graph-relevant nodes: connected pipeline nodes plus
   - matching view model/template in `CommonVisionNodesUI`
 - Prefer adding focused tests when changing graph wiring, code generation, runtime execution, or preview behavior.
 - The `CSharpNode` compiles user-provided code in-process. Treat it as trusted-local functionality unless it is moved into a sandboxed execution model.
-

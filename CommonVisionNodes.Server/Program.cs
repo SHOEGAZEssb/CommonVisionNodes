@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime;
@@ -47,11 +49,95 @@ var app = builder.Build();
 app.UseCors("uno-client");
 app.UseWebSockets();
 
-app.MapGet("/", () => Results.Ok(new
+PhysicalFileProvider? webFileProvider = null;
+string? webIndexPath = null;
+var configuredWebRoot = builder.Configuration["WebRoot"];
+if (!string.IsNullOrWhiteSpace(configuredWebRoot))
+{
+    var webRoot = Path.GetFullPath(configuredWebRoot);
+    if (!Directory.Exists(webRoot))
+        throw new DirectoryNotFoundException($"The configured web UI directory does not exist: '{webRoot}'.");
+
+    var indexPath = Path.Combine(webRoot, "index.html");
+    if (!File.Exists(indexPath))
+        throw new FileNotFoundException($"The configured web UI directory does not contain index.html: '{webRoot}'.", indexPath);
+
+    webIndexPath = indexPath;
+    webFileProvider = new PhysicalFileProvider(webRoot);
+    app.Lifetime.ApplicationStopped.Register(webFileProvider.Dispose);
+
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        FileProvider = webFileProvider
+    });
+
+    var contentTypeProvider = new FileExtensionContentTypeProvider();
+    contentTypeProvider.Mappings[".dat"] = "application/octet-stream";
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = webFileProvider,
+        ContentTypeProvider = contentTypeProvider
+    });
+}
+
+if (webIndexPath is null)
+{
+    app.MapGet("/", () => Results.Ok(new
+    {
+        service = "CommonVisionNodes.Server",
+        status = "ok"
+    }));
+}
+else
+{
+    app.MapGet("/", () => Results.File(webIndexPath, "text/html; charset=utf-8"));
+}
+
+app.MapGet("/api/health", () => Results.Ok(new
 {
     service = "CommonVisionNodes.Server",
-    status = "ok"
+    status = "ok",
+    webUiEnabled = webFileProvider is not null
 }));
+
+app.MapGet("/browser-reset", async context =>
+{
+    context.Response.Headers["Clear-Site-Data"] = "\"cache\"";
+    context.Response.Headers.CacheControl = "no-store";
+    context.Response.ContentType = "text/html; charset=utf-8";
+
+    await context.Response.WriteAsync(
+        """
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Starting CommonVisionNodes</title>
+        </head>
+        <body>
+          <p>Starting CommonVisionNodes...</p>
+          <script>
+            (async () => {
+              if ("serviceWorker" in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(registration => registration.unregister()));
+              }
+
+              if ("caches" in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+              }
+
+              location.replace("/?launch=" + Date.now());
+            })().catch(error => {
+              document.body.textContent = "Browser reset failed: " + error;
+            });
+          </script>
+        </body>
+        </html>
+        """);
+});
 
 app.MapGet("/api/nodes/definitions", (RuntimeNodeCatalog catalog) => Results.Ok(catalog.GetDefinitions()));
 

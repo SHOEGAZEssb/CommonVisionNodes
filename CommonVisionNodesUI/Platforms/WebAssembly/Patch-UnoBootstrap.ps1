@@ -3,7 +3,7 @@ param(
 )
 
 if (-not $RootPath -or -not (Test-Path $RootPath)) {
-    exit 0
+    return
 }
 
 $replacement = 'bootstrapper._runMain = dotnetRuntime.runMain ?? ((main, args) => dotnetRuntime.runMainAndExit(main, args));'
@@ -14,6 +14,27 @@ foreach ($file in $files) {
     $updated = $content.Replace('bootstrapper._runMain = dotnetRuntime.runMain;', $replacement)
 
     if ($updated -ne $content) {
-        Set-Content $file.FullName $updated
+        [System.IO.File]::WriteAllText($file.FullName, $updated, [System.Text.UTF8Encoding]::new($false))
     }
+}
+
+$pwaSettingFound = $false
+$configFiles = Get-ChildItem $RootPath -Recurse -Filter 'uno-config.js' -ErrorAction SilentlyContinue
+
+foreach ($file in $configFiles) {
+    $content = Get-Content $file.FullName -Raw
+    if ($content.Contains('config.enable_pwa = true;') -or
+        $content.Contains('config.enable_pwa = false;')) {
+        $pwaSettingFound = $true
+    }
+
+    $updated = $content.Replace('config.enable_pwa = true;', 'config.enable_pwa = false;')
+
+    if ($updated -ne $content) {
+        [System.IO.File]::WriteAllText($file.FullName, $updated, [System.Text.UTF8Encoding]::new($false))
+    }
+}
+
+if (-not $pwaSettingFound) {
+    throw "Uno's generated PWA setting was not found below '$RootPath'."
 }
