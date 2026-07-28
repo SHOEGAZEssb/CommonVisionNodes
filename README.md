@@ -104,7 +104,7 @@ The UI reads the backend URL from `CommonVisionNodesUI/appsettings.json`:
 
 ## Local Folder Deployment
 
-To publish a self-contained folder with desktop and browser launch modes, see
+To publish a portable folder with desktop and browser launch modes, see
 [`Deployment/README.md`](Deployment/README.md). The deployed launcher supports:
 
 ```powershell

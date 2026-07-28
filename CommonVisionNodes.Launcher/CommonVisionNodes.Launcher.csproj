@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>CommonVisionNodes.Launcher</AssemblyName>
     <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
     <DebugType>none</DebugType>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>

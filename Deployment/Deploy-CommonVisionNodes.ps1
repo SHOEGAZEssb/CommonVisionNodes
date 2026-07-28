@@ -107,7 +107,7 @@ try {
             (Join-Path $repositoryRoot "CommonVisionNodes.Launcher\CommonVisionNodes.Launcher.csproj"),
             "-c", "Release",
             "-r", $RuntimeIdentifier,
-            "--self-contained", "true",
+            "--self-contained", "false",
             "-o", $stagingPath
         ) + $commonArguments)
 
@@ -117,7 +117,7 @@ try {
             (Join-Path $repositoryRoot "CommonVisionNodes.Server\CommonVisionNodes.Server.csproj"),
             "-c", "Release",
             "-r", $RuntimeIdentifier,
-            "--self-contained", "true",
+            "--self-contained", "false",
             "-o", (Join-Path $stagingPath "Server")
         ) + $commonArguments)
 
@@ -128,10 +128,11 @@ try {
             "-c", "Release",
             "-f", "net10.0-desktop",
             "-r", $RuntimeIdentifier,
-            "--self-contained", "true",
+            "--self-contained", "false",
             "-o", (Join-Path $stagingPath "Desktop")
         ) + $commonArguments)
 
+    $webPublishPath = Join-Path $stagingPath "Web.publish"
     try {
         Invoke-Publish `
             -Description "Uno WebAssembly UI" `
@@ -139,7 +140,7 @@ try {
                 (Join-Path $repositoryRoot "CommonVisionNodesUI\CommonVisionNodesUI.csproj"),
                 "-c", "Release",
                 "-f", "net10.0-browserwasm",
-                "-o", (Join-Path $stagingPath "Web")
+                "-o", $webPublishPath
             ) + $commonArguments)
     }
     catch {
@@ -147,8 +148,8 @@ try {
     }
 
     $publishedWebRootCandidates = @(
-        (Join-Path $stagingPath "Web\wwwroot"),
-        (Join-Path $stagingPath "Web")
+        (Join-Path $webPublishPath "wwwroot"),
+        $webPublishPath
     )
     $publishedWebRoot = $publishedWebRootCandidates |
         Where-Object { Test-Path -LiteralPath (Join-Path $_ "index.html") -PathType Leaf } |
@@ -161,6 +162,33 @@ try {
     & (Join-Path $repositoryRoot "CommonVisionNodesUI\Platforms\WebAssembly\Patch-UnoBootstrap.ps1") `
         -RootPath $publishedWebRoot
 
+    $deployedWebRoot = Join-Path $stagingPath "Web"
+    if ($publishedWebRoot.Equals($webPublishPath, [StringComparison]::OrdinalIgnoreCase)) {
+        Move-Item -LiteralPath $webPublishPath -Destination $deployedWebRoot
+    }
+    else {
+        Move-Item -LiteralPath $publishedWebRoot -Destination $deployedWebRoot
+        Remove-Item -LiteralPath $webPublishPath -Recurse -Force
+    }
+    $publishedWebRoot = $deployedWebRoot
+
+    # Release deployments do not need debugging symbols or CVB API documentation.
+    $unnecessaryFiles = @(
+        Get-ChildItem -LiteralPath (Join-Path $stagingPath "Server"), (Join-Path $stagingPath "Desktop") `
+            -Recurse -File -Filter "*.pdb"
+        Get-ChildItem -LiteralPath (Join-Path $stagingPath "Server") `
+            -Recurse -File -Filter "Stemmer.Cvb*.xml"
+    )
+
+    # The backend uses PhysicalFileProvider/UseStaticFiles and does not negotiate
+    # the precompressed static-web-asset sidecars produced by the Uno publish.
+    $unnecessaryFiles += Get-ChildItem -LiteralPath $publishedWebRoot -Recurse -File |
+        Where-Object { $_.Extension -in @(".br", ".gz") }
+
+    foreach ($file in $unnecessaryFiles) {
+        Remove-Item -LiteralPath $file.FullName -Force
+    }
+
     Assert-DeploymentFile `
         -LiteralPath (Join-Path $stagingPath "Server\CommonVisionNodes.Server.exe") `
         -Description "The backend executable"
@@ -171,6 +199,9 @@ try {
     Assert-DeploymentFile `
         -LiteralPath (Join-Path $stagingPath "CommonVisionNodes.Launcher.exe") `
         -Description "The launcher"
+    Assert-DeploymentFile `
+        -LiteralPath (Join-Path $publishedWebRoot "index.html") `
+        -Description "The WebAssembly entry point"
 
     if (Test-Path -LiteralPath $outputPath -PathType Container) {
         Move-Item -LiteralPath $outputPath -Destination $backupPath
