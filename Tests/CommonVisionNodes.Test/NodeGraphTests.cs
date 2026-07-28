@@ -19,6 +19,16 @@ namespace CommonVisionNodes.Test
         }
 
         [Test]
+        public void AddNode_WithSameInstanceTwice_ShouldThrow()
+        {
+            var graph = new NodeGraph();
+            var node = new SourceNode();
+            graph.AddNode(node);
+
+            Assert.Throws<InvalidOperationException>(() => graph.AddNode(node));
+        }
+
+        [Test]
         public void Connect_ShouldCreateConnectionBetweenPorts()
         {
             // Arrange
@@ -90,6 +100,45 @@ namespace CommonVisionNodes.Test
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => graph.Connect(outputPort, inputPort));
+        }
+
+        [Test]
+        public void Connect_WithForeignNodePort_ShouldThrow()
+        {
+            var graph = new NodeGraph();
+            var source = new SourceNode();
+            var foreignSink = new SinkNode();
+            graph.AddNode(source);
+
+            Assert.Throws<InvalidOperationException>(() => graph.Connect(source.Output, foreignSink.Input));
+        }
+
+        [Test]
+        public void Connect_WithSecondConnectionToSameInput_ShouldThrow()
+        {
+            var graph = new NodeGraph();
+            var source1 = new SourceNode();
+            var source2 = new SourceNode();
+            var sink = new SinkNode();
+            graph.AddNode(source1);
+            graph.AddNode(source2);
+            graph.AddNode(sink);
+            graph.Connect(source1.Output, sink.Input);
+
+            Assert.Throws<InvalidOperationException>(() => graph.Connect(source2.Output, sink.Input));
+        }
+
+        [Test]
+        public void RemoveNode_NotInGraph_ShouldNotDisposeNode()
+        {
+            var graph = new NodeGraph();
+            var node = new InitializableSourceNode();
+            node.Initialize();
+
+            graph.RemoveNode(node);
+
+            Assert.That(node.IsInitialized, Is.True);
+            node.Dispose();
         }
 
         [Test]

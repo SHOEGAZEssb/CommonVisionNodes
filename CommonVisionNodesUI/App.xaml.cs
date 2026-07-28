@@ -68,7 +68,11 @@ public partial class App : Application
 
         MainWindow = builder.Window;
 
-#if DEBUG
+#if DEBUG && !__WASM__
+        // Uno 6.5's WebAssembly ServerProcessorGenerator can fail before producing
+        // this extension. Keep Studio support on desktop without breaking Debug
+        // WebAssembly builds; browser debugging remains available through the
+        // standard WebAssembly debugger.
         MainWindow.UseStudio();
 #endif
         MainWindow.SetWindowIcon();

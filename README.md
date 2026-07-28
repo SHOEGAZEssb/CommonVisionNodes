@@ -157,3 +157,4 @@ Generated code includes only graph-relevant nodes: connected pipeline nodes plus
   - matching view model/template in `CommonVisionNodesUI`
 - Prefer adding focused tests when changing graph wiring, code generation, runtime execution, or preview behavior.
 - The `CSharpNode` compiles user-provided code in-process. Treat it as trusted-local functionality unless it is moved into a sandboxed execution model.
+- The backend rejects non-loopback listen URLs so trusted C# node execution cannot be exposed remotely by configuration alone.

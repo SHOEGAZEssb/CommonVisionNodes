@@ -29,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Cvb.Uno.Toolkit\Cvb.Uno.Toolkit.csproj" />
     <ProjectReference Include="..\CommonVisionNodes.Contracts\CommonVisionNodes.Contracts.csproj" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-browserwasm'">

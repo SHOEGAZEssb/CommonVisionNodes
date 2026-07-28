@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace CommonVisionNodes.Runtime
 {
@@ -87,5 +87,19 @@ namespace CommonVisionNodes.Runtime
         /// </summary>
         /// <param name="sb">The builder to append helper methods to.</param>
         public virtual void EmitHelperMethods(StringBuilder sb) { }
+
+        /// <summary>
+        /// Emits reusable helper methods with access to the current code-generation context.
+        /// </summary>
+        /// <param name="sb">The builder to append helper methods to.</param>
+        /// <param name="context">The code-generation context.</param>
+        public virtual void EmitHelperMethods(StringBuilder sb, CodeEmitContext context)
+            => EmitHelperMethods(sb);
+
+        /// <summary>
+        /// Whether helper methods emitted by this node may be shared with other instances
+        /// of the same runtime type.
+        /// </summary>
+        public virtual bool ReuseHelperMethodsAcrossInstances => true;
     }
 }

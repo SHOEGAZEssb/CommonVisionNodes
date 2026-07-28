@@ -289,6 +289,32 @@ namespace CommonVisionNodes.Test
         }
 
         [Test]
+        public void Generate_MultipleCSharpNodes_ShouldEmitDistinctHelperMethods()
+        {
+            var graph = new NodeGraph();
+            var imageNode = new ImageNode { FilePath = @"C:\input.bmp" };
+            var firstScript = new CSharpNode { Code = "return inputImage;" };
+            var secondScript = new CSharpNode { Code = "return Filter.Gauss(inputImage, FixedFilterSize.Kernel3x3);" };
+            graph.AddNode(imageNode);
+            graph.AddNode(firstScript);
+            graph.AddNode(secondScript);
+            graph.Connect(imageNode.ImageOutput, firstScript.ImageInput);
+            graph.Connect(firstScript.ImageOutput, secondScript.ImageInput);
+
+            var code = CodeGenerator.Generate(graph);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(code, Does.Contain("var csharp = ProcessCustomCode(sourceImage);"));
+                Assert.That(code, Does.Contain("var csharp2 = ProcessCustomCode2(csharp);"));
+                Assert.That(code, Does.Contain("static Image ProcessCustomCode(Image inputImage)"));
+                Assert.That(code, Does.Contain("static Image ProcessCustomCode2(Image inputImage)"));
+                Assert.That(code, Does.Contain("return inputImage;"));
+                Assert.That(code, Does.Contain("return Filter.Gauss(inputImage, FixedFilterSize.Kernel3x3);"));
+            }
+        }
+
+        [Test]
         public void Generate_EmptyGraph_ShouldReturnMinimalUsings()
         {
             var graph = new NodeGraph();

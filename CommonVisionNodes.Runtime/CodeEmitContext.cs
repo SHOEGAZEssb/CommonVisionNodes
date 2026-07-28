@@ -11,6 +11,7 @@ public sealed class CodeEmitContext
 {
     private readonly Dictionary<Port, string> _portVariables;
     private readonly Dictionary<string, int> _nameCounters;
+    private readonly Dictionary<Node, string> _helperMethodNames = [];
     private readonly IReadOnlyList<Connection> _connections;
 
     /// <summary>
@@ -76,6 +77,22 @@ public sealed class CodeEmitContext
     public void RegisterOutput(Port output, string variableName)
     {
         _portVariables[output] = variableName;
+    }
+
+    /// <summary>
+    /// Gets a stable, unique helper-method name for one node during code generation.
+    /// </summary>
+    /// <param name="node">Node that owns the helper method.</param>
+    /// <param name="baseName">Preferred helper-method name.</param>
+    /// <returns>The existing or newly allocated helper-method name.</returns>
+    public string GetHelperMethodName(Node node, string baseName)
+    {
+        if (_helperMethodNames.TryGetValue(node, out var name))
+            return name;
+
+        name = GetUniqueVariable(baseName);
+        _helperMethodNames[node] = name;
+        return name;
     }
 
     /// <summary>

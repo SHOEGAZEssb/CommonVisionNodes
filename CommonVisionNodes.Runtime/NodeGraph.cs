@@ -29,6 +29,11 @@ namespace CommonVisionNodes.Runtime
         /// <param name="node">Node to add.</param>
         public void AddNode(Node node)
         {
+            ArgumentNullException.ThrowIfNull(node);
+
+            if (_nodes.Contains(node))
+                throw new InvalidOperationException("Node already belongs to this graph.");
+
             _nodes.Add(node);
             InvalidateCache();
         }
@@ -39,8 +44,10 @@ namespace CommonVisionNodes.Runtime
         /// <param name="node">Node to remove.</param>
         public void RemoveNode(Node node)
         {
+            if (!_nodes.Remove(node))
+                return;
+
             _connections.RemoveAll(c => c.Output.Node == node || c.Input.Node == node);
-            _nodes.Remove(node);
             InvalidateCache();
 
             if (node is IInitializable initializable)
@@ -74,8 +81,14 @@ namespace CommonVisionNodes.Runtime
             if (output.Node == input.Node)
                 throw new InvalidOperationException("Cannot connect a node to itself");
 
+            if (!_nodes.Contains(output.Node) || !_nodes.Contains(input.Node))
+                throw new InvalidOperationException("Both ports must belong to nodes in this graph");
+
             if (_connections.Any(c => c.Output == output && c.Input == input))
                 throw new InvalidOperationException("Connection already exists");
+
+            if (_connections.Any(c => c.Input == input))
+                throw new InvalidOperationException("Input port already has a connection");
 
             if (!input.Type.IsAssignableFrom(output.Type))
                 throw new InvalidOperationException("Incompatible port types");

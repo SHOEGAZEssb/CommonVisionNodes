@@ -13,6 +13,7 @@ using CommonVisionNodes.Runtime.Definitions;
 
 var builder = WebApplication.CreateBuilder(args);
 var urls = builder.Configuration["Urls"] ?? "http://localhost:5077";
+ServerBindingValidator.EnsureLoopbackUrls(urls);
 builder.WebHost.UseUrls(urls);
 
 builder.Services.ConfigureHttpJsonOptions(options =>

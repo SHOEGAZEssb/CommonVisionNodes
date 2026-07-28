@@ -27,20 +27,23 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     private readonly RuntimeGraphFactory _graphFactory = graphFactory;
     private readonly RuntimePreviewFactory _previewFactory = previewFactory;
 
+    internal int SessionCount => _sessions.Count;
+
     static ExecutionClientManager()
     {
         JsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
-	/// <summary>
-	/// Starts execution for a client, replacing any existing runner for that client.
-	/// </summary>
-	/// <param name="request">Execution request.</param>
-	/// <param name="cancellationToken">Cancellation token for request processing.</param>
-	/// <returns>Accepted execution metadata.</returns>
-	public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
+    /// <summary>
+    /// Starts execution for a client, replacing any existing runner for that client.
+    /// </summary>
+    /// <param name="request">Execution request.</param>
+    /// <param name="cancellationToken">Cancellation token for request processing.</param>
+    /// <returns>Accepted execution metadata.</returns>
+    public async Task<ExecutionAcceptedDto> StartExecutionAsync(ExecutionRequestDto request, CancellationToken cancellationToken)
     {
-        var session = GetSession(request.ClientId);
+        using var sessionLease = AcquireSession(request.ClientId);
+        var session = sessionLease.Session;
 
         await session.RunnerTransitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -90,7 +93,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     /// <param name="clientId">Client identifier.</param>
     public async Task StopExecutionAsync(string clientId)
     {
-        var session = GetSession(clientId);
+        using var sessionLease = AcquireSession(clientId);
+        var session = sessionLease.Session;
 
         await session.RunnerTransitionGate.WaitAsync().ConfigureAwait(false);
         try
@@ -119,7 +123,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     /// <returns><c>true</c> when a runner was found and updated.</returns>
     public bool UpdateExecutionSettings(UpdateExecutionSettingsRequestDto request)
     {
-        var session = GetSession(request.ClientId);
+        using var sessionLease = AcquireSession(request.ClientId);
+        var session = sessionLease.Session;
         GraphExecutionRunner? runner;
 
         lock (session.RunnerSync)
@@ -139,7 +144,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     /// <returns><c>true</c> when a runner was found and the trigger was queued.</returns>
     public bool TriggerManualNode(TriggerNodeRequestDto request)
     {
-        var session = GetSession(request.ClientId);
+        using var sessionLease = AcquireSession(request.ClientId);
+        var session = sessionLease.Session;
         GraphExecutionRunner? runner;
 
         lock (session.RunnerSync)
@@ -159,7 +165,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     /// <returns><c>true</c> when the runner accepted the property update.</returns>
     public bool UpdateNodeProperties(UpdateNodePropertiesRequestDto request)
     {
-        var session = GetSession(request.ClientId);
+        using var sessionLease = AcquireSession(request.ClientId);
+        var session = sessionLease.Session;
         GraphExecutionRunner? runner;
 
         lock (session.RunnerSync)
@@ -179,7 +186,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     /// <param name="cancellationToken">Cancellation token for socket lifetime.</param>
     public async Task AttachSocketAsync(string clientId, WebSocket socket, CancellationToken cancellationToken)
     {
-        var session = GetSession(clientId);
+        using var sessionLease = AcquireSession(clientId);
+        var session = sessionLease.Session;
         var socketId = Guid.NewGuid();
         session.Sockets[socketId] = socket;
 
@@ -385,10 +393,58 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
             if (ReferenceEquals(session.Runner, completedRunner))
                 session.Runner = null;
         }
+
+        TryRemoveIdleSession(clientId, session);
     }
 
-    private ClientSession GetSession(string clientId)
-        => _sessions.GetOrAdd(clientId, _ => new ClientSession());
+    private SessionLease AcquireSession(string clientId)
+    {
+        while (true)
+        {
+            var session = _sessions.GetOrAdd(clientId, static _ => new ClientSession());
+
+            lock (session.LifetimeSync)
+            {
+                if (!_sessions.TryGetValue(clientId, out var currentSession) ||
+                    !ReferenceEquals(session, currentSession))
+                {
+                    continue;
+                }
+
+                session.ActiveLeaseCount++;
+                return new SessionLease(this, clientId, session);
+            }
+        }
+    }
+
+    private void ReleaseSession(string clientId, ClientSession session)
+    {
+        lock (session.LifetimeSync)
+            session.ActiveLeaseCount--;
+
+        TryRemoveIdleSession(clientId, session);
+    }
+
+    private void TryRemoveIdleSession(string clientId, ClientSession session)
+    {
+        lock (session.LifetimeSync)
+        {
+            if (session.ActiveLeaseCount != 0 || !session.Sockets.IsEmpty)
+                return;
+
+            lock (session.RunnerSync)
+            {
+                if (session.Runner is not null)
+                    return;
+            }
+
+            var removed = ((ICollection<KeyValuePair<string, ClientSession>>)_sessions)
+                .Remove(new KeyValuePair<string, ClientSession>(clientId, session));
+
+            if (removed)
+                session.Dispose();
+        }
+    }
 
     private static bool TargetsRunner(string? executionId, GraphExecutionRunner runner)
         => string.IsNullOrWhiteSpace(executionId) ||
@@ -400,8 +456,12 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
             session.Sockets.Values.Any(socket => socket.State == WebSocketState.Open);
     }
 
-    private sealed class ClientSession
+    private sealed class ClientSession : IDisposable
     {
+        public object LifetimeSync { get; } = new();
+
+        public int ActiveLeaseCount { get; set; }
+
         public ConcurrentDictionary<Guid, WebSocket> Sockets { get; } = [];
 
         public SemaphoreSlim SendGate { get; } = new(1, 1);
@@ -411,5 +471,27 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         public object RunnerSync { get; } = new();
 
         public GraphExecutionRunner? Runner { get; set; }
+
+        public void Dispose()
+        {
+            SendGate.Dispose();
+            RunnerTransitionGate.Dispose();
+        }
+    }
+
+    private sealed class SessionLease(
+        ExecutionClientManager owner,
+        string clientId,
+        ClientSession session) : IDisposable
+    {
+        private ExecutionClientManager? _owner = owner;
+
+        public ClientSession Session { get; } = session;
+
+        public void Dispose()
+        {
+            var currentOwner = Interlocked.Exchange(ref _owner, null);
+            currentOwner?.ReleaseSession(clientId, Session);
+        }
     }
 }

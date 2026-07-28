@@ -65,14 +65,14 @@ return filtered;
     /// <inheritdoc/>
     public override void Execute()
     {
-		if (ImageInput.Value is not Image inputImage)
-		{
-			ImageOutput.Value = null;
-			return;
-		}
+        if (ImageInput.Value is not Image inputImage)
+        {
+            ImageOutput.Value = null;
+            return;
+        }
 
-		// Compile if needed
-		if (_compiledFunction == null || _lastCompiledCode != Code)
+        // Compile if needed
+        if (_compiledFunction == null || _lastCompiledCode != Code)
         {
             if (!TryCompile())
             {
@@ -195,12 +195,13 @@ public class UserCode
     public override void EmitCode(CodeEmitContext ctx)
     {
         var varName = ctx.GetUniqueVariable("csharp");
+        var helperName = ctx.GetHelperMethodName(this, "ProcessCustomCode");
         var inputVar = ctx.ResolveInput(ImageInput);
 
         ctx.Builder.AppendLine($"// CSharp Node: Custom code");
         if (!string.IsNullOrWhiteSpace(inputVar))
         {
-            ctx.Builder.AppendLine($"var {varName} = ProcessCustomCode({inputVar});");
+            ctx.Builder.AppendLine($"var {varName} = {helperName}({inputVar});");
         }
         else
         {
@@ -211,9 +212,10 @@ public class UserCode
     }
 
     /// <inheritdoc/>
-    public override void EmitHelperMethods(StringBuilder sb)
+    public override void EmitHelperMethods(StringBuilder sb, CodeEmitContext context)
     {
-        sb.AppendLine("static Image ProcessCustomCode(Image inputImage)");
+        var helperName = context.GetHelperMethodName(this, "ProcessCustomCode");
+        sb.AppendLine($"static Image {helperName}(Image inputImage)");
         sb.AppendLine("{");
         foreach (var line in Code.Split('\n'))
         {
@@ -223,4 +225,7 @@ public class UserCode
         }
         sb.AppendLine("}");
     }
+
+    /// <inheritdoc/>
+    public override bool ReuseHelperMethodsAcrossInstances => false;
 }

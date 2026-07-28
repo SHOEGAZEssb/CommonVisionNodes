@@ -59,13 +59,13 @@ public static class CodeGenerator
         var emittedTypes = new HashSet<Type>();
         foreach (var node in sorted)
         {
-            if (emittedTypes.Add(node.GetType()))
-            {
-                var before = helperSb.Length;
-                node.EmitHelperMethods(helperSb);
-                if (helperSb.Length > before)
-                    helperSb.AppendLine();
-            }
+            if (node.ReuseHelperMethodsAcrossInstances && !emittedTypes.Add(node.GetType()))
+                continue;
+
+            var before = helperSb.Length;
+            node.EmitHelperMethods(helperSb, context);
+            if (helperSb.Length > before)
+                helperSb.AppendLine();
         }
 
         if (helperSb.Length > 0)
