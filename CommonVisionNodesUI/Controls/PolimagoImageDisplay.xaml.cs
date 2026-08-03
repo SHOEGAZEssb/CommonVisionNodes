@@ -34,14 +34,14 @@ public sealed partial class PolimagoImageDisplay : UserControl
 
         if (preview is null)
         {
-            PreviewImageSourceLoader.ClearImage(DisplayImage);
+            DisplayImage.Clear();
             PlaceholderText.Visibility = Visibility.Visible;
             InfoOverlay.Visibility = Visibility.Collapsed;
             OverlayCanvas.Children.Clear();
             return;
         }
 
-        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        var appliedPreview = await DisplayImage.SetImageAsync(preview);
         if (appliedPreview is null)
             return;
 

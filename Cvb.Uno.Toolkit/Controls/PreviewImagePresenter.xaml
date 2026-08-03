@@ -1,0 +1,11 @@
+<UserControl
+    x:Class="Cvb.Uno.Toolkit.Controls.PreviewImagePresenter"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Cvb.Uno.Toolkit.Controls">
+
+    <Grid>
+        <local:PreviewSkiaCanvas x:Name="RawCanvas" Visibility="Collapsed"/>
+        <Image x:Name="FallbackImage" Stretch="Uniform" Visibility="Collapsed"/>
+    </Grid>
+</UserControl>

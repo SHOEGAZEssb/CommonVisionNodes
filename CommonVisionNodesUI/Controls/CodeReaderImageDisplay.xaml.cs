@@ -64,7 +64,7 @@ public sealed partial class CodeReaderImageDisplay : UserControl
 
         if (preview is null)
         {
-            PreviewImageSourceLoader.ClearImage(DisplayImage);
+            DisplayImage.Clear();
             PlaceholderText.Visibility = Visibility.Visible;
             InfoOverlay.Visibility = Visibility.Collapsed;
             OverlayCanvas.Children.Clear();
@@ -72,7 +72,7 @@ public sealed partial class CodeReaderImageDisplay : UserControl
             return;
         }
 
-        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        var appliedPreview = await DisplayImage.SetImageAsync(preview);
         if (appliedPreview is null)
             return;
 

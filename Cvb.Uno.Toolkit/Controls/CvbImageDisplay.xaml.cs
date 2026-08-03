@@ -30,7 +30,7 @@ public sealed partial class CvbImageDisplay : UserControl
             return;
         }
 
-        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        var appliedPreview = await DisplayImage.SetImageAsync(preview);
         if (appliedPreview is null)
             return;
 
@@ -44,7 +44,7 @@ public sealed partial class CvbImageDisplay : UserControl
     /// </summary>
     public void Clear()
     {
-        PreviewImageSourceLoader.ClearImage(DisplayImage);
+        DisplayImage.Clear();
         PlaceholderText.Visibility = Visibility.Visible;
         InfoOverlay.Visibility = Visibility.Collapsed;
     }

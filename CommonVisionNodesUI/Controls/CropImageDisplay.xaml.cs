@@ -41,14 +41,14 @@ public sealed partial class CropImageDisplay : UserControl
 
         if (preview is null)
         {
-            PreviewImageSourceLoader.ClearImage(DisplayImage);
+            DisplayImage.Clear();
             PlaceholderText.Visibility = Visibility.Visible;
             InfoOverlay.Visibility = Visibility.Collapsed;
             CropRect.Visibility = Visibility.Collapsed;
             return;
         }
 
-        var appliedPreview = await PreviewImageSourceLoader.SetImageAsync(DisplayImage, preview);
+        var appliedPreview = await DisplayImage.SetImageAsync(preview);
         if (appliedPreview is null)
             return;
 

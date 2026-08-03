@@ -26,8 +26,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 {
     private const int DefaultPreviewRefreshRate = 15;
     private const int DefaultPreviewImageMaxDimension = 960;
-    private const int BrowserPreviewRefreshRateLimit = 10;
-    private const int BrowserPreviewImageMaxDimensionLimit = 640;
+    private const int BrowserPreviewRefreshRateDefault = 10;
+    private const int BrowserPreviewImageMaxDimensionDefault = 640;
     private const int RuntimeUiBatchSize = 4;
     private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
     private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
@@ -75,13 +75,13 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     /// <summary>
     /// Maximum selectable preview rate for the current frontend.
     /// </summary>
-    public int PreviewRefreshRateMaximum => OperatingSystem.IsBrowser() ? BrowserPreviewRefreshRateLimit : 1001;
+    public int PreviewRefreshRateMaximum => 1001;
 
     /// <summary>
     /// Description of the preview transport limits for the current frontend.
     /// </summary>
     public string PreviewSettingsDescription => OperatingSystem.IsBrowser()
-        ? $"Browser previews are limited to {BrowserPreviewRefreshRateLimit} fps and {BrowserPreviewImageMaxDimensionLimit} px without changing camera resolution or acquisition settings."
+        ? $"Browser defaults are {BrowserPreviewRefreshRateDefault} fps and {BrowserPreviewImageMaxDimensionDefault} px. Full rate and resolution are available for maximum preview quality."
         : "Tune preview bandwidth and frontend load.";
 
 	[ObservableProperty]
@@ -99,15 +99,19 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	public partial string LastExecutionError { get; set; } = string.Empty;
 
 	[ObservableProperty]
-	public partial int PreviewRefreshRate { get; set; } = NormalizePreviewRefreshRate(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate));
+	public partial int PreviewRefreshRate { get; set; } = NormalizePreviewRefreshRate(ReadIntSetting(
+        PreviewRefreshRateSettingKey,
+        OperatingSystem.IsBrowser() ? BrowserPreviewRefreshRateDefault : DefaultPreviewRefreshRate));
 
 	[ObservableProperty]
-	public partial int PreviewImageMaxDimension { get; set; } = NormalizePreviewImageMaxDimension(ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
+	public partial int PreviewImageMaxDimension { get; set; } = NormalizePreviewImageMaxDimension(ReadIntSetting(
+        PreviewImageMaxDimensionSettingKey,
+        OperatingSystem.IsBrowser() ? BrowserPreviewImageMaxDimensionDefault : DefaultPreviewImageMaxDimension));
 
 	/// <summary>
 	/// Text representation of the preview refresh rate.
 	/// </summary>
-	public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "inf" : PreviewRefreshRate.ToString(CultureInfo.InvariantCulture);
+	public string PreviewRefreshRateText => PreviewRefreshRate >= 1001 ? "Full FPS" : $"{PreviewRefreshRate.ToString(CultureInfo.InvariantCulture)} fps";
 
     /// <summary>
     /// Text representation of the preview image downscale limit.
@@ -1210,18 +1214,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     }
 
     private static int NormalizePreviewRefreshRate(int value)
-        => Math.Clamp(value, 1, OperatingSystem.IsBrowser() ? BrowserPreviewRefreshRateLimit : 1001);
+        => Math.Clamp(value, 1, 1001);
 
     private static int NormalizePreviewImageMaxDimension(int value)
-    {
-        value = Math.Max(0, value);
-        if (!OperatingSystem.IsBrowser())
-            return value;
-
-        return value == 0
-            ? BrowserPreviewImageMaxDimensionLimit
-            : Math.Min(value, BrowserPreviewImageMaxDimensionLimit);
-    }
+        => Math.Max(0, value);
 
     private static IReadOnlyList<PreviewImageMaxDimensionOption> CreatePreviewImageMaxDimensionOptions()
     {
@@ -1235,12 +1231,9 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
             new(160, "160 px")
         ];
 
-        if (OperatingSystem.IsBrowser())
-            return options;
-
         options.InsertRange(0,
         [
-            new(0, "Off (full resolution)"),
+            new(0, "Full resolution"),
             new(1600, "1600 px"),
             new(1280, "1280 px"),
             new(960, "960 px")

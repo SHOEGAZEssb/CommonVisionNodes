@@ -1,10 +1,11 @@
 <UserControl
     x:Class="CommonVisionNodesUI.Controls.BlobImageDisplay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cvb="using:Cvb.Uno.Toolkit.Controls">
 
     <Grid x:Name="RootGrid" Background="#1A1A1A" CornerRadius="4">
-        <Image x:Name="DisplayImage" Stretch="Uniform"/>
+        <cvb:PreviewImagePresenter x:Name="DisplayImage"/>
 
         <TextBlock x:Name="PlaceholderText"
                    Text="No image"
