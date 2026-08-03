@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Threading.Channels;
 using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodes.Runtime.Execution;
@@ -35,6 +37,14 @@ public sealed class GraphExecutionRunner(
 			.ToHashSet(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _previewSync = new();
     private readonly BinaryImageBufferCache _previewImageBufferCache = new();
+    private readonly ConcurrentDictionary<string, byte> _previewsInFlight = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Channel<QueuedPreview> _previewPublicationQueue = Channel.CreateUnbounded<QueuedPreview>(
+        new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = true,
+            AllowSynchronousContinuations = false
+        });
     private readonly Lock _manualTriggerSync = new();
     private readonly Dictionary<string, int> _manualTriggerCounts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _graphSync = new();
@@ -42,6 +52,7 @@ public sealed class GraphExecutionRunner(
     private int _previewRefreshRate = request.PreviewRefreshRate;
     private int _previewImageMaxDimension = request.PreviewImageMaxDimension;
     private Task? _executionTask;
+    private Task? _previewPublicationTask;
     private RuntimeGraphBuildResult? _activeGraphBuildResult;
 
 	/// <summary>
@@ -52,10 +63,13 @@ public sealed class GraphExecutionRunner(
 	/// <summary>
 	/// Starts execution on a background task. Subsequent calls are ignored.
 	/// </summary>
-	public void Start()
+    public void Start()
     {
         if (_executionTask is not null)
             return;
+
+        if (_request.Mode == ExecutionModeDto.Continuous)
+            _previewPublicationTask = Task.Run(() => PublishQueuedPreviewsAsync(_cts.Token));
 
         _executionTask = Task.Run(() => RunAsync(_cts.Token));
     }
@@ -220,6 +234,19 @@ public sealed class GraphExecutionRunner(
         }
         finally
         {
+            _previewPublicationQueue.Writer.TryComplete();
+            if (_previewPublicationTask is not null)
+            {
+                try
+                {
+                    await _previewPublicationTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+                {
+                    // Stopping an execution abandons any preview currently being transmitted.
+                }
+            }
+
             lock (_graphSync)
             {
                 if (ReferenceEquals(_activeGraphBuildResult, graphBuildResult))
@@ -281,14 +308,68 @@ public sealed class GraphExecutionRunner(
             if (!IsPreviewEnabled(pair.Value))
                 continue;
 
-            var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
-            var preview = RuntimePreviewFactory.CreatePreviewMessage(
-                pair.Value,
-                pair.Key,
-                previewImageMaxDimension,
-                _previewImageBufferCache);
+            if (_request.Mode == ExecutionModeDto.Continuous)
+            {
+                QueuePreviewIfAvailable(pair.Value, pair.Key);
+                continue;
+            }
+
+            var preview = CreatePreviewMessage(pair.Value, pair.Key);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private void QueuePreviewIfAvailable(string nodeId, Node node)
+    {
+        // Do not generate another image while this node already has a frame queued or being sent.
+        // Apart from reducing conversion work, this keeps the two-buffer cache safe: a producer can
+        // never wrap around and overwrite bytes still owned by an asynchronous WebSocket send.
+        if (!_previewsInFlight.TryAdd(nodeId, 0))
+            return;
+
+        try
+        {
+            var preview = CreatePreviewMessage(nodeId, node);
+            if (preview is null)
+            {
+                _previewsInFlight.TryRemove(nodeId, out _);
+                return;
+            }
+
+            StampMessage(preview);
+            if (!_previewPublicationQueue.Writer.TryWrite(new QueuedPreview(nodeId, preview)))
+                _previewsInFlight.TryRemove(nodeId, out _);
+        }
+        catch
+        {
+            _previewsInFlight.TryRemove(nodeId, out _);
+            throw;
+        }
+    }
+
+    private ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node)
+    {
+        var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
+        return RuntimePreviewFactory.CreatePreviewMessage(
+            nodeId,
+            node,
+            previewImageMaxDimension,
+            _previewImageBufferCache);
+    }
+
+    private async Task PublishQueuedPreviewsAsync(CancellationToken cancellationToken)
+    {
+        await foreach (var queuedPreview in _previewPublicationQueue.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        {
+            try
+            {
+                await _publishAsync(queuedPreview.Message, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _previewsInFlight.TryRemove(queuedPreview.NodeId, out _);
+            }
         }
     }
 
@@ -467,10 +548,17 @@ public sealed class GraphExecutionRunner(
 
     private async Task PublishAsync(ExecutionMessageDto message, CancellationToken cancellationToken)
     {
-        message.ExecutionId = ExecutionId;
-        message.TimestampUtc = DateTimeOffset.UtcNow;
+        StampMessage(message);
         await _publishAsync(message, cancellationToken).ConfigureAwait(false);
     }
+
+    private void StampMessage(ExecutionMessageDto message)
+    {
+        message.ExecutionId = ExecutionId;
+        message.TimestampUtc = DateTimeOffset.UtcNow;
+    }
+
+    private sealed record QueuedPreview(string NodeId, ExecutionMessageDto Message);
 
     private static string? GetNodeMessage(Node node)
     {

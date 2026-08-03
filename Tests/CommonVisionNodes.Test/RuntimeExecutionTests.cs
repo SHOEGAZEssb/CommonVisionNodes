@@ -491,6 +491,61 @@ public sealed class GraphExecutionRunnerTests
         Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
     }
 
+    [Test]
+    public async Task ContinuousExecution_WithSlowPreviewConsumer_ShouldKeepOnlyOnePreviewPerNodeInFlight()
+    {
+        var firstPreviewStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePreview = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: true);
+        request.Mode = ExecutionModeDto.Continuous;
+        request.PreviewRefreshRate = 1001;
+        var previewPublishCount = 0;
+        var latestFrameCount = 0L;
+        var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+        var runner = new GraphExecutionRunner(
+            request,
+            graphFactory,
+            new RuntimePreviewFactory(),
+            async (message, cancellationToken) =>
+            {
+                if (message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+                {
+                    Interlocked.Increment(ref previewPublishCount);
+                    firstPreviewStarted.TrySetResult();
+                    await releasePreview.Task.WaitAsync(cancellationToken);
+                    return;
+                }
+
+                if (message.ExecutionState is
+                    {
+                        Status: ExecutionStatusDto.Running,
+                        Message: "Executing."
+                    } state)
+                {
+                    Interlocked.Exchange(ref latestFrameCount, state.FramesProcessed);
+                }
+            },
+            _ => { });
+
+        try
+        {
+            runner.Start();
+            await firstPreviewStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await Task.Delay(350);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Volatile.Read(ref previewPublishCount), Is.EqualTo(1));
+                Assert.That(Volatile.Read(ref latestFrameCount), Is.GreaterThan(1));
+            }
+        }
+        finally
+        {
+            releasePreview.TrySetResult();
+            await runner.DisposeAsync();
+        }
+    }
+
     [TestCase(0, 1000.0)]
     [TestCase(1, 1000.0)]
     [TestCase(30, 1000.0 / 30)]
