@@ -1,5 +1,4 @@
 using System.IO;
-using System.Buffers.Binary;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -12,6 +11,8 @@ namespace CommonVisionNodesUI.Services;
 /// </summary>
 public sealed class BackendClient : IBackendClient
 {
+    private const int WebSocketReceiveBufferSize = 64 * 1024;
+
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Uri _webSocketUriBase;
@@ -100,7 +101,8 @@ public sealed class BackendClient : IBackendClient
         var websocketUri = new Uri(_webSocketUriBase, $"ws/execution?clientId={Uri.EscapeDataString(clientId)}");
         await socket.ConnectAsync(websocketUri, cancellationToken);
 
-        var buffer = new byte[16 * 1024];
+        var buffer = new byte[WebSocketReceiveBufferSize];
+        var imageBufferCache = new BinaryImageBufferCache();
         while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
         {
             var result = await socket.ReceiveAsync(buffer, cancellationToken);
@@ -108,10 +110,15 @@ public sealed class BackendClient : IBackendClient
                 return;
 
             var message = result.MessageType == WebSocketMessageType.Binary
-                ? await DeserializeBinaryExecutionMessageAsync(socket, buffer, result, cancellationToken)
+                ? await DeserializeBinaryExecutionMessageAsync(socket, buffer, result, imageBufferCache, cancellationToken)
                 : await DeserializeTextExecutionMessageAsync(socket, buffer, result, cancellationToken);
             if (message is not null)
+            {
+                if (message.ExecutionState?.Status == ExecutionStatusDto.Starting)
+                    imageBufferCache.Clear();
+
                 await onMessage(message);
+            }
         }
     }
 
@@ -149,9 +156,10 @@ public sealed class BackendClient : IBackendClient
         ClientWebSocket socket,
         byte[] buffer,
         WebSocketReceiveResult firstResult,
+        BinaryImageBufferCache imageBufferCache,
         CancellationToken cancellationToken)
     {
-        var builder = new BinaryExecutionMessageBuilder(_jsonOptions);
+        var builder = new BinaryExecutionMessageBuilder(_jsonOptions, imageBufferCache);
         var result = firstResult;
 
         while (true)
@@ -166,29 +174,6 @@ public sealed class BackendClient : IBackendClient
         }
     }
 
-    private static bool TryGetImagePreview(ExecutionMessageDto message, out ImagePreviewDto imagePreview)
-    {
-        imagePreview = null!;
-
-        switch (message.MessageType)
-        {
-            case ExecutionMessageTypeDto.ImagePreview when message.ImagePreview is not null:
-                imagePreview = message.ImagePreview;
-                return true;
-            case ExecutionMessageTypeDto.BlobPreview when message.BlobPreview?.Image is not null:
-                imagePreview = message.BlobPreview.Image;
-                return true;
-            case ExecutionMessageTypeDto.ClassificationPreview when message.ClassificationPreview?.Image is not null:
-                imagePreview = message.ClassificationPreview.Image;
-                return true;
-            case ExecutionMessageTypeDto.CodeReaderPreview when message.CodeReaderPreview?.Image is not null:
-                imagePreview = message.CodeReaderPreview.Image;
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private static Uri BuildWebSocketBaseUri(Uri httpBaseUri)
     {
         var builder = new UriBuilder(httpBaseUri)
@@ -198,149 +183,4 @@ public sealed class BackendClient : IBackendClient
         return builder.Uri;
     }
 
-    private sealed class BinaryExecutionMessageBuilder(JsonSerializerOptions jsonOptions)
-    {
-        private readonly byte[] _header = new byte[sizeof(int)];
-        private readonly JsonSerializerOptions _jsonOptions = jsonOptions;
-        private byte[]? _metadata;
-        private ExecutionMessageDto? _message;
-        private byte[]? _imageBytes;
-        private MemoryStream? _imageStream;
-        private int _headerBytesRead;
-        private int _metadataLength = -1;
-        private int _metadataBytesRead;
-        private int _imageBytesRead;
-        private bool _invalid;
-
-        public void Append(ReadOnlySpan<byte> data)
-        {
-            while (!data.IsEmpty && !_invalid)
-            {
-                if (_headerBytesRead < sizeof(int))
-                {
-                    var bytesToCopy = Math.Min(sizeof(int) - _headerBytesRead, data.Length);
-                    data[..bytesToCopy].CopyTo(_header.AsSpan(_headerBytesRead));
-                    _headerBytesRead += bytesToCopy;
-                    data = data[bytesToCopy..];
-
-                    if (_headerBytesRead == sizeof(int))
-                    {
-                        _metadataLength = BinaryPrimitives.ReadInt32LittleEndian(_header);
-                        if (_metadataLength <= 0)
-                        {
-                            _invalid = true;
-                            return;
-                        }
-
-                        _metadata = new byte[_metadataLength];
-                    }
-
-                    continue;
-                }
-
-                if (_metadata is not null && _metadataBytesRead < _metadata.Length)
-                {
-                    var bytesToCopy = Math.Min(_metadata.Length - _metadataBytesRead, data.Length);
-                    data[..bytesToCopy].CopyTo(_metadata.AsSpan(_metadataBytesRead));
-                    _metadataBytesRead += bytesToCopy;
-                    data = data[bytesToCopy..];
-
-                    if (_metadataBytesRead == _metadata.Length)
-                        EnsureMessageParsed();
-
-                    continue;
-                }
-
-                AppendImageBytes(data);
-                break;
-            }
-        }
-
-        public ExecutionMessageDto? Build()
-        {
-            EnsureMessageParsed();
-            if (_invalid || _message is null)
-                return null;
-
-            if (TryGetImagePreview(_message, out var imagePreview))
-            {
-                if (_imageBytes is not null)
-                {
-                    if (_imageBytesRead != _imageBytes.Length)
-                        return null;
-
-                    imagePreview.BinaryData = _imageBytes;
-                }
-                else
-                {
-                    imagePreview.BinaryData = _imageStream?.ToArray() ?? [];
-                }
-            }
-
-            _imageStream?.Dispose();
-            return _message;
-        }
-
-        private void EnsureMessageParsed()
-        {
-            if (_message is not null || _metadata is null || _metadataBytesRead != _metadata.Length || _invalid)
-                return;
-
-            _message = JsonSerializer.Deserialize<ExecutionMessageDto>(_metadata, _jsonOptions);
-            if (_message is null)
-                _invalid = true;
-        }
-
-        private void AppendImageBytes(ReadOnlySpan<byte> data)
-        {
-            if (data.IsEmpty)
-                return;
-
-            EnsureMessageParsed();
-            if (_message is null)
-            {
-                _invalid = true;
-                return;
-            }
-
-            if (_imageBytes is null && _imageStream is null)
-            {
-                var expectedByteCount = TryGetImagePreview(_message, out var imagePreview)
-                    ? GetExpectedRawImageByteCount(imagePreview)
-                    : null;
-
-                if (expectedByteCount is > 0)
-                    _imageBytes = new byte[expectedByteCount.Value];
-                else
-                    _imageStream = new MemoryStream();
-            }
-
-            if (_imageBytes is not null)
-            {
-                var remainingByteCount = _imageBytes.Length - _imageBytesRead;
-                if (data.Length > remainingByteCount)
-                {
-                    _invalid = true;
-                    return;
-                }
-
-                data.CopyTo(_imageBytes.AsSpan(_imageBytesRead));
-                _imageBytesRead += data.Length;
-                return;
-            }
-
-            _imageStream!.Write(data);
-        }
-
-        private static int? GetExpectedRawImageByteCount(ImagePreviewDto imagePreview)
-        {
-            if (imagePreview.Encoding != ImagePreviewEncodingDto.Bgra32)
-                return null;
-
-            var width = Math.Max(1, imagePreview.PreviewWidth);
-            var height = Math.Max(1, imagePreview.PreviewHeight);
-            var stride = imagePreview.Stride > 0 ? imagePreview.Stride : checked(width * 4);
-            return checked(stride * height);
-        }
-    }
 }

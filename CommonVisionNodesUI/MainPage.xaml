@@ -942,7 +942,7 @@
                                   FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                   FontSize="12"/>
                         <Button.Flyout>
-                            <Flyout Placement="Left">
+                            <Flyout Placement="TopEdgeAlignedRight">
                                 <Flyout.FlyoutPresenterStyle>
                                     <Style TargetType="FlyoutPresenter">
                                         <Setter Property="Background" Value="#00000000"/>
@@ -950,7 +950,7 @@
                                         <Setter Property="Padding" Value="0"/>
                                     </Style>
                                 </Flyout.FlyoutPresenterStyle>
-                                <Border MinWidth="280"
+                                <Border Width="300"
                                         Padding="14"
                                         CornerRadius="14"
                                         BorderBrush="#3F4C60"
@@ -967,9 +967,10 @@
                                                        FontSize="15"
                                                        FontWeight="SemiBold"
                                                        Foreground="White"/>
-                                            <TextBlock Text="Tune preview bandwidth and browser load."
+                                            <TextBlock Text="{x:Bind ViewModel.Graph.PreviewSettingsDescription, Mode=OneWay}"
                                                        FontSize="11"
-                                                       Foreground="#AAB4C3"/>
+                                                       Foreground="#AAB4C3"
+                                                       TextWrapping="Wrap"/>
                                         </StackPanel>
                                         <Border Height="1" Background="#2E394A"/>
                                         <StackPanel Spacing="5">
@@ -977,7 +978,7 @@
                                                        Foreground="#AAB4C3"
                                                        FontSize="12"/>
                                             <Slider Minimum="1"
-                                                    Maximum="1001"
+                                                    Maximum="{x:Bind ViewModel.Graph.PreviewRefreshRateMaximum, Mode=OneWay}"
                                                     Value="{x:Bind ViewModel.Graph.PreviewRefreshRate, Mode=TwoWay}"
                                                     StepFrequency="1"/>
                                             <TextBlock Text="{x:Bind ViewModel.Graph.PreviewRefreshRateText, Mode=OneWay}"

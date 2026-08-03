@@ -32,6 +32,12 @@ public static class PreviewImageSourceLoader
             return null;
         }
 
+        // Raw previews are the hot path and require no decode. Applying them before returning keeps
+        // transport-buffer reuse safe: the WebSocket listener cannot start receiving the next frame
+        // until this pixel-buffer copy has completed on the UI thread.
+        if (preview.Encoding == ImagePreviewEncodingDto.Bgra32 && preview.BinaryData is { Length: > 0 } binaryData)
+            return ApplyBgra32Preview(image, state, preview, binaryData);
+
         lock (state.Sync)
         {
             state.Version++;
@@ -122,7 +128,7 @@ public static class PreviewImageSourceLoader
             // A control can receive newer previews while an older payload is decoding.
             // Only one worker per control is allowed, and it always jumps to the newest frame.
             var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
-                ? await CreateBgra32BitmapAsync(state, preview, bytes)
+                ? CreateBgra32Bitmap(state, preview, bytes)
                 : await CreateEncodedBitmapAsync(bytes);
 
             if (HasNewerPreview(state, version))
@@ -138,7 +144,27 @@ public static class PreviewImageSourceLoader
     private static bool HasNewerPreview(ImageLoadState state, int version)
     {
         lock (state.Sync)
-            return state.Version != version && state.HasPendingPreview;
+            return state.Version != version;
+    }
+
+    private static ImagePreviewDto ApplyBgra32Preview(
+        Image image,
+        ImageLoadState state,
+        ImagePreviewDto preview,
+        byte[] bytes)
+    {
+        lock (state.Sync)
+        {
+            state.Version++;
+            state.PendingPreview = null;
+            state.HasPendingPreview = false;
+        }
+
+        var source = CreateBgra32Bitmap(state, preview, bytes);
+        if (!ReferenceEquals(image.Source, source))
+            image.Source = source;
+
+        return preview;
     }
 
     private static bool HasImageData(ImagePreviewDto preview)
@@ -163,20 +189,15 @@ public static class PreviewImageSourceLoader
         return bitmap;
     }
 
-    private static async Task<ImageSource> CreateBgra32BitmapAsync(ImageLoadState state, ImagePreviewDto preview, byte[] bytes)
+    private static ImageSource CreateBgra32Bitmap(ImageLoadState state, ImagePreviewDto preview, byte[] bytes)
     {
         var width = Math.Max(1, preview.PreviewWidth);
         var height = Math.Max(1, preview.PreviewHeight);
         var stride = preview.Stride > 0 ? preview.Stride : width * 4;
-        var expectedByteCount = checked(stride * height);
-
-        if (bytes.Length < expectedByteCount)
-            throw new InvalidDataException("BGRA preview payload is smaller than the declared dimensions.");
 
         var bitmap = GetOrCreateBgraBitmap(state, width, height, stride);
         using var pixelStream = bitmap.PixelBuffer.AsStream();
-        pixelStream.Position = 0;
-        await pixelStream.WriteAsync(bytes, 0, expectedByteCount);
+        PreviewPixelBufferWriter.WriteBgra32(pixelStream, preview, bytes);
         bitmap.Invalidate();
         return bitmap;
     }

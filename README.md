@@ -8,6 +8,7 @@ CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vis
 - `CommonVisionNodes.Runtime` - runtime node graph, CVB processing nodes, graph execution, previews, and C# code generation.
 - `CommonVisionNodes.Server` - ASP.NET Core backend that exposes node definitions, graph execution, stop, code generation, and WebSocket execution updates.
 - `CommonVisionNodesUI` - Uno Platform UI for editing node graphs, saving/loading graph files, running pipelines, and viewing previews.
+- `Benchmarks/CommonVisionNodes.Benchmarks` - BenchmarkDotNet benchmarks for binary image transfer and frontend pixel-buffer uploads.
 - `Tests/CommonVisionNodes.Test` - NUnit tests for graph behavior, image nodes, code generation, runtime graph building, and execution messages.
 
 ## Features
@@ -22,6 +23,7 @@ CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vis
 - WebSocket status updates with per-node execution timing.
 - Image, histogram, blob, classification, and text previews.
 - Preview throttling and preview image downscaling.
+- Browser-safe preview limits (10 FPS and a 640 px long edge) without changing camera acquisition settings.
 - Graph save/load as `.cvbgraph`.
 - Standalone CVB SDK code generation.
 
@@ -65,6 +67,14 @@ Run only the test project:
 ```powershell
 dotnet test Tests\CommonVisionNodes.Test\CommonVisionNodes.Test.csproj
 ```
+
+Run the image preview benchmarks in Release mode:
+
+```powershell
+dotnet run -c Release --project Benchmarks\CommonVisionNodes.Benchmarks\CommonVisionNodes.Benchmarks.csproj -- --filter '*'
+```
+
+See [`Benchmarks/README.md`](Benchmarks/README.md) for benchmark scope, focused filters, and the quick smoke-test command.
 
 ## Running The App
 
@@ -156,5 +166,6 @@ Generated code includes only graph-relevant nodes: connected pipeline nodes plus
   - node definition/factory entry in `RuntimeNodeCatalog`
   - matching view model/template in `CommonVisionNodesUI`
 - Prefer adding focused tests when changing graph wiring, code generation, runtime execution, or preview behavior.
+- WebAssembly preview settings are clamped to 10 FPS and a 640 px long edge, including settings restored from older graph files. Desktop preview settings remain unrestricted.
 - The `CSharpNode` compiles user-provided code in-process. Treat it as trusted-local functionality unless it is moved into a sandboxed execution model.
 - The backend rejects non-loopback listen URLs so trusted C# node execution cannot be exposed remotely by configuration alone.

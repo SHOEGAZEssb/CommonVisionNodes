@@ -6,6 +6,7 @@ namespace CommonVisionNodes.Launcher;
 
 internal static class Program
 {
+    private const int FrameworkMissingExitCode = unchecked((int)0x80008096);
     private const string BackendUrl = "http://127.0.0.1:5077";
     private static readonly Uri HealthUri = new($"{BackendUrl}/api/health");
     private static readonly Uri BrowserStartUri = new($"{BackendUrl}/browser-reset");
@@ -138,7 +139,7 @@ internal static class Program
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (process.HasExited)
-                throw new InvalidOperationException($"The backend stopped before becoming ready (exit code {process.ExitCode}).");
+                throw new InvalidOperationException(DescribeBackendExit(process.ExitCode));
 
             try
             {
@@ -159,6 +160,18 @@ internal static class Program
         }
 
         throw new TimeoutException($"The backend did not become ready at '{HealthUri}' within 20 seconds.");
+    }
+
+    private static string DescribeBackendExit(int exitCode)
+    {
+        if (exitCode == FrameworkMissingExitCode)
+        {
+            return "The backend requires the .NET 10 ASP.NET Core Runtime (x64), but that runtime " +
+                   "is not installed or could not be found. Install it and try again. To list the " +
+                   "detected runtimes, run 'dotnet --list-runtimes'.";
+        }
+
+        return $"The backend stopped before becoming ready (exit code {exitCode}).";
     }
 
     private static async Task WaitForProcessOrCancellationAsync(Process process, CancellationToken cancellationToken)

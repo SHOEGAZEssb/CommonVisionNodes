@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Buffers.Binary;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -275,9 +274,9 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 
     private static Task SendAsync(WebSocket socket, ExecutionMessageDto message, CancellationToken cancellationToken)
     {
-        if (TryGetImagePreview(message, out var imagePreview))
+        if (BinaryExecutionMessageCodec.TryGetImagePreview(message, out var imagePreview))
         {
-            var imageBytes = GetImageBytes(imagePreview);
+            var imageBytes = BinaryExecutionMessageCodec.GetImageBytes(imagePreview);
             if (imageBytes is { Length: > 0 })
                 return SendBinaryPayloadAsync(socket, message, imageBytes, cancellationToken);
         }
@@ -288,100 +287,13 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 
     private static async Task SendBinaryPayloadAsync(WebSocket socket, ExecutionMessageDto message, byte[] imageBytes, CancellationToken cancellationToken)
     {
-        var metadata = CloneWithoutImageData(message);
-        var metadataBytes = JsonSerializer.SerializeToUtf8Bytes(metadata, JsonOptions);
-        var metadataLengthHeader = new byte[sizeof(int)];
-
-        BinaryPrimitives.WriteInt32LittleEndian(metadataLengthHeader, metadataBytes.Length);
+        var metadataBytes = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonOptions);
+        var metadataLengthHeader = BinaryExecutionMessageCodec.CreateMetadataLengthHeader(metadataBytes.Length);
 
         await socket.SendAsync(metadataLengthHeader, WebSocketMessageType.Binary, endOfMessage: false, cancellationToken).ConfigureAwait(false);
         await socket.SendAsync(metadataBytes, WebSocketMessageType.Binary, endOfMessage: false, cancellationToken).ConfigureAwait(false);
         await socket.SendAsync(imageBytes, WebSocketMessageType.Binary, endOfMessage: true, cancellationToken).ConfigureAwait(false);
     }
-
-    private static byte[]? GetImageBytes(ImagePreviewDto imagePreview)
-    {
-        if (imagePreview.BinaryData is { Length: > 0 } binaryData)
-            return binaryData;
-
-        return string.IsNullOrWhiteSpace(imagePreview.Base64Data)
-            ? null
-            : Convert.FromBase64String(imagePreview.Base64Data);
-    }
-
-    private static bool TryGetImagePreview(ExecutionMessageDto message, out ImagePreviewDto imagePreview)
-    {
-        imagePreview = null!;
-
-        switch (message.MessageType)
-        {
-            case ExecutionMessageTypeDto.ImagePreview when message.ImagePreview is not null:
-                imagePreview = message.ImagePreview;
-                return true;
-            case ExecutionMessageTypeDto.BlobPreview when message.BlobPreview?.Image is not null:
-                imagePreview = message.BlobPreview.Image;
-                return true;
-            case ExecutionMessageTypeDto.ClassificationPreview when message.ClassificationPreview?.Image is not null:
-                imagePreview = message.ClassificationPreview.Image;
-                return true;
-            case ExecutionMessageTypeDto.CodeReaderPreview when message.CodeReaderPreview?.Image is not null:
-                imagePreview = message.CodeReaderPreview.Image;
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static ExecutionMessageDto CloneWithoutImageData(ExecutionMessageDto message)
-        => new()
-        {
-            ExecutionId = message.ExecutionId,
-            MessageType = message.MessageType,
-            ExecutionState = message.ExecutionState,
-            NodeUpdate = message.NodeUpdate,
-            ImagePreview = message.ImagePreview is null ? null : CloneImageMetadata(message.ImagePreview),
-            HistogramPreview = message.HistogramPreview,
-            BlobPreview = message.BlobPreview is null ? null : new BlobPreviewDto
-            {
-                NodeId = message.BlobPreview.NodeId,
-                Image = message.BlobPreview.Image is null ? null : CloneImageMetadata(message.BlobPreview.Image),
-                Blobs = message.BlobPreview.Blobs,
-                TimestampUtc = message.BlobPreview.TimestampUtc
-            },
-            ClassificationPreview = message.ClassificationPreview is null ? null : new ClassificationPreviewDto
-            {
-                NodeId = message.ClassificationPreview.NodeId,
-                Image = message.ClassificationPreview.Image is null ? null : CloneImageMetadata(message.ClassificationPreview.Image),
-                Results = message.ClassificationPreview.Results,
-                TimestampUtc = message.ClassificationPreview.TimestampUtc
-            },
-            CodeReaderPreview = message.CodeReaderPreview is null ? null : new CodeReaderPreviewDto
-            {
-                NodeId = message.CodeReaderPreview.NodeId,
-                Image = message.CodeReaderPreview.Image is null ? null : CloneImageMetadata(message.CodeReaderPreview.Image),
-                Results = message.CodeReaderPreview.Results,
-                TimeLimitReached = message.CodeReaderPreview.TimeLimitReached,
-                TimestampUtc = message.CodeReaderPreview.TimestampUtc
-            },
-            TextPreview = message.TextPreview,
-            Error = message.Error,
-            TimestampUtc = message.TimestampUtc
-        };
-
-    private static ImagePreviewDto CloneImageMetadata(ImagePreviewDto imagePreview)
-        => new()
-        {
-            NodeId = imagePreview.NodeId,
-            MediaType = imagePreview.MediaType,
-            Encoding = imagePreview.Encoding,
-            Width = imagePreview.Width,
-            Height = imagePreview.Height,
-            PreviewWidth = imagePreview.PreviewWidth,
-            PreviewHeight = imagePreview.PreviewHeight,
-            Stride = imagePreview.Stride,
-            PixelFormat = imagePreview.PixelFormat,
-            TimestampUtc = imagePreview.TimestampUtc
-        };
 
     private void OnRunnerCompleted(string clientId, GraphExecutionRunner completedRunner)
     {

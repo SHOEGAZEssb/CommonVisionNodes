@@ -70,8 +70,30 @@ public sealed class RuntimePreviewFactoryTests
         }
     }
 
-    private static ImagePreviewDto CreateImagePreview(Image image, int previewImageMaxDimension = 0)
-        => (ImagePreviewDto)CreateImagePreviewMethod.Invoke(null, ["preview-node", image, previewImageMaxDimension])!;
+    [Test]
+    public void CreateImagePreview_WithBufferCache_ShouldAlternateAndReuseBuffers()
+    {
+        using var image = new Image(2, 1, 1);
+        var cache = new BinaryImageBufferCache();
+
+        var first = CreateImagePreview(image, imageBufferCache: cache);
+        var second = CreateImagePreview(image, imageBufferCache: cache);
+        var third = CreateImagePreview(image, imageBufferCache: cache);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(second.BinaryData, Is.Not.SameAs(first.BinaryData));
+            Assert.That(third.BinaryData, Is.SameAs(first.BinaryData));
+        }
+    }
+
+    private static ImagePreviewDto CreateImagePreview(
+        Image image,
+        int previewImageMaxDimension = 0,
+        BinaryImageBufferCache? imageBufferCache = null)
+        => (ImagePreviewDto)CreateImagePreviewMethod.Invoke(
+            null,
+            ["preview-node", image, previewImageMaxDimension, imageBufferCache])!;
 
     private static void WriteRgb(Image image, int x, int y, byte red, byte green, byte blue)
     {

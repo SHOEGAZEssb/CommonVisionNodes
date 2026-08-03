@@ -9,6 +9,18 @@ desktop UI. Installing the .NET 10 SDK also provides these runtimes.
 No separate web server is required. Common Vision Blox, its required drivers,
 and licensing must still be available.
 
+To verify the runtime installation, run:
+
+```powershell
+dotnet --list-runtimes
+```
+
+The output must contain both `Microsoft.NETCore.App 10.0.x` and
+`Microsoft.AspNetCore.App 10.0.x` for x64. Backend exit code `-2147450730`
+(`0x80008096`) means that a required .NET framework was not found; when the
+launcher itself starts, the missing framework is normally the .NET 10 ASP.NET
+Core Runtime.
+
 ## Publish
 
 The publishing machine needs the .NET 10 SDK, Uno tooling, and a matching

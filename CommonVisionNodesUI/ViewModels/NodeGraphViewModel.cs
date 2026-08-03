@@ -25,6 +25,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 {
     private const int DefaultPreviewRefreshRate = 15;
     private const int DefaultPreviewImageMaxDimension = 960;
+    private const int BrowserPreviewRefreshRateLimit = 10;
+    private const int BrowserPreviewImageMaxDimensionLimit = 640;
     private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
     private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
 
@@ -63,19 +65,19 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     /// <summary>
     /// Supported preview downscale options.
     /// </summary>
-    public IReadOnlyList<PreviewImageMaxDimensionOption> PreviewImageMaxDimensionOptions { get; } =
-    [
-        new(0, "Off (full resolution)"),
-        new(1600, "1600 px"),
-        new(1280, "1280 px"),
-        new(960, "960 px"),
-        new(640, "640 px"),
-        new(480, "480 px"),
-        new(360, "360 px"),
-        new(320, "320 px"),
-        new(240, "240 px"),
-        new(160, "160 px")
-    ];
+    public IReadOnlyList<PreviewImageMaxDimensionOption> PreviewImageMaxDimensionOptions { get; } = CreatePreviewImageMaxDimensionOptions();
+
+    /// <summary>
+    /// Maximum selectable preview rate for the current frontend.
+    /// </summary>
+    public int PreviewRefreshRateMaximum => OperatingSystem.IsBrowser() ? BrowserPreviewRefreshRateLimit : 1001;
+
+    /// <summary>
+    /// Description of the preview transport limits for the current frontend.
+    /// </summary>
+    public string PreviewSettingsDescription => OperatingSystem.IsBrowser()
+        ? $"Browser previews are limited to {BrowserPreviewRefreshRateLimit} fps and {BrowserPreviewImageMaxDimensionLimit} px without changing camera resolution or acquisition settings."
+        : "Tune preview bandwidth and frontend load.";
 
 	[ObservableProperty]
 	public partial NodeViewModel? SelectedNode { get; set; }
@@ -92,10 +94,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	public partial string LastExecutionError { get; set; } = string.Empty;
 
 	[ObservableProperty]
-	public partial int PreviewRefreshRate { get; set; } = Math.Clamp(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate), 1, 1001);
+	public partial int PreviewRefreshRate { get; set; } = NormalizePreviewRefreshRate(ReadIntSetting(PreviewRefreshRateSettingKey, DefaultPreviewRefreshRate));
 
 	[ObservableProperty]
-	public partial int PreviewImageMaxDimension { get; set; } = Math.Max(0, ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
+	public partial int PreviewImageMaxDimension { get; set; } = NormalizePreviewImageMaxDimension(ReadIntSetting(PreviewImageMaxDimensionSettingKey, DefaultPreviewImageMaxDimension));
 
 	/// <summary>
 	/// Text representation of the preview refresh rate.
@@ -532,9 +534,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     partial void OnPreviewRefreshRateChanged(int value)
     {
-        if (value is < 1 or > 1001)
+        var normalizedValue = NormalizePreviewRefreshRate(value);
+        if (value != normalizedValue)
         {
-            PreviewRefreshRate = Math.Clamp(value, 1, 1001);
+            PreviewRefreshRate = normalizedValue;
             return;
         }
 
@@ -545,9 +548,10 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     partial void OnPreviewImageMaxDimensionChanged(int value)
     {
-        if (value < 0)
+        var normalizedValue = NormalizePreviewImageMaxDimension(value);
+        if (value != normalizedValue)
         {
-            PreviewImageMaxDimension = 0;
+            PreviewImageMaxDimension = normalizedValue;
             return;
         }
 
@@ -1087,6 +1091,45 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         }
 
         return defaultValue;
+    }
+
+    private static int NormalizePreviewRefreshRate(int value)
+        => Math.Clamp(value, 1, OperatingSystem.IsBrowser() ? BrowserPreviewRefreshRateLimit : 1001);
+
+    private static int NormalizePreviewImageMaxDimension(int value)
+    {
+        value = Math.Max(0, value);
+        if (!OperatingSystem.IsBrowser())
+            return value;
+
+        return value == 0
+            ? BrowserPreviewImageMaxDimensionLimit
+            : Math.Min(value, BrowserPreviewImageMaxDimensionLimit);
+    }
+
+    private static IReadOnlyList<PreviewImageMaxDimensionOption> CreatePreviewImageMaxDimensionOptions()
+    {
+        List<PreviewImageMaxDimensionOption> options =
+        [
+            new(640, "640 px"),
+            new(480, "480 px"),
+            new(360, "360 px"),
+            new(320, "320 px"),
+            new(240, "240 px"),
+            new(160, "160 px")
+        ];
+
+        if (OperatingSystem.IsBrowser())
+            return options;
+
+        options.InsertRange(0,
+        [
+            new(0, "Off (full resolution)"),
+            new(1600, "1600 px"),
+            new(1280, "1280 px"),
+            new(960, "960 px")
+        ]);
+        return options;
     }
 
     private static void WriteIntSetting(string key, int value)

@@ -34,6 +34,7 @@ public sealed class GraphExecutionRunner(
 			.Select(node => node.Id)
 			.ToHashSet(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _previewSync = new();
+    private readonly BinaryImageBufferCache _previewImageBufferCache = new();
     private readonly Lock _manualTriggerSync = new();
     private readonly Dictionary<string, int> _manualTriggerCounts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _graphSync = new();
@@ -281,7 +282,11 @@ public sealed class GraphExecutionRunner(
                 continue;
 
             var previewImageMaxDimension = Volatile.Read(ref _previewImageMaxDimension);
-            var preview = RuntimePreviewFactory.CreatePreviewMessage(pair.Value, pair.Key, previewImageMaxDimension);
+            var preview = RuntimePreviewFactory.CreatePreviewMessage(
+                pair.Value,
+                pair.Key,
+                previewImageMaxDimension,
+                _previewImageBufferCache);
             if (preview is not null)
                 await PublishAsync(preview, cancellationToken).ConfigureAwait(false);
         }

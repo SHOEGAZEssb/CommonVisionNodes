@@ -16,35 +16,44 @@ public sealed class RuntimePreviewFactory
     /// <param name="nodeId">Serialized graph node id.</param>
     /// <param name="node">Runtime node instance.</param>
     /// <param name="previewImageMaxDimension">Maximum preview long edge, or 0 to keep full resolution.</param>
+    /// <param name="imageBufferCache">Optional cache used to reuse raw BGRA output buffers.</param>
     /// <returns>A preview message, or <c>null</c> when the node has no preview data.</returns>
-    public static ExecutionMessageDto? CreatePreviewMessage(string nodeId, Node node, int previewImageMaxDimension)
+    public static ExecutionMessageDto? CreatePreviewMessage(
+        string nodeId,
+        Node node,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache = null)
     {
         return node switch
         {
-            ImageNode imageNode => CreateImagePreviewMessage(nodeId, imageNode.CachedImage, previewImageMaxDimension),
-            SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image, previewImageMaxDimension),
-            GevServerNode gevServerNode => CreateImagePreviewMessage(nodeId, gevServerNode.ImageInput.Value as Image, previewImageMaxDimension),
-            DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            MatrixTransformNode transformNode => CreateImagePreviewMessage(nodeId, transformNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            ImageGeneratorNode generatorNode => CreateImagePreviewMessage(nodeId, generatorNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            FilterNode filterNode => CreateImagePreviewMessage(nodeId, filterNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            MorphologyNode morphologyNode => CreateImagePreviewMessage(nodeId, morphologyNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            NormalizeNode normalizeNode => CreateImagePreviewMessage(nodeId, normalizeNode.ImageOutput.Value as Image, previewImageMaxDimension),
-            CSharpNode csharpNode => CreateImagePreviewMessage(nodeId, csharpNode.ImageOutput.Value as Image, previewImageMaxDimension),
+            ImageNode imageNode => CreateImagePreviewMessage(nodeId, imageNode.CachedImage, previewImageMaxDimension, imageBufferCache),
+            SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            GevServerNode gevServerNode => CreateImagePreviewMessage(nodeId, gevServerNode.ImageInput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            MatrixTransformNode transformNode => CreateImagePreviewMessage(nodeId, transformNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            ImageGeneratorNode generatorNode => CreateImagePreviewMessage(nodeId, generatorNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            FilterNode filterNode => CreateImagePreviewMessage(nodeId, filterNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            MorphologyNode morphologyNode => CreateImagePreviewMessage(nodeId, morphologyNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            NormalizeNode normalizeNode => CreateImagePreviewMessage(nodeId, normalizeNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+            CSharpNode csharpNode => CreateImagePreviewMessage(nodeId, csharpNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
             HistogramNode histogramNode => CreateHistogramPreviewMessage(nodeId, histogramNode),
-            BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension),
-            PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension),
-            CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode, previewImageMaxDimension),
-            GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension),
+            BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension, imageBufferCache),
+            PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension, imageBufferCache),
+            CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode, previewImageMaxDimension, imageBufferCache),
+            GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension, imageBufferCache),
             _ => null
         };
     }
 
-    private static ExecutionMessageDto? CreateImagePreviewMessage(string nodeId, Image? image, int previewImageMaxDimension)
+    private static ExecutionMessageDto? CreateImagePreviewMessage(
+        string nodeId,
+        Image? image,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
     {
-        var preview = CreateImagePreview(nodeId, image, previewImageMaxDimension);
+        var preview = CreateImagePreview(nodeId, image, previewImageMaxDimension, imageBufferCache);
         return preview is null
             ? null
             : new ExecutionMessageDto
@@ -68,14 +77,18 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ExecutionMessageDto CreateBlobPreviewMessage(string nodeId, BlobNode node, int previewImageMaxDimension)
+    private static ExecutionMessageDto CreateBlobPreviewMessage(
+        string nodeId,
+        BlobNode node,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.BlobPreview,
             BlobPreview = new BlobPreviewDto
             {
                 NodeId = nodeId,
-                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
                 Blobs = [.. node.Blobs.Select(blob => new BlobInfoDto
                 {
                     Label = blob.Label,
@@ -91,14 +104,18 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ExecutionMessageDto CreateClassificationPreviewMessage(string nodeId, PolimagoClassifyNode node, int previewImageMaxDimension)
+    private static ExecutionMessageDto CreateClassificationPreviewMessage(
+        string nodeId,
+        PolimagoClassifyNode node,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.ClassificationPreview,
             ClassificationPreview = new ClassificationPreviewDto
             {
                 NodeId = nodeId,
-                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
                 Results = [.. node.Results.Select(result => new ClassificationResultDto
                 {
                     BlobIndex = result.BlobIndex,
@@ -111,14 +128,18 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ExecutionMessageDto CreateCodeReaderPreviewMessage(string nodeId, CodeReaderNode node, int previewImageMaxDimension)
+    private static ExecutionMessageDto CreateCodeReaderPreviewMessage(
+        string nodeId,
+        CodeReaderNode node,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
         => new()
         {
             MessageType = ExecutionMessageTypeDto.CodeReaderPreview,
             CodeReaderPreview = new CodeReaderPreviewDto
             {
                 NodeId = nodeId,
-                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension),
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
                 Results = [.. node.Results.Select(result => new CodeReaderResultDto
                 {
                     Index = result.Index,
@@ -139,11 +160,15 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ExecutionMessageDto? CreateGenericPreviewMessage(string nodeId, object? value, int previewImageMaxDimension)
+    private static ExecutionMessageDto? CreateGenericPreviewMessage(
+        string nodeId,
+        object? value,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
     {
         return value switch
         {
-            Image image => CreateImagePreviewMessage(nodeId, image, previewImageMaxDimension),
+            Image image => CreateImagePreviewMessage(nodeId, image, previewImageMaxDimension, imageBufferCache),
             IReadOnlyList<BlobInfo> blobs => CreateTextPreviewMessage(nodeId, "BlobInfo[]", string.Join(Environment.NewLine, blobs.Select(blob =>
                 $"#{blob.Label} area={blob.Area} center=({blob.CentroidX:F1},{blob.CentroidY:F1}) bounds=({blob.BoundsX},{blob.BoundsY}) {blob.BoundsWidth}x{blob.BoundsHeight}"))),
             IReadOnlyList<BlobRect> rects => CreateTextPreviewMessage(nodeId, "BlobRect[]", string.Join(Environment.NewLine, rects.Select((rect, index) =>
@@ -169,12 +194,16 @@ public sealed class RuntimePreviewFactory
             }
         };
 
-    private static ImagePreviewDto? CreateImagePreview(string nodeId, Image? image, int previewImageMaxDimension)
+    private static ImagePreviewDto? CreateImagePreview(
+        string nodeId,
+        Image? image,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
     {
         if (image is null || image.IsDisposed)
             return null;
 
-        var rawPreview = CreateBgra32Preview(nodeId, image, previewImageMaxDimension);
+        var rawPreview = CreateBgra32Preview(nodeId, image, previewImageMaxDimension, imageBufferCache);
         if (rawPreview is not null)
             return rawPreview;
 
@@ -218,7 +247,11 @@ public sealed class RuntimePreviewFactory
         }
     }
 
-    private static ImagePreviewDto? CreateBgra32Preview(string nodeId, Image image, int previewImageMaxDimension)
+    private static ImagePreviewDto? CreateBgra32Preview(
+        string nodeId,
+        Image image,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
     {
         if (!TryGetBgra32Source(image, out var source))
             return null;
@@ -227,7 +260,9 @@ public sealed class RuntimePreviewFactory
         // a PNG encode/decode round-trip for the common mono and RGB preview cases.
         var previewSize = GetPreviewSize(image, previewImageMaxDimension);
         var stride = checked(previewSize.Width * BgraBytesPerPixel);
-        var bytes = new byte[checked(stride * previewSize.Height)];
+        var byteCount = checked(stride * previewSize.Height);
+        var bytes = imageBufferCache?.GetNextBuffer(nodeId, byteCount)
+            ?? GC.AllocateUninitializedArray<byte>(byteCount);
 
         CopyBgra32(image, source, bytes, stride, previewSize.Width, previewSize.Height);
 
@@ -358,7 +393,7 @@ public sealed class RuntimePreviewFactory
             {
                 var sourceX0 = targetX * sourceWidth / previewWidth;
                 var sourceX1 = Math.Max(sourceX0 + 1, (targetX + 1) * sourceWidth / previewWidth);
-                var redValue = red.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                var redValue = red.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
 
                 if (source.IsMono)
                 {
@@ -366,9 +401,9 @@ public sealed class RuntimePreviewFactory
                     continue;
                 }
 
-                var greenValue = green.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
-                var blueValue = blue.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
-                var alphaValue = source.HasAlpha ? alpha.ReadAverageDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1) : (byte)255;
+                var greenValue = green.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                var blueValue = blue.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                var alphaValue = source.HasAlpha ? alpha.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1) : (byte)255;
                 destinationRow[targetX] = ComposeBgra32(blueValue, greenValue, redValue, alphaValue);
             }
         }
@@ -566,23 +601,33 @@ public sealed class RuntimePreviewFactory
         public byte ReadDisplayByte(int x, int y)
             => ScaleRawToByte(ReadRaw(x, y));
 
-        public byte ReadAverageDisplayByte(int sourceX0, int sourceX1, int sourceY0, int sourceY1)
+        public byte ReadDownscaledDisplayByte(int sourceX0, int sourceX1, int sourceY0, int sourceY1)
         {
+            const int maximumSamplesPerAxis = 2;
+            var width = Math.Max(1, sourceX1 - sourceX0);
+            var height = Math.Max(1, sourceY1 - sourceY0);
+            var samplesX = Math.Min(width, maximumSamplesPerAxis);
+            var samplesY = Math.Min(height, maximumSamplesPerAxis);
             var sum = 0L;
-            var samples = 0;
 
-            for (var y = sourceY0; y < sourceY1; y++)
+            // Sample evenly across large source regions instead of visiting every source pixel.
+            // This bounds preview work by the displayed resolution while retaining light spatial
+            // averaging to avoid the worst nearest-neighbor aliasing.
+            for (var sampleY = 0; sampleY < samplesY; sampleY++)
             {
-                for (var x = sourceX0; x < sourceX1; x++)
+                var y = sourceY0 + (2 * sampleY + 1) * height / (2 * samplesY);
+                y = Math.Min(y, sourceY1 - 1);
+
+                for (var sampleX = 0; sampleX < samplesX; sampleX++)
                 {
+                    var x = sourceX0 + (2 * sampleX + 1) * width / (2 * samplesX);
+                    x = Math.Min(x, sourceX1 - 1);
                     sum += ReadRaw(x, y);
-                    samples++;
                 }
             }
 
-            return samples > 0
-                ? ScaleRawToByte((int)Math.Round(sum / (double)samples))
-                : (byte)0;
+            var sampleCount = samplesX * samplesY;
+            return ScaleRawToByte((int)Math.Round(sum / (double)sampleCount));
         }
 
         private int ReadRaw(int x, int y)
