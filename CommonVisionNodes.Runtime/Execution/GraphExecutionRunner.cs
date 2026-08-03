@@ -51,6 +51,7 @@ public sealed class GraphExecutionRunner(
     private readonly CancellationTokenSource _cts = new();
     private int _previewRefreshRate = request.PreviewRefreshRate;
     private int _previewImageMaxDimension = request.PreviewImageMaxDimension;
+    private long _previewSequence;
     private Task? _executionTask;
     private Task? _previewPublicationTask;
     private RuntimeGraphBuildResult? _activeGraphBuildResult;
@@ -556,6 +557,9 @@ public sealed class GraphExecutionRunner(
     {
         message.ExecutionId = ExecutionId;
         message.TimestampUtc = DateTimeOffset.UtcNow;
+
+        if (BinaryExecutionMessageCodec.TryGetImagePreview(message, out var imagePreview))
+            imagePreview.PreviewSequence = Interlocked.Increment(ref _previewSequence);
     }
 
     private sealed record QueuedPreview(string NodeId, ExecutionMessageDto Message);

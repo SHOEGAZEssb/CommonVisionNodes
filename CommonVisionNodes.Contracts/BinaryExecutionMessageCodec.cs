@@ -127,6 +127,7 @@ public static class BinaryExecutionMessageCodec
     private static ImagePreviewDto CloneImageMetadata(ImagePreviewDto imagePreview)
         => new()
         {
+            PreviewSequence = imagePreview.PreviewSequence,
             NodeId = imagePreview.NodeId,
             MediaType = imagePreview.MediaType,
             Encoding = imagePreview.Encoding,

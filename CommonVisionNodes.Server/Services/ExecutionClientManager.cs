@@ -17,6 +17,7 @@ namespace CommonVisionNodes.Server.Services;
 /// <param name="previewFactory">Preview factory used by new execution runners.</param>
 public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, RuntimePreviewFactory previewFactory)
 {
+    private static readonly TimeSpan PreviewAcknowledgementTimeout = TimeSpan.FromSeconds(2);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -188,7 +189,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         using var sessionLease = AcquireSession(clientId);
         var session = sessionLease.Session;
         var socketId = Guid.NewGuid();
-        session.Sockets[socketId] = socket;
+        var socketState = new ClientSocketState(socket);
+        session.Sockets[socketId] = socketState;
 
         try
         {
@@ -200,6 +202,8 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
                 var result = await socket.ReceiveAsync(buffer, cancellationToken).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                     break;
+
+                await ProcessClientMessageAsync(socketState, buffer, result, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -209,6 +213,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         finally
         {
             session.Sockets.TryRemove(socketId, out _);
+            socketState.Acknowledgements.CancelPending();
 
             if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
             {
@@ -229,6 +234,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
         if (!_sessions.TryGetValue(clientId, out var session))
             return;
 
+        List<(ClientSocketState SocketState, Task AcknowledgementTask)>? acknowledgementWaits = null;
         await session.SendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -236,25 +242,47 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
             // permit concurrent sends, and this also keeps message order stable for the UI.
             foreach (var socketEntry in session.Sockets.ToArray())
             {
-                if (socketEntry.Value.State != WebSocketState.Open)
+                if (socketEntry.Value.Socket.State != WebSocketState.Open)
                 {
                     session.Sockets.TryRemove(socketEntry.Key, out _);
+                    socketEntry.Value.Acknowledgements.CancelPending();
                     continue;
                 }
 
                 try
                 {
-                    await SendAsync(socketEntry.Value, message, cancellationToken).ConfigureAwait(false);
+                    var acknowledgementTask = socketEntry.Value.Acknowledgements.Begin(message);
+                    await SendAsync(socketEntry.Value.Socket, message, cancellationToken).ConfigureAwait(false);
+                    if (acknowledgementTask is not null)
+                    {
+                        acknowledgementWaits ??= [];
+                        acknowledgementWaits.Add((socketEntry.Value, acknowledgementTask));
+                    }
                 }
                 catch
                 {
                     session.Sockets.TryRemove(socketEntry.Key, out _);
+                    socketEntry.Value.Acknowledgements.CancelPending();
                 }
             }
         }
         finally
         {
             session.SendGate.Release();
+        }
+
+        if (acknowledgementWaits is null)
+            return;
+
+        // The send gate protects WebSocket.SendAsync only. Waiting outside it lets execution
+        // telemetry and state messages proceed while the browser applies an image frame.
+        foreach (var acknowledgementWait in acknowledgementWaits)
+        {
+            await WaitForPreviewAcknowledgementAsync(
+                    acknowledgementWait.SocketState,
+                    acknowledgementWait.AcknowledgementTask,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -283,6 +311,91 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
         return socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
+    }
+
+    private static async Task WaitForPreviewAcknowledgementAsync(
+        ClientSocketState socketState,
+        Task acknowledgementTask,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await acknowledgementTask
+                .WaitAsync(PreviewAcknowledgementTimeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // Do not let a backgrounded or overloaded browser stop graph execution indefinitely.
+            // The per-node publisher remains bounded and can try a fresher frame on the next tick.
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The socket disconnected or disabled acknowledgements while this preview was pending.
+        }
+        finally
+        {
+            socketState.Acknowledgements.CancelPending();
+        }
+    }
+
+    private static async Task ProcessClientMessageAsync(
+        ClientSocketState socketState,
+        byte[] buffer,
+        WebSocketReceiveResult firstResult,
+        CancellationToken cancellationToken)
+    {
+        if (firstResult.MessageType != WebSocketMessageType.Text)
+        {
+            await DrainClientMessageAsync(socketState.Socket, buffer, firstResult, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        using var messageStream = new MemoryStream();
+        var result = firstResult;
+        while (true)
+        {
+            messageStream.Write(buffer, 0, result.Count);
+            if (result.EndOfMessage)
+                break;
+
+            result = await socketState.Socket.ReceiveAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (result.MessageType == WebSocketMessageType.Close)
+                return;
+        }
+
+        try
+        {
+            var message = JsonSerializer.Deserialize<PreviewClientMessageDto>(messageStream.GetBuffer().AsSpan(0, checked((int)messageStream.Length)), JsonOptions);
+            switch (message?.MessageType)
+            {
+                case PreviewClientMessageTypeDto.Configure:
+                    socketState.Acknowledgements.Configure(message.SupportsAcknowledgements);
+                    break;
+                case PreviewClientMessageTypeDto.Acknowledge:
+                    socketState.Acknowledgements.TryAcknowledge(message);
+                    break;
+            }
+        }
+        catch (JsonException)
+        {
+            // Ignore unknown client messages so an invalid control packet cannot end the socket.
+        }
+    }
+
+    private static async Task DrainClientMessageAsync(
+        WebSocket socket,
+        byte[] buffer,
+        WebSocketReceiveResult firstResult,
+        CancellationToken cancellationToken)
+    {
+        var result = firstResult;
+        while (!result.EndOfMessage)
+        {
+            result = await socket.ReceiveAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (result.MessageType == WebSocketMessageType.Close)
+                return;
+        }
     }
 
     private static async Task SendBinaryPayloadAsync(WebSocket socket, ExecutionMessageDto message, byte[] imageBytes, CancellationToken cancellationToken)
@@ -365,7 +478,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
     private bool HasOpenSockets(string clientId)
     {
         return _sessions.TryGetValue(clientId, out var session) &&
-            session.Sockets.Values.Any(socket => socket.State == WebSocketState.Open);
+            session.Sockets.Values.Any(socket => socket.Socket.State == WebSocketState.Open);
     }
 
     private sealed class ClientSession : IDisposable
@@ -374,7 +487,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
 
         public int ActiveLeaseCount { get; set; }
 
-        public ConcurrentDictionary<Guid, WebSocket> Sockets { get; } = [];
+        public ConcurrentDictionary<Guid, ClientSocketState> Sockets { get; } = [];
 
         public SemaphoreSlim SendGate { get; } = new(1, 1);
 
@@ -389,6 +502,13 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory, Run
             SendGate.Dispose();
             RunnerTransitionGate.Dispose();
         }
+    }
+
+    private sealed class ClientSocketState(WebSocket socket)
+    {
+        public WebSocket Socket { get; } = socket;
+
+        public PreviewAcknowledgementGate Acknowledgements { get; } = new();
     }
 
     private sealed class SessionLease(

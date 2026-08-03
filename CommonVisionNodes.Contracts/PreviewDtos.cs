@@ -24,6 +24,12 @@ public enum ImagePreviewEncodingDto
 public sealed class ImagePreviewDto
 {
     /// <summary>
+    /// Monotonically increasing identifier assigned by the execution runner for transport acknowledgement.
+    /// A value of 0 indicates a producer that does not use acknowledgements.
+    /// </summary>
+    public long PreviewSequence { get; set; }
+
+    /// <summary>
     /// Graph node identifier that produced the preview.
     /// </summary>
     public string NodeId { get; set; } = string.Empty;

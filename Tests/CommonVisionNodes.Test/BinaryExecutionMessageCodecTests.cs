@@ -67,6 +67,7 @@ public sealed class BinaryExecutionMessageCodecTests
     {
         byte[] payload = [1, 2, 3, 4];
         var message = CreateImageMessage(ImagePreviewEncodingDto.Bgra32, payload, width: 1, height: 1);
+        message.ImagePreview!.PreviewSequence = 42;
         message.ImagePreview!.Base64Data = Convert.ToBase64String(payload);
 
         var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, _jsonOptions);
@@ -76,6 +77,7 @@ public sealed class BinaryExecutionMessageCodecTests
         {
             Assert.That(deserialized?.ImagePreview?.BinaryData, Is.Null);
             Assert.That(deserialized?.ImagePreview?.Base64Data, Is.Empty);
+            Assert.That(deserialized?.ImagePreview?.PreviewSequence, Is.EqualTo(42));
             Assert.That(message.ImagePreview.BinaryData, Is.SameAs(payload));
             Assert.That(message.ImagePreview.Base64Data, Is.Not.Empty);
         }

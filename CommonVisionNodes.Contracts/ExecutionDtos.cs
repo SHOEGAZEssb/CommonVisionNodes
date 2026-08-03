@@ -145,6 +145,54 @@ public enum ExecutionMessageTypeDto
 }
 
 /// <summary>
+/// Identifies a control message sent from an execution WebSocket client to the backend.
+/// </summary>
+public enum PreviewClientMessageTypeDto
+{
+    /// <summary>
+    /// Announces whether the client acknowledges previews after applying them.
+    /// </summary>
+    Configure,
+
+    /// <summary>
+    /// Confirms that one preview has reached the client's display path.
+    /// </summary>
+    Acknowledge
+}
+
+/// <summary>
+/// Small client-to-server control message used to pace live preview delivery.
+/// </summary>
+public sealed class PreviewClientMessageDto
+{
+    /// <summary>
+    /// Control message discriminator.
+    /// </summary>
+    public PreviewClientMessageTypeDto MessageType { get; set; }
+
+    /// <summary>
+    /// Whether this socket supports per-preview acknowledgements.
+    /// Used by <see cref="PreviewClientMessageTypeDto.Configure"/> messages.
+    /// </summary>
+    public bool SupportsAcknowledgements { get; set; }
+
+    /// <summary>
+    /// Runtime execution identifier of the applied preview.
+    /// </summary>
+    public string ExecutionId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Graph node identifier of the applied preview.
+    /// </summary>
+    public string NodeId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sequence identifier copied from the applied preview.
+    /// </summary>
+    public long PreviewSequence { get; set; }
+}
+
+/// <summary>
 /// Request body used to start graph execution.
 /// </summary>
 public sealed class ExecutionRequestDto

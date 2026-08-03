@@ -100,6 +100,14 @@ public sealed class BackendClient : IBackendClient
         using var socket = new ClientWebSocket();
         var websocketUri = new Uri(_webSocketUriBase, $"ws/execution?clientId={Uri.EscapeDataString(clientId)}");
         await socket.ConnectAsync(websocketUri, cancellationToken);
+        await SendPreviewClientMessageAsync(
+            socket,
+            new PreviewClientMessageDto
+            {
+                MessageType = PreviewClientMessageTypeDto.Configure,
+                SupportsAcknowledgements = true
+            },
+            cancellationToken);
 
         var buffer = new byte[WebSocketReceiveBufferSize];
         var imageBufferCache = new BinaryImageBufferCache();
@@ -118,8 +126,44 @@ public sealed class BackendClient : IBackendClient
                     imageBufferCache.Clear();
 
                 await onMessage(message);
+                // The raw BGRA hot path uploads synchronously while the UI callback applies the
+                // view-model update. Acknowledging afterwards ties backend pacing to that upload
+                // instead of merely to WebSocket receipt.
+                await AcknowledgeAppliedPreviewAsync(socket, message, cancellationToken);
             }
         }
+    }
+
+    private Task AcknowledgeAppliedPreviewAsync(
+        ClientWebSocket socket,
+        ExecutionMessageDto message,
+        CancellationToken cancellationToken)
+    {
+        if (!BinaryExecutionMessageCodec.TryGetImagePreview(message, out var imagePreview) ||
+            imagePreview.PreviewSequence <= 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        return SendPreviewClientMessageAsync(
+            socket,
+            new PreviewClientMessageDto
+            {
+                MessageType = PreviewClientMessageTypeDto.Acknowledge,
+                ExecutionId = message.ExecutionId,
+                NodeId = imagePreview.NodeId,
+                PreviewSequence = imagePreview.PreviewSequence
+            },
+            cancellationToken);
+    }
+
+    private async Task SendPreviewClientMessageAsync(
+        ClientWebSocket socket,
+        PreviewClientMessageDto message,
+        CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.SerializeToUtf8Bytes(message, _jsonOptions);
+        await socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
     }
 
     private async Task<T?> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

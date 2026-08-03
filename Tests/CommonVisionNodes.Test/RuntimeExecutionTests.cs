@@ -205,6 +205,7 @@ public sealed class GraphExecutionRunnerTests
 		using (Assert.EnterMultipleScope())
 		{
             Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
+            Assert.That(imagePreview.PreviewSequence, Is.GreaterThan(0));
             Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-bgra32"));
             Assert.That(imagePreview.BinaryData, Is.Not.Null.And.Not.Empty);
             Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth * 4));
