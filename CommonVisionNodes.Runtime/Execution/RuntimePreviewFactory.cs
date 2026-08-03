@@ -80,14 +80,22 @@ public sealed class RuntimePreviewFactory
         BlobNode node,
         int previewImageMaxDimension,
         BinaryImageBufferCache? imageBufferCache)
-        => new()
+    {
+        // MaxBlobCount is live-editable. Apply it while snapshotting as well as during
+        // BlobNode.Execute so a preview cannot expose the previous frame's unbounded list
+        // in the small window between a property update and the next execution.
+        var blobs = node.MaxBlobCount > 0
+            ? node.Blobs.Take(node.MaxBlobCount)
+            : node.Blobs;
+
+        return new()
         {
             MessageType = ExecutionMessageTypeDto.BlobPreview,
             BlobPreview = new BlobPreviewDto
             {
                 NodeId = nodeId,
                 Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
-                Blobs = [.. node.Blobs.Select(blob => new BlobInfoDto
+                Blobs = [.. blobs.Select(blob => new BlobInfoDto
                 {
                     Label = blob.Label,
                     Area = blob.Area,
@@ -101,6 +109,7 @@ public sealed class RuntimePreviewFactory
                 TimestampUtc = DateTimeOffset.UtcNow
             }
         };
+    }
 
     private static ExecutionMessageDto CreateClassificationPreviewMessage(
         string nodeId,

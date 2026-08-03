@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using CommonVisionNodes.Contracts;
+using CommonVisionNodes.Runtime;
+using CommonVisionNodes.Runtime.Definitions;
 using CommonVisionNodes.Runtime.Execution;
 using Stemmer.Cvb;
 
@@ -107,6 +109,39 @@ public sealed class RuntimePreviewFactoryTests
             Assert.That(second.BinaryData, Is.Not.SameAs(first.BinaryData));
             Assert.That(third.BinaryData, Is.SameAs(first.BinaryData));
         }
+    }
+
+    [Test]
+    public void BlobPreview_AppliesCurrentMaxBlobCountToPreviousFrameResults()
+    {
+        using var image = new Image(9, 1, 1);
+        for (var x = 0; x < image.Width; x++)
+            WriteByte(image, planeIndex: 0, x, y: 0, value: x % 2 == 0 ? byte.MaxValue : byte.MinValue);
+
+        var node = new BlobNode { MaxBlobCount = 0 };
+        node.ImageInput.Value = image;
+        node.Execute();
+        Assert.That(node.Blobs, Has.Count.EqualTo(5));
+
+        // Simulate a live property edit after this frame executed but before its preview is created.
+        node.MaxBlobCount = 2;
+        var message = RuntimePreviewFactory.CreatePreviewMessage("blob-node", node, previewImageMaxDimension: 0);
+
+        Assert.That(message?.BlobPreview?.Blobs, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void BlobNode_DefaultMaxBlobCount_IsTenInRuntimeAndCatalog()
+    {
+        var node = new BlobNode();
+        var definition = new RuntimeNodeCatalog().GetDefinition(nameof(BlobNode));
+        var property = definition?.Properties.Single(item => item.Name == nameof(BlobNode.MaxBlobCount));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(node.MaxBlobCount, Is.EqualTo(10));
+            Assert.That(property?.DefaultValue, Is.EqualTo("10"));
+        });
     }
 
     private static ImagePreviewDto CreateImagePreview(

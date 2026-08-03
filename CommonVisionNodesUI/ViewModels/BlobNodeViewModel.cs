@@ -18,7 +18,7 @@ public partial class BlobNodeViewModel : NodeViewModel
 		ForegroundThreshold = GetInt("ForegroundThreshold", 128);
 		MinArea = GetInt("MinArea", 1);
 		MaxArea = GetInt("MaxArea", 0);
-		MaxBlobCount = GetInt("MaxBlobCount", 0);
+		MaxBlobCount = GetInt("MaxBlobCount", 10);
 		InvertForeground = GetBool("InvertForeground", false);
 		Use8Connectivity = GetBool("Use8Connectivity", false);
     }

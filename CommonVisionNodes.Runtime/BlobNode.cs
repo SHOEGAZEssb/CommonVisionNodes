@@ -111,7 +111,7 @@ namespace CommonVisionNodes.Runtime
         /// Maximum number of blobs to return (largest first).
         /// A value of 0 means no limit.
         /// </summary>
-        public int MaxBlobCount { get; set; }
+        public int MaxBlobCount { get; set; } = 10;
 
         /// <summary>
         /// When <c>true</c>, pixels <em>below</em> the threshold are treated as foreground.
