@@ -126,7 +126,7 @@ public sealed class BackendClient : IBackendClient
                     imageBufferCache.Clear();
 
                 await onMessage(message);
-                // The raw BGRA hot path uploads synchronously while the UI callback applies the
+                // The raw image hot path uploads synchronously while the UI callback applies the
                 // view-model update. Acknowledging afterwards ties backend pacing to that upload
                 // instead of merely to WebSocket receipt.
                 await AcknowledgeAppliedPreviewAsync(socket, message, cancellationToken);

@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Cvb.Uno.Toolkit\Cvb.Uno.Toolkit.csproj" />
     <ProjectReference Include="..\..\CommonVisionNodes.Runtime\CommonVisionNodes.Runtime.csproj" />
     <ProjectReference Include="..\..\CommonVisionNodes.Server\CommonVisionNodes.Server.csproj" />
   </ItemGroup>

@@ -5,7 +5,7 @@ namespace CommonVisionNodes.Contracts;
 /// </summary>
 /// <remarks>
 /// Alternating buffers keeps the most recently delivered frame stable while the next frame is
-/// received. This avoids a large-object-heap allocation for every BGRA preview without allowing
+/// received. This avoids a large-object-heap allocation for every raw preview without allowing
 /// an in-progress receive to overwrite the buffer currently owned by the frontend.
 /// </remarks>
 public sealed class BinaryImageBufferCache

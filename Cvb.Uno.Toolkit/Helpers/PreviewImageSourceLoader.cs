@@ -35,8 +35,8 @@ public static class PreviewImageSourceLoader
         // Raw previews are the hot path and require no decode. Applying them before returning keeps
         // transport-buffer reuse safe: the WebSocket listener cannot start receiving the next frame
         // until this pixel-buffer copy has completed on the UI thread.
-        if (preview.Encoding == ImagePreviewEncodingDto.Bgra32 && preview.BinaryData is { Length: > 0 } binaryData)
-            return ApplyBgra32Preview(image, state, preview, binaryData);
+        if (ImagePreviewEncodingInfo.IsRaw(preview.Encoding) && preview.BinaryData is { Length: > 0 } binaryData)
+            return ApplyRawPreview(image, state, preview, binaryData);
 
         lock (state.Sync)
         {
@@ -86,7 +86,7 @@ public static class PreviewImageSourceLoader
             state.BgraBitmap = null;
             state.BgraWidth = 0;
             state.BgraHeight = 0;
-            state.BgraStride = 0;
+            state.ExpandedBgraBuffer = null;
         }
 
         image.Source = null;
@@ -127,8 +127,8 @@ public static class PreviewImageSourceLoader
 
             // A control can receive newer previews while an older payload is decoding.
             // Only one worker per control is allowed, and it always jumps to the newest frame.
-            var source = preview.Encoding == ImagePreviewEncodingDto.Bgra32
-                ? CreateBgra32Bitmap(state, preview, bytes)
+            var source = ImagePreviewEncodingInfo.IsRaw(preview.Encoding)
+                ? CreateRawBitmap(state, preview, bytes)
                 : await CreateEncodedBitmapAsync(bytes);
 
             if (HasNewerPreview(state, version))
@@ -147,7 +147,7 @@ public static class PreviewImageSourceLoader
             return state.Version != version;
     }
 
-    private static ImagePreviewDto ApplyBgra32Preview(
+    private static ImagePreviewDto ApplyRawPreview(
         Image image,
         ImageLoadState state,
         ImagePreviewDto preview,
@@ -160,7 +160,7 @@ public static class PreviewImageSourceLoader
             state.HasPendingPreview = false;
         }
 
-        var source = CreateBgra32Bitmap(state, preview, bytes);
+        var source = CreateRawBitmap(state, preview, bytes);
         if (!ReferenceEquals(image.Source, source))
             image.Source = source;
 
@@ -189,27 +189,29 @@ public static class PreviewImageSourceLoader
         return bitmap;
     }
 
-    private static ImageSource CreateBgra32Bitmap(ImageLoadState state, ImagePreviewDto preview, byte[] bytes)
+    private static ImageSource CreateRawBitmap(ImageLoadState state, ImagePreviewDto preview, byte[] bytes)
     {
         var width = Math.Max(1, preview.PreviewWidth);
         var height = Math.Max(1, preview.PreviewHeight);
-        var stride = preview.Stride > 0 ? preview.Stride : width * 4;
 
-        var bitmap = GetOrCreateBgraBitmap(state, width, height, stride);
+        var bitmap = GetOrCreateBgraBitmap(state, width, height);
         using var pixelStream = bitmap.PixelBuffer.AsStream();
-        PreviewPixelBufferWriter.WriteBgra32(pixelStream, preview, bytes);
+        var expandedBytes = preview.Encoding == ImagePreviewEncodingDto.Bgra32
+            ? null
+            : GetOrCreateExpandedBgraBuffer(state, preview);
+        PreviewPixelBufferWriter.WriteRawPreview(pixelStream, preview, bytes, expandedBytes);
+
         bitmap.Invalidate();
         return bitmap;
     }
 
-    private static WriteableBitmap GetOrCreateBgraBitmap(ImageLoadState state, int width, int height, int stride)
+    private static WriteableBitmap GetOrCreateBgraBitmap(ImageLoadState state, int width, int height)
     {
         lock (state.Sync)
         {
             if (state.BgraBitmap is not null &&
                 state.BgraWidth == width &&
-                state.BgraHeight == height &&
-                state.BgraStride == stride)
+                state.BgraHeight == height)
             {
                 return state.BgraBitmap;
             }
@@ -217,8 +219,20 @@ public static class PreviewImageSourceLoader
             state.BgraBitmap = new WriteableBitmap(width, height);
             state.BgraWidth = width;
             state.BgraHeight = height;
-            state.BgraStride = stride;
+            state.ExpandedBgraBuffer = null;
             return state.BgraBitmap;
+        }
+    }
+
+    private static byte[] GetOrCreateExpandedBgraBuffer(ImageLoadState state, ImagePreviewDto preview)
+    {
+        var byteCount = PreviewPixelBufferWriter.GetBgra32ByteCount(preview);
+        lock (state.Sync)
+        {
+            if (state.ExpandedBgraBuffer?.Length != byteCount)
+                state.ExpandedBgraBuffer = GC.AllocateUninitializedArray<byte>(byteCount);
+
+            return state.ExpandedBgraBuffer;
         }
     }
 
@@ -240,6 +254,6 @@ public static class PreviewImageSourceLoader
 
         public int BgraHeight;
 
-        public int BgraStride;
+        public byte[]? ExpandedBgraBuffer;
     }
 }

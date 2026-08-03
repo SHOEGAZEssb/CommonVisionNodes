@@ -15,7 +15,41 @@ public enum ImagePreviewEncodingDto
     /// <summary>
     /// Raw BGRA32 bytes in row-major order.
     /// </summary>
-    Bgra32
+    Bgra32,
+
+    /// <summary>
+    /// Packed one-byte grayscale display samples in row-major order.
+    /// </summary>
+    Gray8,
+
+    /// <summary>
+    /// Packed three-byte RGB display samples in row-major order.
+    /// </summary>
+    Rgb24
+}
+
+/// <summary>
+/// Describes the fixed-width raw image encodings used by preview transport.
+/// </summary>
+public static class ImagePreviewEncodingInfo
+{
+    /// <summary>
+    /// Gets the packed bytes per pixel for a raw encoding, or 0 for an encoded image.
+    /// </summary>
+    public static int GetRawBytesPerPixel(ImagePreviewEncodingDto encoding)
+        => encoding switch
+        {
+            ImagePreviewEncodingDto.Gray8 => 1,
+            ImagePreviewEncodingDto.Rgb24 => 3,
+            ImagePreviewEncodingDto.Bgra32 => 4,
+            _ => 0
+        };
+
+    /// <summary>
+    /// Indicates whether the encoding is a fixed-width raw pixel format.
+    /// </summary>
+    public static bool IsRaw(ImagePreviewEncodingDto encoding)
+        => GetRawBytesPerPixel(encoding) > 0;
 }
 
 /// <summary>

@@ -36,6 +36,25 @@ public sealed class BinaryExecutionMessageCodecTests
         }
     }
 
+    [TestCase(ImagePreviewEncodingDto.Gray8, 1)]
+    [TestCase(ImagePreviewEncodingDto.Rgb24, 3)]
+    [TestCase(ImagePreviewEncodingDto.Bgra32, 4)]
+    public void Build_WithPackedRawPayload_ShouldRestoreImageBytes(
+        ImagePreviewEncodingDto encoding,
+        int bytesPerPixel)
+    {
+        var payload = Enumerable.Range(0, 8 * bytesPerPixel).Select(index => (byte)index).ToArray();
+        var message = CreateImageMessage(encoding, payload, width: 8, height: 1);
+
+        var result = RoundTrip(message, payload, receiveBufferSize: 2);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ImagePreview?.Encoding, Is.EqualTo(encoding));
+            Assert.That(result.ImagePreview?.BinaryData, Is.EqualTo(payload));
+        }
+    }
+
     [Test]
     public void Build_WithPngOverlayPreview_ShouldRestoreUnknownLengthPayload()
     {
@@ -166,17 +185,26 @@ public sealed class BinaryExecutionMessageCodecTests
         byte[] payload,
         int width,
         int height)
-        => new()
+    {
+        var bytesPerPixel = ImagePreviewEncodingInfo.GetRawBytesPerPixel(encoding);
+        return new ImagePreviewDto
         {
             NodeId = "image-node",
-            MediaType = encoding == ImagePreviewEncodingDto.Bgra32 ? "application/x-bgra32" : "image/png",
+            MediaType = encoding switch
+            {
+                ImagePreviewEncodingDto.Gray8 => "application/x-gray8",
+                ImagePreviewEncodingDto.Rgb24 => "application/x-rgb24",
+                ImagePreviewEncodingDto.Bgra32 => "application/x-bgra32",
+                _ => "image/png"
+            },
             Encoding = encoding,
             BinaryData = payload,
             Width = width,
             Height = height,
             PreviewWidth = width,
             PreviewHeight = height,
-            Stride = encoding == ImagePreviewEncodingDto.Bgra32 ? width * 4 : 0,
+            Stride = bytesPerPixel == 0 ? 0 : width * bytesPerPixel,
             PixelFormat = "test"
         };
+    }
 }

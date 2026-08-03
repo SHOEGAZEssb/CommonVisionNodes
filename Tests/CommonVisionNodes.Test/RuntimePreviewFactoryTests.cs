@@ -12,7 +12,7 @@ public sealed class RuntimePreviewFactoryTests
         .GetMethod("CreateImagePreview", BindingFlags.NonPublic | BindingFlags.Static)!;
 
     [Test]
-    public void CreateImagePreview_WithRgb8Image_ShouldUseRawBgra32()
+    public void CreateImagePreview_WithRgb8Image_ShouldUsePackedRgb24()
     {
         using var image = new Image(2, 1, 3);
         WriteByte(image, planeIndex: 0, x: 0, y: 0, value: 10);
@@ -26,15 +26,16 @@ public sealed class RuntimePreviewFactoryTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
-            Assert.That(preview.MediaType, Is.EqualTo("application/x-bgra32"));
-            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 30, 20, 10, 255, 60, 50, 40, 255 }));
+            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Rgb24));
+            Assert.That(preview.MediaType, Is.EqualTo("application/x-rgb24"));
+            Assert.That(preview.Stride, Is.EqualTo(6));
+            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 10, 20, 30, 40, 50, 60 }));
             Assert.That(preview.PixelFormat, Does.Contain("RGB 8bpp"));
         }
     }
 
     [Test]
-    public void CreateImagePreview_WithMono16Image_ShouldScaleToRawBgra32()
+    public void CreateImagePreview_WithMono16Image_ShouldScaleToPackedGray8()
     {
         using var image = new Image(2, 1, 1, PixelDataType.UInt, 16);
         WriteUInt16(image, planeIndex: 0, x: 0, y: 0, value: 0);
@@ -44,14 +45,16 @@ public sealed class RuntimePreviewFactoryTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
-            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }));
+            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Gray8));
+            Assert.That(preview.MediaType, Is.EqualTo("application/x-gray8"));
+            Assert.That(preview.Stride, Is.EqualTo(2));
+            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 0, 255 }));
             Assert.That(preview.PixelFormat, Does.Contain("Mono 16bpp"));
         }
     }
 
     [Test]
-    public void CreateImagePreview_WithDownscaledRgbImage_ShouldAverageIntoRawBgra32()
+    public void CreateImagePreview_WithDownscaledRgbImage_ShouldAverageIntoPackedRgb24()
     {
         using var image = new Image(2, 2, 3);
         WriteRgb(image, 0, 0, red: 0, green: 10, blue: 20);
@@ -63,10 +66,29 @@ public sealed class RuntimePreviewFactoryTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
+            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Rgb24));
             Assert.That(preview.PreviewWidth, Is.EqualTo(1));
             Assert.That(preview.PreviewHeight, Is.EqualTo(1));
-            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 20, 10, 112, 255 }));
+            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 112, 10, 20 }));
+        }
+    }
+
+    [Test]
+    public void CreateImagePreview_WithRgba8Image_ShouldRetainRawBgra32()
+    {
+        using var image = new Image(1, 1, 4);
+        WriteByte(image, planeIndex: 0, x: 0, y: 0, value: 10);
+        WriteByte(image, planeIndex: 1, x: 0, y: 0, value: 20);
+        WriteByte(image, planeIndex: 2, x: 0, y: 0, value: 30);
+        WriteByte(image, planeIndex: 3, x: 0, y: 0, value: 40);
+
+        var preview = CreateImagePreview(image);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(preview.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
+            Assert.That(preview.MediaType, Is.EqualTo("application/x-bgra32"));
+            Assert.That(preview.BinaryData, Is.EqualTo(new byte[] { 30, 20, 10, 40 }));
         }
     }
 

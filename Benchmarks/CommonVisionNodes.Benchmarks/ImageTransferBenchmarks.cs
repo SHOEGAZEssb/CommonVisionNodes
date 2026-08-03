@@ -21,6 +21,7 @@ public class ImageTransferBenchmarks
     private byte[] _metadata = null!;
     private byte[] _metadataHeader = null!;
     private byte[] _payload = null!;
+    private byte[]? _expandedFrame;
     private MemoryStream _pixelBuffer = null!;
 
     public IEnumerable<PreviewSize> PreviewSizes =>
@@ -32,6 +33,9 @@ public class ImageTransferBenchmarks
     [ParamsSource(nameof(PreviewSizes))]
     public PreviewSize Size { get; set; }
 
+    [Params(ImagePreviewEncodingDto.Gray8, ImagePreviewEncodingDto.Rgb24, ImagePreviewEncodingDto.Bgra32)]
+    public ImagePreviewEncodingDto Encoding { get; set; }
+
     [GlobalSetup]
     public void Setup()
     {
@@ -41,7 +45,12 @@ public class ImageTransferBenchmarks
         };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
 
-        _payload = CreateFrame(Size.ByteCount);
+        var bytesPerPixel = ImagePreviewEncodingInfo.GetRawBytesPerPixel(Encoding);
+        var sourceStride = checked(Size.Width * bytesPerPixel);
+        _payload = CreateFrame(checked(sourceStride * Size.Height));
+        _expandedFrame = Encoding == ImagePreviewEncodingDto.Bgra32
+            ? null
+            : GC.AllocateUninitializedArray<byte>(Size.ByteCount);
         _pixelBuffer = new MemoryStream(new byte[Size.ByteCount], writable: true);
         _message = new ExecutionMessageDto
         {
@@ -50,15 +59,15 @@ public class ImageTransferBenchmarks
             ImagePreview = new ImagePreviewDto
             {
                 NodeId = "benchmark-node",
-                MediaType = "application/x-bgra32",
-                Encoding = ImagePreviewEncodingDto.Bgra32,
+                MediaType = $"application/x-{Encoding.ToString().ToLowerInvariant()}",
+                Encoding = Encoding,
                 BinaryData = _payload,
                 Width = Size.Width,
                 Height = Size.Height,
                 PreviewWidth = Size.Width,
                 PreviewHeight = Size.Height,
-                Stride = Size.Stride,
-                PixelFormat = "BGRA 8bpp",
+                Stride = sourceStride,
+                PixelFormat = Encoding.ToString(),
                 TimestampUtc = DateTimeOffset.UnixEpoch
             },
             TimestampUtc = DateTimeOffset.UnixEpoch
@@ -107,7 +116,7 @@ public class ImageTransferBenchmarks
         return ReceiveMessage(header, metadata, imageBytes, FrontendReceiveBufferSize, _imageBufferCache);
     }
 
-    [Benchmark(Description = "Frontend optimized: receive and upload BGRA")]
+    [Benchmark(Description = "Frontend optimized: receive and upload raw frame")]
     public ExecutionMessageDto FrontendReceiveAndUpload()
     {
         var message = ReceiveMessage(
@@ -117,7 +126,7 @@ public class ImageTransferBenchmarks
             FrontendReceiveBufferSize,
             _imageBufferCache);
         var imagePreview = message.ImagePreview!;
-        PreviewPixelBufferWriter.WriteBgra32(_pixelBuffer, imagePreview, imagePreview.BinaryData!);
+        PreviewPixelBufferWriter.WriteRawPreview(_pixelBuffer, imagePreview, imagePreview.BinaryData!, _expandedFrame);
         return message;
     }
 

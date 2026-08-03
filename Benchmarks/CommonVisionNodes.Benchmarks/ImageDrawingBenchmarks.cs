@@ -11,6 +11,7 @@ namespace CommonVisionNodes.Benchmarks;
 public class ImageDrawingBenchmarks
 {
     private byte[] _frame = null!;
+    private byte[]? _expandedFrame;
     private MemoryStream _reusedPixelBuffer = null!;
     private ImagePreviewDto _preview = null!;
 
@@ -23,26 +24,34 @@ public class ImageDrawingBenchmarks
     [ParamsSource(nameof(PreviewSizes))]
     public PreviewSize Size { get; set; }
 
+    [Params(ImagePreviewEncodingDto.Gray8, ImagePreviewEncodingDto.Rgb24, ImagePreviewEncodingDto.Bgra32)]
+    public ImagePreviewEncodingDto Encoding { get; set; }
+
     [GlobalSetup]
     public void Setup()
     {
-        _frame = GC.AllocateUninitializedArray<byte>(Size.ByteCount);
+        var bytesPerPixel = ImagePreviewEncodingInfo.GetRawBytesPerPixel(Encoding);
+        var sourceStride = checked(Size.Width * bytesPerPixel);
+        _frame = GC.AllocateUninitializedArray<byte>(checked(sourceStride * Size.Height));
+        _expandedFrame = Encoding == ImagePreviewEncodingDto.Bgra32
+            ? null
+            : GC.AllocateUninitializedArray<byte>(Size.ByteCount);
         _reusedPixelBuffer = new MemoryStream(new byte[Size.ByteCount], writable: true);
         _preview = new ImagePreviewDto
         {
-            Encoding = ImagePreviewEncodingDto.Bgra32,
+            Encoding = Encoding,
             Width = Size.Width,
             Height = Size.Height,
             PreviewWidth = Size.Width,
             PreviewHeight = Size.Height,
-            Stride = Size.Stride
+            Stride = sourceStride
         };
     }
 
     [GlobalCleanup]
     public void Cleanup() => _reusedPixelBuffer.Dispose();
 
-    [Benchmark(Description = "Frontend: upload BGRA frame to reused pixel buffer")]
-    public void UploadBgraFrame()
-        => PreviewPixelBufferWriter.WriteBgra32(_reusedPixelBuffer, _preview, _frame);
+    [Benchmark(Description = "Frontend: expand/upload raw frame to reused pixel buffer")]
+    public void UploadRawFrame()
+        => PreviewPixelBufferWriter.WriteRawPreview(_reusedPixelBuffer, _preview, _frame, _expandedFrame);
 }

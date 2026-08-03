@@ -6,9 +6,9 @@ display live image previews:
 - `ImageTransferBenchmarks` compares the original allocating 16 KiB receive path with the current
   two-buffer-per-node, 64 KiB receive path. It also measures backend metadata serialization and the
   combined current binary-protocol round trip, plus the full frontend receive-and-pixel-upload path.
-- `ImageDrawingBenchmarks` measures copying a BGRA32 frame into a reused frontend pixel buffer, the
-  operation immediately before `WriteableBitmap.Invalidate()`.
-- `PreviewGenerationBenchmarks` measures backend downscaling/BGRA conversion for a 2560×2048
+- `ImageDrawingBenchmarks` measures expanding/copying Gray8, RGB24, and BGRA32 frames into a reused
+  frontend BGRA pixel buffer, the operation immediately before `WriteableBitmap.Invalidate()`.
+- `PreviewGenerationBenchmarks` measures backend downscaling/raw-format packing for a 2560×2048
   camera frame and compares allocating versus reusable output buffers.
 
 Run all benchmarks from the repository root in Release mode:
@@ -37,6 +37,6 @@ it measures the upload performed by the application but not `Invalidate()`, rast
 composition, or presentation latency. Those stages require an instrumented running UI rather than
 a stable headless microbenchmark.
 
-The current receive path keeps two exact-size BGRA buffers per preview node and alternates between
+The current receive path keeps two exact-size raw buffers per preview node and alternates between
 them. This preserves the frame currently owned by the UI while eliminating steady-state large
 object heap allocations. The cache is cleared when a new graph execution starts.

@@ -8,15 +8,13 @@ namespace CommonVisionNodes.Runtime.Execution;
 /// </summary>
 public sealed class RuntimePreviewFactory
 {
-    private const int BgraBytesPerPixel = 4;
-
     /// <summary>
     /// Creates the appropriate preview message for a runtime node.
     /// </summary>
     /// <param name="nodeId">Serialized graph node id.</param>
     /// <param name="node">Runtime node instance.</param>
     /// <param name="previewImageMaxDimension">Maximum preview long edge, or 0 to keep full resolution.</param>
-    /// <param name="imageBufferCache">Optional cache used to reuse raw BGRA output buffers.</param>
+    /// <param name="imageBufferCache">Optional cache used to reuse raw image output buffers.</param>
     /// <returns>A preview message, or <c>null</c> when the node has no preview data.</returns>
     public static ExecutionMessageDto? CreatePreviewMessage(
         string nodeId,
@@ -203,7 +201,7 @@ public sealed class RuntimePreviewFactory
         if (image is null || image.IsDisposed)
             return null;
 
-        var rawPreview = CreateBgra32Preview(nodeId, image, previewImageMaxDimension, imageBufferCache);
+        var rawPreview = CreateRawPreview(nodeId, image, previewImageMaxDimension, imageBufferCache);
         if (rawPreview is not null)
             return rawPreview;
 
@@ -247,42 +245,53 @@ public sealed class RuntimePreviewFactory
         }
     }
 
-    private static ImagePreviewDto? CreateBgra32Preview(
+    private static ImagePreviewDto? CreateRawPreview(
         string nodeId,
         Image image,
         int previewImageMaxDimension,
         BinaryImageBufferCache? imageBufferCache)
     {
-        if (!TryGetBgra32Source(image, out var source))
+        if (!TryGetRawPreviewSource(image, out var source))
             return null;
 
-        // Uno can display BGRA32 directly. Keeping the preview in this raw format avoids
-        // a PNG encode/decode round-trip for the common mono and RGB preview cases.
+        // Preserve the display-native channel count during transport. Mono and RGB previews are
+        // expanded into Uno's BGRA bitmap on the client, reducing WebSocket bytes by 75% and 25%.
+        var encoding = source.IsMono
+            ? ImagePreviewEncodingDto.Gray8
+            : source.HasAlpha
+                ? ImagePreviewEncodingDto.Bgra32
+                : ImagePreviewEncodingDto.Rgb24;
+        var bytesPerPixel = ImagePreviewEncodingInfo.GetRawBytesPerPixel(encoding);
         var previewSize = GetPreviewSize(image, previewImageMaxDimension);
-        var stride = checked(previewSize.Width * BgraBytesPerPixel);
+        var stride = checked(previewSize.Width * bytesPerPixel);
         var byteCount = checked(stride * previewSize.Height);
         var bytes = imageBufferCache?.GetNextBuffer(nodeId, byteCount)
             ?? GC.AllocateUninitializedArray<byte>(byteCount);
 
-        CopyBgra32(image, source, bytes, stride, previewSize.Width, previewSize.Height);
+        CopyRawPreview(image, source, encoding, bytes, stride, previewSize.Width, previewSize.Height);
 
         return new ImagePreviewDto
         {
             NodeId = nodeId,
-            MediaType = "application/x-bgra32",
-            Encoding = ImagePreviewEncodingDto.Bgra32,
+            MediaType = encoding switch
+            {
+                ImagePreviewEncodingDto.Gray8 => "application/x-gray8",
+                ImagePreviewEncodingDto.Rgb24 => "application/x-rgb24",
+                _ => "application/x-bgra32"
+            },
+            Encoding = encoding,
             BinaryData = bytes,
             Width = image.Width,
             Height = image.Height,
             PreviewWidth = previewSize.Width,
             PreviewHeight = previewSize.Height,
             Stride = stride,
-            PixelFormat = $"{source.PixelFormat} -> BGRA32",
+            PixelFormat = $"{source.PixelFormat} -> {encoding}",
             TimestampUtc = DateTimeOffset.UtcNow
         };
     }
 
-    private static bool TryGetBgra32Source(Image image, out Bgra32Source source)
+    private static bool TryGetRawPreviewSource(Image image, out RawPreviewSource source)
     {
         source = default;
 
@@ -292,7 +301,7 @@ public sealed class RuntimePreviewFactory
             if (!IsSupportedPreviewDataType(dataType))
                 return false;
 
-            source = Bgra32Source.CreateMono(0, dataType.BitsPerPixel);
+            source = RawPreviewSource.CreateMono(0, dataType.BitsPerPixel);
             return true;
         }
 
@@ -305,7 +314,7 @@ public sealed class RuntimePreviewFactory
                     return false;
             }
 
-            source = Bgra32Source.CreateRgb(image.Planes.Count == 4 ? 3 : -1, image.Planes[0].DataType.BitsPerPixel);
+            source = RawPreviewSource.CreateRgb(image.Planes.Count == 4 ? 3 : -1, image.Planes[0].DataType.BitsPerPixel);
             return true;
         }
 
@@ -317,7 +326,98 @@ public sealed class RuntimePreviewFactory
            dataType.BytesPerPixel is 1 or 2 &&
            dataType.BitsPerPixel is > 0 and <= 16;
 
-    private static unsafe void CopyBgra32(Image image, Bgra32Source source, byte[] destination, int stride, int previewWidth, int previewHeight)
+    private static void CopyRawPreview(
+        Image image,
+        RawPreviewSource source,
+        ImagePreviewEncodingDto encoding,
+        byte[] destination,
+        int stride,
+        int previewWidth,
+        int previewHeight)
+    {
+        switch (encoding)
+        {
+            case ImagePreviewEncodingDto.Gray8:
+                CopyGray8(image, source, destination, stride, previewWidth, previewHeight);
+                break;
+            case ImagePreviewEncodingDto.Rgb24:
+                CopyRgb24(image, source, destination, stride, previewWidth, previewHeight);
+                break;
+            case ImagePreviewEncodingDto.Bgra32:
+                CopyBgra32(image, source, destination, stride, previewWidth, previewHeight);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(encoding), encoding, "Unsupported raw preview encoding.");
+        }
+    }
+
+    private static unsafe void CopyGray8(Image image, RawPreviewSource source, byte[] destination, int stride, int previewWidth, int previewHeight)
+    {
+        var gray = new PreviewPlaneAccess(image.Planes[source.RedPlaneIndex]);
+
+        fixed (byte* destinationBase = destination)
+        {
+            for (var targetY = 0; targetY < previewHeight; targetY++)
+            {
+                var destinationRow = destinationBase + targetY * stride;
+                if (previewWidth == image.Width && previewHeight == image.Height)
+                {
+                    for (var targetX = 0; targetX < previewWidth; targetX++)
+                        destinationRow[targetX] = gray.ReadDisplayByte(targetX, targetY);
+                    continue;
+                }
+
+                var sourceY0 = targetY * image.Height / previewHeight;
+                var sourceY1 = Math.Max(sourceY0 + 1, (targetY + 1) * image.Height / previewHeight);
+                for (var targetX = 0; targetX < previewWidth; targetX++)
+                {
+                    var sourceX0 = targetX * image.Width / previewWidth;
+                    var sourceX1 = Math.Max(sourceX0 + 1, (targetX + 1) * image.Width / previewWidth);
+                    destinationRow[targetX] = gray.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                }
+            }
+        }
+    }
+
+    private static unsafe void CopyRgb24(Image image, RawPreviewSource source, byte[] destination, int stride, int previewWidth, int previewHeight)
+    {
+        var red = new PreviewPlaneAccess(image.Planes[source.RedPlaneIndex]);
+        var green = new PreviewPlaneAccess(image.Planes[source.GreenPlaneIndex]);
+        var blue = new PreviewPlaneAccess(image.Planes[source.BluePlaneIndex]);
+
+        fixed (byte* destinationBase = destination)
+        {
+            for (var targetY = 0; targetY < previewHeight; targetY++)
+            {
+                var destinationRow = destinationBase + targetY * stride;
+                if (previewWidth == image.Width && previewHeight == image.Height)
+                {
+                    for (var targetX = 0; targetX < previewWidth; targetX++)
+                    {
+                        var destinationPixel = destinationRow + targetX * 3;
+                        destinationPixel[0] = red.ReadDisplayByte(targetX, targetY);
+                        destinationPixel[1] = green.ReadDisplayByte(targetX, targetY);
+                        destinationPixel[2] = blue.ReadDisplayByte(targetX, targetY);
+                    }
+                    continue;
+                }
+
+                var sourceY0 = targetY * image.Height / previewHeight;
+                var sourceY1 = Math.Max(sourceY0 + 1, (targetY + 1) * image.Height / previewHeight);
+                for (var targetX = 0; targetX < previewWidth; targetX++)
+                {
+                    var sourceX0 = targetX * image.Width / previewWidth;
+                    var sourceX1 = Math.Max(sourceX0 + 1, (targetX + 1) * image.Width / previewWidth);
+                    var destinationPixel = destinationRow + targetX * 3;
+                    destinationPixel[0] = red.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                    destinationPixel[1] = green.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                    destinationPixel[2] = blue.ReadDownscaledDisplayByte(sourceX0, sourceX1, sourceY0, sourceY1);
+                }
+            }
+        }
+    }
+
+    private static unsafe void CopyBgra32(Image image, RawPreviewSource source, byte[] destination, int stride, int previewWidth, int previewHeight)
     {
         var red = new PreviewPlaneAccess(image.Planes[source.RedPlaneIndex]);
         var green = new PreviewPlaneAccess(image.Planes[source.GreenPlaneIndex]);
@@ -338,7 +438,7 @@ public sealed class RuntimePreviewFactory
     }
 
     private static unsafe void CopyNativeSizeBgra32(
-        Bgra32Source source,
+        RawPreviewSource source,
         PreviewPlaneAccess red,
         PreviewPlaneAccess green,
         PreviewPlaneAccess blue,
@@ -371,7 +471,7 @@ public sealed class RuntimePreviewFactory
     }
 
     private static unsafe void CopyDownscaledBgra32(
-        Bgra32Source source,
+        RawPreviewSource source,
         PreviewPlaneAccess red,
         PreviewPlaneAccess green,
         PreviewPlaneAccess blue,
@@ -541,9 +641,9 @@ public sealed class RuntimePreviewFactory
         return (int)Math.Clamp(mapped, 0L, sourceLength - 1L);
     }
 
-    private readonly struct Bgra32Source
+    private readonly struct RawPreviewSource
     {
-        private Bgra32Source(
+        private RawPreviewSource(
             int redPlaneIndex,
             int greenPlaneIndex,
             int bluePlaneIndex,
@@ -573,10 +673,10 @@ public sealed class RuntimePreviewFactory
 
         public string PixelFormat { get; }
 
-        public static Bgra32Source CreateMono(int planeIndex, int bitsPerPixel)
+        public static RawPreviewSource CreateMono(int planeIndex, int bitsPerPixel)
             => new(planeIndex, planeIndex, planeIndex, -1, true, $"Mono {bitsPerPixel}bpp");
 
-        public static Bgra32Source CreateRgb(int alphaPlaneIndex, int bitsPerPixel)
+        public static RawPreviewSource CreateRgb(int alphaPlaneIndex, int bitsPerPixel)
             => new(0, 1, 2, alphaPlaneIndex, false, alphaPlaneIndex >= 0 ? $"RGBA {bitsPerPixel}bpp" : $"RGB {bitsPerPixel}bpp");
     }
 

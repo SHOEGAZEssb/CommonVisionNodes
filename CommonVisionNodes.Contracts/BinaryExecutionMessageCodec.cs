@@ -163,7 +163,7 @@ public sealed class BinaryExecutionMessageBuilder
     /// Creates a binary execution message builder.
     /// </summary>
     /// <param name="jsonOptions">JSON options shared by the server and client.</param>
-    /// <param name="imageBufferCache">Optional cache used to reuse raw BGRA destination buffers.</param>
+    /// <param name="imageBufferCache">Optional cache used to reuse raw image destination buffers.</param>
     public BinaryExecutionMessageBuilder(
         JsonSerializerOptions jsonOptions,
         BinaryImageBufferCache? imageBufferCache = null)
@@ -306,12 +306,14 @@ public sealed class BinaryExecutionMessageBuilder
 
     private static int? GetExpectedRawImageByteCount(ImagePreviewDto imagePreview)
     {
-        if (imagePreview.Encoding != ImagePreviewEncodingDto.Bgra32)
+        var bytesPerPixel = ImagePreviewEncodingInfo.GetRawBytesPerPixel(imagePreview.Encoding);
+        if (bytesPerPixel == 0)
             return null;
 
         var width = Math.Max(1, imagePreview.PreviewWidth);
         var height = Math.Max(1, imagePreview.PreviewHeight);
-        var stride = imagePreview.Stride > 0 ? imagePreview.Stride : checked(width * 4);
+        var minimumStride = checked(width * bytesPerPixel);
+        var stride = imagePreview.Stride > 0 ? Math.Max(imagePreview.Stride, minimumStride) : minimumStride;
         return checked(stride * height);
     }
 }

@@ -204,11 +204,11 @@ public sealed class GraphExecutionRunnerTests
         Assert.That(imagePreview, Is.Not.Null);
 		using (Assert.EnterMultipleScope())
 		{
-            Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Bgra32));
+            Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Gray8));
             Assert.That(imagePreview.PreviewSequence, Is.GreaterThan(0));
-            Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-bgra32"));
+            Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-gray8"));
             Assert.That(imagePreview.BinaryData, Is.Not.Null.And.Not.Empty);
-            Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth * 4));
+            Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth));
         }
     }
 
@@ -593,7 +593,7 @@ public sealed class GraphExecutionRunnerTests
             Assert.That(imagePreview.Height, Is.EqualTo(16));
             Assert.That(imagePreview.PreviewWidth, Is.EqualTo(expectedPreviewWidth));
             Assert.That(imagePreview.PreviewHeight, Is.EqualTo(expectedPreviewHeight));
-            Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth * 4));
+            Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth));
         }
     }
 
