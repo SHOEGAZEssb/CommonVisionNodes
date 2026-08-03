@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Services;
+using Cvb.Uno.Toolkit.Helpers;
 using Microsoft.UI.Dispatching;
 using Windows.Storage;
 
@@ -27,6 +28,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     private const int DefaultPreviewImageMaxDimension = 960;
     private const int BrowserPreviewRefreshRateLimit = 10;
     private const int BrowserPreviewImageMaxDimensionLimit = 640;
+    private const int RuntimeUiBatchSize = 4;
     private const string PreviewRefreshRateSettingKey = "PreviewRefreshRate";
     private const string PreviewImageMaxDimensionSettingKey = "PreviewImageMaxDimension";
 
@@ -51,6 +53,9 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     private long _executionRestartVersion;
     private string? _activeExecutionId;
     private readonly HashSet<string> _terminalExecutionIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly CoalescingMessageBuffer<RuntimeUiMessageKey, ExecutionMessageDto> _runtimeUiMessages = new();
+    private string? _stoppingExecutionId;
+    private int _stopRequested;
 
 	/// <summary>
 	/// Nodes currently present on the canvas.
@@ -456,17 +461,40 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
             CancelPendingExecutionRestart();
             CancelPendingPreviewSettingsUpdate();
             CancelPendingNodePropertiesUpdate();
+
+            _stoppingExecutionId = _activeExecutionId;
+            Volatile.Write(ref _stopRequested, 1);
+            _runtimeUiMessages.Clear();
+            IsRunning = false;
+            Fps = 0;
+
             await _executionRestartGate.WaitAsync();
             try
             {
                 await _backendClient.StopAsync(_clientId);
+
+                if (!string.IsNullOrWhiteSpace(_stoppingExecutionId))
+                {
+                    _terminalExecutionIds.Add(_stoppingExecutionId);
+                    if (IsCurrentExecutionId(_stoppingExecutionId))
+                        _activeExecutionId = null;
+                }
+
+                _stoppingExecutionId = null;
+                Volatile.Write(ref _stopRequested, 0);
+            }
+            catch
+            {
+                _stoppingExecutionId = null;
+                Volatile.Write(ref _stopRequested, 0);
+                IsRunning = true;
+                throw;
             }
             finally
             {
                 _executionRestartGate.Release();
             }
 
-            IsRunning = false;
             return;
         }
 
@@ -649,16 +677,28 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         await UpdateRunningNodePropertiesAsync(node);
     }
 
-    private async Task HandleExecutionMessageAsync(ExecutionMessageDto message)
+    private Task HandleExecutionMessageAsync(ExecutionMessageDto message)
     {
-        await EnqueueAsync(() => ApplyExecutionMessage(message));
+        if (ShouldSuppressWhileStopping(message))
+            return Task.CompletedTask;
+
+        if (IsCoalescableRuntimeMessage(message))
+        {
+            QueueRuntimeUiMessage(message);
+            return Task.CompletedTask;
+        }
+
+        var priority = IsCriticalExecutionMessage(message)
+            ? DispatcherQueuePriority.Normal
+            : DispatcherQueuePriority.Low;
+        return EnqueueAsync(() => ApplyExecutionMessage(message), priority);
     }
 
     private void ApplyExecutionMessage(ExecutionMessageDto message)
     {
         TrackStartingExecution(message);
 
-        if (IsStaleExecutionMessage(message))
+        if (ShouldSuppressWhileStopping(message) || IsStaleExecutionMessage(message))
             return;
 
         switch (message.MessageType)
@@ -732,19 +772,26 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
             !string.IsNullOrWhiteSpace(state.ExecutionId))
         {
             _terminalExecutionIds.Add(state.ExecutionId);
+            _runtimeUiMessages.Clear();
+
+            if (string.Equals(state.ExecutionId, _stoppingExecutionId, StringComparison.OrdinalIgnoreCase))
+            {
+                _stoppingExecutionId = null;
+                Volatile.Write(ref _stopRequested, 0);
+            }
         }
     }
 
-    private Task EnqueueAsync(Action action)
+    private Task EnqueueAsync(Action action, DispatcherQueuePriority priority = DispatcherQueuePriority.Normal)
     {
-        if (_dispatcherQueue.HasThreadAccess)
+        if (_dispatcherQueue.HasThreadAccess && priority != DispatcherQueuePriority.Low)
         {
             action();
             return Task.CompletedTask;
         }
 
         var completionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!_dispatcherQueue.TryEnqueue(() =>
+        if (!_dispatcherQueue.TryEnqueue(priority, () =>
             {
                 try
                 {
@@ -762,6 +809,67 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
         return completionSource.Task;
     }
+
+    private void QueueRuntimeUiMessage(ExecutionMessageDto message)
+    {
+        if (!_runtimeUiMessages.AddOrReplace(GetRuntimeUiMessageKey(message), message))
+            return;
+
+        ScheduleRuntimeUiDrain();
+    }
+
+    private void ScheduleRuntimeUiDrain()
+    {
+        if (!_dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, DrainRuntimeUiMessages))
+            _runtimeUiMessages.CancelScheduledDrain();
+    }
+
+    private void DrainRuntimeUiMessages()
+    {
+        var messages = _runtimeUiMessages.TakeBatch(RuntimeUiBatchSize, out var requiresAnotherDrain);
+        foreach (var message in messages)
+            ApplyExecutionMessage(message);
+
+        if (requiresAnotherDrain)
+            ScheduleRuntimeUiDrain();
+    }
+
+    private static bool IsCoalescableRuntimeMessage(ExecutionMessageDto message)
+        => message.MessageType is ExecutionMessageTypeDto.NodeUpdate or
+            ExecutionMessageTypeDto.HistogramPreview or
+            ExecutionMessageTypeDto.TextPreview ||
+            message.MessageType == ExecutionMessageTypeDto.ExecutionState &&
+            message.ExecutionState?.Status == ExecutionStatusDto.Running;
+
+    private static bool IsCriticalExecutionMessage(ExecutionMessageDto message)
+        => message.MessageType is ExecutionMessageTypeDto.Completed or ExecutionMessageTypeDto.Failure ||
+            message.MessageType == ExecutionMessageTypeDto.ExecutionState &&
+            message.ExecutionState?.Status != ExecutionStatusDto.Running;
+
+    private bool ShouldSuppressWhileStopping(ExecutionMessageDto message)
+    {
+        if (Volatile.Read(ref _stopRequested) == 0 || IsTerminalExecutionMessage(message))
+            return false;
+
+        var stoppingExecutionId = _stoppingExecutionId;
+        var messageExecutionId = GetMessageExecutionId(message);
+        return string.IsNullOrWhiteSpace(stoppingExecutionId) ||
+            string.IsNullOrWhiteSpace(messageExecutionId) ||
+            string.Equals(stoppingExecutionId, messageExecutionId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTerminalExecutionMessage(ExecutionMessageDto message)
+        => message.MessageType is ExecutionMessageTypeDto.Completed or ExecutionMessageTypeDto.Failure ||
+            message.ExecutionState?.Status is ExecutionStatusDto.Completed or ExecutionStatusDto.Stopped or ExecutionStatusDto.Failed;
+
+    private static RuntimeUiMessageKey GetRuntimeUiMessageKey(ExecutionMessageDto message)
+        => new(message.MessageType, message.MessageType switch
+        {
+            ExecutionMessageTypeDto.NodeUpdate => message.NodeUpdate?.NodeId ?? string.Empty,
+            ExecutionMessageTypeDto.HistogramPreview => message.HistogramPreview?.NodeId ?? string.Empty,
+            ExecutionMessageTypeDto.TextPreview => message.TextPreview?.NodeId ?? string.Empty,
+            _ => string.Empty
+        });
 
     private static bool AreTypesCompatible(string outputType, string inputType)
         => string.Equals(outputType, inputType, StringComparison.OrdinalIgnoreCase)
@@ -924,6 +1032,9 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
     private void ApplyExecutionAccepted(ExecutionAcceptedDto accepted)
     {
+        _stoppingExecutionId = null;
+        Volatile.Write(ref _stopRequested, 0);
+
         if (!string.IsNullOrWhiteSpace(accepted.ExecutionId))
         {
             if (_terminalExecutionIds.Contains(accepted.ExecutionId))
@@ -940,9 +1051,12 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     {
         var messageExecutionId = GetMessageExecutionId(message);
 
-        return !string.IsNullOrWhiteSpace(messageExecutionId) &&
-            !string.IsNullOrWhiteSpace(_activeExecutionId) &&
-            !string.Equals(messageExecutionId, _activeExecutionId, StringComparison.OrdinalIgnoreCase);
+        return (!string.IsNullOrWhiteSpace(messageExecutionId) &&
+                _terminalExecutionIds.Contains(messageExecutionId) &&
+                !IsTerminalExecutionMessage(message)) ||
+            (!string.IsNullOrWhiteSpace(messageExecutionId) &&
+                !string.IsNullOrWhiteSpace(_activeExecutionId) &&
+                !string.Equals(messageExecutionId, _activeExecutionId, StringComparison.OrdinalIgnoreCase));
     }
 
     private void TrackStartingExecution(ExecutionMessageDto message)
@@ -975,6 +1089,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
         => !string.IsNullOrWhiteSpace(message.ExecutionId)
             ? message.ExecutionId
             : message.ExecutionState?.ExecutionId;
+
+    private readonly record struct RuntimeUiMessageKey(ExecutionMessageTypeDto MessageType, string NodeId);
 
     private void InvalidatePendingExecutionRestarts()
         => Interlocked.Increment(ref _executionRestartVersion);
