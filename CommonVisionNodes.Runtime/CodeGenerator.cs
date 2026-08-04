@@ -8,132 +8,132 @@ namespace CommonVisionNodes.Runtime;
 /// </summary>
 public static class CodeGenerator
 {
-    /// <summary>
-    /// Generates a C# code snippet that replicates the given node graph
-    /// using only the Common Vision Blox SDK.
-    /// </summary>
-    /// <param name="graph">The node graph to generate code for.</param>
-    /// <returns>A complete C# code snippet as a string.</returns>
-    public static string Generate(NodeGraph graph)
-    {
-        var connectedPorts = new HashSet<Port>();
-        foreach (var c in graph.Connections)
-        {
-            connectedPorts.Add(c.Output);
-            connectedPorts.Add(c.Input);
-        }
+	/// <summary>
+	/// Generates a C# code snippet that replicates the given node graph
+	/// using only the Common Vision Blox SDK.
+	/// </summary>
+	/// <param name="graph">The node graph to generate code for.</param>
+	/// <returns>A complete C# code snippet as a string.</returns>
+	public static string Generate(NodeGraph graph)
+	{
+		var connectedPorts = new HashSet<Port>();
+		foreach (var c in graph.Connections)
+		{
+			connectedPorts.Add(c.Output);
+			connectedPorts.Add(c.Input);
+		}
 
-        var sorted = TopologicalSort(graph)
-            .Where(n => ShouldEmitNode(n, connectedPorts))
-            .ToList();
+		var sorted = TopologicalSort(graph)
+			.Where(n => ShouldEmitNode(n, connectedPorts))
+			.ToList();
 
-        // Collect required usings from nodes
-        var usings = new HashSet<string> { "Stemmer.Cvb" };
-        foreach (var node in sorted)
-            foreach (var u in node.RequiredUsings)
-                usings.Add(u);
+		// Collect required usings from nodes
+		var usings = new HashSet<string> { "Stemmer.Cvb" };
+		foreach (var node in sorted)
+			foreach (var u in node.RequiredUsings)
+				usings.Add(u);
 
-        var sb = new StringBuilder();
+		var sb = new StringBuilder();
 
-        // Using directives
-        foreach (var u in usings.OrderBy(x => x))
-            sb.AppendLine($"using {u};");
-        sb.AppendLine();
+		// Using directives
+		foreach (var u in usings.OrderBy(x => x))
+			sb.AppendLine($"using {u};");
+		sb.AppendLine();
 
-        // Pipeline code
-        var context = new CodeEmitContext(
-            sb,
-            graph.Connections,
-            [],
-            []);
+		// Pipeline code
+		var context = new CodeEmitContext(
+			sb,
+			graph.Connections,
+			[],
+			[]);
 
-        for (int i = 0; i < sorted.Count; i++)
-        {
-            sorted[i].EmitCode(context);
-            if (i < sorted.Count - 1)
-                sb.AppendLine();
-        }
+		for (int i = 0; i < sorted.Count; i++)
+		{
+			sorted[i].EmitCode(context);
+			if (i < sorted.Count - 1)
+				sb.AppendLine();
+		}
 
-        // Helper methods (one set per node type)
-        var helperSb = new StringBuilder();
-        var emittedTypes = new HashSet<Type>();
-        foreach (var node in sorted)
-        {
-            if (node.ReuseHelperMethodsAcrossInstances && !emittedTypes.Add(node.GetType()))
-                continue;
+		// Helper methods (one set per node type)
+		var helperSb = new StringBuilder();
+		var emittedTypes = new HashSet<Type>();
+		foreach (var node in sorted)
+		{
+			if (node.ReuseHelperMethodsAcrossInstances && !emittedTypes.Add(node.GetType()))
+				continue;
 
-            var before = helperSb.Length;
-            node.EmitHelperMethods(helperSb, context);
-            if (helperSb.Length > before)
-                helperSb.AppendLine();
-        }
+			var before = helperSb.Length;
+			node.EmitHelperMethods(helperSb, context);
+			if (helperSb.Length > before)
+				helperSb.AppendLine();
+		}
 
-        if (helperSb.Length > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("// --- Helper Methods ---");
-            sb.AppendLine();
-            sb.Append(helperSb);
-        }
+		if (helperSb.Length > 0)
+		{
+			sb.AppendLine();
+			sb.AppendLine("// --- Helper Methods ---");
+			sb.AppendLine();
+			sb.Append(helperSb);
+		}
 
-        return sb.ToString();
-    }
+		return sb.ToString();
+	}
 
-    private static bool ShouldEmitNode(Node node, HashSet<Port> connectedPorts)
-    {
-        if (node.Inputs.Any(connectedPorts.Contains) || node.Outputs.Any(connectedPorts.Contains))
-            return true;
+	private static bool ShouldEmitNode(Node node, HashSet<Port> connectedPorts)
+	{
+		if (node.Inputs.Any(connectedPorts.Contains) || node.Outputs.Any(connectedPorts.Contains))
+			return true;
 
-        var hasDataInputs = node.Inputs.Any(input => input.Type != typeof(TriggerSignal));
-        return !hasDataInputs && node.Outputs.Count > 0;
-    }
+		var hasDataInputs = node.Inputs.Any(input => input.Type != typeof(TriggerSignal));
+		return !hasDataInputs && node.Outputs.Count > 0;
+	}
 
-    private static List<Node> TopologicalSort(NodeGraph graph)
-    {
-        var nodes = graph.Nodes;
-        var connections = graph.Connections;
+	private static List<Node> TopologicalSort(NodeGraph graph)
+	{
+		var nodes = graph.Nodes;
+		var connections = graph.Connections;
 
-        var inDegree = new Dictionary<Node, int>();
-        var adjacency = new Dictionary<Node, List<Node>>();
+		var inDegree = new Dictionary<Node, int>();
+		var adjacency = new Dictionary<Node, List<Node>>();
 
-        foreach (var node in nodes)
-        {
-            inDegree[node] = 0;
-            adjacency[node] = [];
-        }
+		foreach (var node in nodes)
+		{
+			inDegree[node] = 0;
+			adjacency[node] = [];
+		}
 
-        foreach (var connection in connections)
-        {
-            var from = connection.Output.Node;
-            var to = connection.Input.Node;
-            adjacency[from].Add(to);
-            inDegree[to]++;
-        }
+		foreach (var connection in connections)
+		{
+			var from = connection.Output.Node;
+			var to = connection.Input.Node;
+			adjacency[from].Add(to);
+			inDegree[to]++;
+		}
 
-        var queue = new Queue<Node>();
-        foreach (var node in nodes)
-        {
-            if (inDegree[node] == 0)
-                queue.Enqueue(node);
-        }
+		var queue = new Queue<Node>();
+		foreach (var node in nodes)
+		{
+			if (inDegree[node] == 0)
+				queue.Enqueue(node);
+		}
 
-        var sorted = new List<Node>();
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            sorted.Add(current);
+		var sorted = new List<Node>();
+		while (queue.Count > 0)
+		{
+			var current = queue.Dequeue();
+			sorted.Add(current);
 
-            foreach (var neighbor in adjacency[current])
-            {
-                inDegree[neighbor]--;
-                if (inDegree[neighbor] == 0)
-                    queue.Enqueue(neighbor);
-            }
-        }
+			foreach (var neighbor in adjacency[current])
+			{
+				inDegree[neighbor]--;
+				if (inDegree[neighbor] == 0)
+					queue.Enqueue(neighbor);
+			}
+		}
 
-        if (sorted.Count != nodes.Count)
-            throw new InvalidOperationException("Graph contains a cycle");
+		if (sorted.Count != nodes.Count)
+			throw new InvalidOperationException("Graph contains a cycle");
 
-        return sorted;
-    }
+		return sorted;
+	}
 }

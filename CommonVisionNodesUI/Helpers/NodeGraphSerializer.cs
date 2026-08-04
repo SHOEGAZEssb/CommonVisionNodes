@@ -9,30 +9,30 @@ namespace CommonVisionNodesUI.Helpers;
 /// </summary>
 public static class NodeGraphSerializer
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+	private static readonly JsonSerializerOptions JsonOptions = new()
+	{
+		WriteIndented = true,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+	};
 
-    static NodeGraphSerializer()
-    {
-        JsonOptions.Converters.Add(new JsonStringEnumConverter());
-    }
+	static NodeGraphSerializer()
+	{
+		JsonOptions.Converters.Add(new JsonStringEnumConverter());
+	}
 
-    /// <summary>
-    /// Serializes a graph to indented JSON.
-    /// </summary>
-    /// <param name="graph">Graph to serialize.</param>
-    /// <returns>JSON representation of the graph.</returns>
-    public static string Serialize(GraphDto graph)
-        => JsonSerializer.Serialize(graph, JsonOptions);
+	/// <summary>
+	/// Serializes a graph to indented JSON.
+	/// </summary>
+	/// <param name="graph">Graph to serialize.</param>
+	/// <returns>JSON representation of the graph.</returns>
+	public static string Serialize(GraphDto graph)
+		=> JsonSerializer.Serialize(graph, JsonOptions);
 
-    /// <summary>
-    /// Deserializes a graph from JSON.
-    /// </summary>
-    /// <param name="json">JSON content.</param>
-    /// <returns>The deserialized graph, or <c>null</c> if the JSON represents null.</returns>
-    public static GraphDto? Deserialize(string json)
-        => JsonSerializer.Deserialize<GraphDto>(json, JsonOptions);
+	/// <summary>
+	/// Deserializes a graph from JSON.
+	/// </summary>
+	/// <param name="json">JSON content.</param>
+	/// <returns>The deserialized graph, or <c>null</c> if the JSON represents null.</returns>
+	public static GraphDto? Deserialize(string json)
+		=> JsonSerializer.Deserialize<GraphDto>(json, JsonOptions);
 }

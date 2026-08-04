@@ -7,18 +7,18 @@ namespace CommonVisionNodesUI.Platforms.WebAssembly;
 /// </summary>
 public class Program
 {
-    /// <summary>
-    /// Starts the Uno WebAssembly host.
-    /// </summary>
-    /// <param name="args">Command-line arguments supplied by the host.</param>
-    /// <returns>A task that completes when the host exits.</returns>
-    public static async Task Main(string[] args)
-    {
-        var host = UnoPlatformHostBuilder.Create()
-            .App(() => new App())
-            .UseWebAssembly()
-            .Build();
+	/// <summary>
+	/// Starts the Uno WebAssembly host.
+	/// </summary>
+	/// <param name="args">Command-line arguments supplied by the host.</param>
+	/// <returns>A task that completes when the host exits.</returns>
+	public static async Task Main(string[] args)
+	{
+		var host = UnoPlatformHostBuilder.Create()
+			.App(() => new App())
+			.UseWebAssembly()
+			.Build();
 
-        await host.RunAsync();
-    }
+		await host.RunAsync();
+	}
 }

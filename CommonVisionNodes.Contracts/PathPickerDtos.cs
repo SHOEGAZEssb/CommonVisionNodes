@@ -5,9 +5,9 @@ namespace CommonVisionNodes.Contracts;
 /// </summary>
 public enum PathPickerModeDto
 {
-    OpenFile,
-    OpenFolder,
-    SaveFile
+	OpenFile,
+	OpenFolder,
+	SaveFile
 }
 
 /// <summary>
@@ -15,15 +15,15 @@ public enum PathPickerModeDto
 /// </summary>
 public sealed class PathPickerRequestDto
 {
-    public PathPickerModeDto Mode { get; set; }
+	public PathPickerModeDto Mode { get; set; }
 
-    public string? Title { get; set; }
+	public string? Title { get; set; }
 
-    public string? InitialPath { get; set; }
+	public string? InitialPath { get; set; }
 
-    public string? SuggestedFileName { get; set; }
+	public string? SuggestedFileName { get; set; }
 
-    public List<string> FileExtensions { get; set; } = [];
+	public List<string> FileExtensions { get; set; } = [];
 }
 
 /// <summary>
@@ -31,8 +31,8 @@ public sealed class PathPickerRequestDto
 /// </summary>
 public sealed class PathPickerResultDto
 {
-    /// <summary>
-    /// Selected absolute host path, or <see langword="null"/> when cancelled.
-    /// </summary>
-    public string? Path { get; set; }
+	/// <summary>
+	/// Selected absolute host path, or <see langword="null"/> when cancelled.
+	/// </summary>
+	public string? Path { get; set; }
 }

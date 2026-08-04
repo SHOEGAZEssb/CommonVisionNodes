@@ -18,47 +18,47 @@ public partial class ManualTriggerNodeViewModel(NodeDto node, NodeDefinitionDto 
 	/// </summary>
 	public event EventHandler? TriggerRequested;
 
-    [ObservableProperty]
-    public partial string Status { get; set; } = "Ready";
+	[ObservableProperty]
+	public partial string Status { get; set; } = "Ready";
 
-    /// <inheritdoc/>
-    public override string? Summary => Status;
+	/// <inheritdoc/>
+	public override string? Summary => Status;
 
-    /// <inheritdoc/>
-    public override bool IsEditableWhileRunning => true;
+	/// <inheritdoc/>
+	public override bool IsEditableWhileRunning => true;
 
-    /// <summary>
-    /// Marks the trigger request as queued.
-    /// </summary>
-    public void MarkTriggerQueued()
-    {
-        Status = "Trigger queued";
-    }
+	/// <summary>
+	/// Marks the trigger request as queued.
+	/// </summary>
+	public void MarkTriggerQueued()
+	{
+		Status = "Trigger queued";
+	}
 
-    /// <summary>
-    /// Marks the trigger as unavailable because the graph is not running.
-    /// </summary>
-    public void MarkTriggerUnavailable()
-    {
-        Status = "Run the graph first";
-    }
+	/// <summary>
+	/// Marks the trigger as unavailable because the graph is not running.
+	/// </summary>
+	public void MarkTriggerUnavailable()
+	{
+		Status = "Run the graph first";
+	}
 
-    /// <summary>
-    /// Marks the trigger request as failed.
-    /// </summary>
-    public void MarkTriggerFailed()
-    {
-        Status = "Trigger failed";
-    }
+	/// <summary>
+	/// Marks the trigger request as failed.
+	/// </summary>
+	public void MarkTriggerFailed()
+	{
+		Status = "Trigger failed";
+	}
 
-    [RelayCommand]
-    private void Trigger()
-    {
-        TriggerRequested?.Invoke(this, EventArgs.Empty);
-    }
+	[RelayCommand]
+	private void Trigger()
+	{
+		TriggerRequested?.Invoke(this, EventArgs.Empty);
+	}
 
-    partial void OnStatusChanged(string value)
-    {
-        RaiseSummaryChanged();
-    }
+	partial void OnStatusChanged(string value)
+	{
+		RaiseSummaryChanged();
+	}
 }

@@ -34,37 +34,37 @@ public partial class PortViewModel(PortDto port, NodeViewModel parentNode, int i
 	/// </summary>
 	public string TypeName => Port.Type;
 
-    /// <summary>
-    /// Tooltip text composed from the port name, type, and description.
-    /// </summary>
-    public string Tooltip
-    {
-        get
-        {
-            var header = $"{Port.Name} ({TypeName})";
-            return string.IsNullOrEmpty(Port.Description) ? header : $"{header}\n{Port.Description}";
-        }
-    }
+	/// <summary>
+	/// Tooltip text composed from the port name, type, and description.
+	/// </summary>
+	public string Tooltip
+	{
+		get
+		{
+			var header = $"{Port.Name} ({TypeName})";
+			return string.IsNullOrEmpty(Port.Description) ? header : $"{header}\n{Port.Description}";
+		}
+	}
 
-    /// <summary>
-    /// X coordinate of the port center on the graph canvas.
-    /// </summary>
-    public double CenterX => Port.Direction == PortDirectionDto.Input
-        ? ParentNode.X + 10
-        : ParentNode.X + ParentNode.Width - 10;
+	/// <summary>
+	/// X coordinate of the port center on the graph canvas.
+	/// </summary>
+	public double CenterX => Port.Direction == PortDirectionDto.Input
+		? ParentNode.X + 10
+		: ParentNode.X + ParentNode.Width - 10;
 
-    /// <summary>
-    /// Y coordinate of the port center on the graph canvas.
-    /// </summary>
-    public double CenterY =>
-        ParentNode.Y + NodeViewModel.HeaderHeight + Index * NodeViewModel.PortHeight + NodeViewModel.PortHeight / 2;
+	/// <summary>
+	/// Y coordinate of the port center on the graph canvas.
+	/// </summary>
+	public double CenterY =>
+		ParentNode.Y + NodeViewModel.HeaderHeight + Index * NodeViewModel.PortHeight + NodeViewModel.PortHeight / 2;
 
-    /// <summary>
-    /// Notifies bindings that the port center moved because the parent node moved.
-    /// </summary>
-    public void NotifyPositionChanged()
-    {
-        OnPropertyChanged(nameof(CenterX));
-        OnPropertyChanged(nameof(CenterY));
-    }
+	/// <summary>
+	/// Notifies bindings that the port center moved because the parent node moved.
+	/// </summary>
+	public void NotifyPositionChanged()
+	{
+		OnPropertyChanged(nameof(CenterX));
+		OnPropertyChanged(nameof(CenterY));
+	}
 }

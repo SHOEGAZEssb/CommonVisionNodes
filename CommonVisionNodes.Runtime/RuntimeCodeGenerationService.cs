@@ -12,7 +12,7 @@ namespace CommonVisionNodes.Runtime;
 /// <param name="graphFactory">Factory used to materialize the graph before generation.</param>
 public sealed class RuntimeCodeGenerationService(RuntimeGraphFactory graphFactory)
 {
-    private readonly RuntimeGraphFactory _graphFactory = graphFactory;
+	private readonly RuntimeGraphFactory _graphFactory = graphFactory;
 
 	/// <summary>
 	/// Generates standalone C# code for a serialized graph.
@@ -20,8 +20,8 @@ public sealed class RuntimeCodeGenerationService(RuntimeGraphFactory graphFactor
 	/// <param name="graphDto">Graph to generate code for.</param>
 	/// <returns>C# source code that uses the CVB SDK directly.</returns>
 	public string GenerateCode(GraphDto graphDto)
-    {
-        using var graph = _graphFactory.Build(graphDto);
-        return CodeGenerator.Generate(graph.Graph);
-    }
+	{
+		using var graph = _graphFactory.Build(graphDto);
+		return CodeGenerator.Generate(graph.Graph);
+	}
 }

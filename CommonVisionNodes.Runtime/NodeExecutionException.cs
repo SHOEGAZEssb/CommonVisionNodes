@@ -9,7 +9,7 @@ namespace CommonVisionNodes.Runtime
 	/// <param name="node">Node that failed.</param>
 	/// <param name="innerException">Original exception thrown by the node.</param>
 	public sealed class NodeExecutionException(Node node, Exception innerException) : Exception($"Node '{node.GetType().Name}' execution failed.", innerException)
-    {
+	{
 
 		/// <summary>
 		/// Node that failed during graph execution.

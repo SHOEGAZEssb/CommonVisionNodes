@@ -4,119 +4,119 @@ using Stemmer.Cvb.GenApi;
 
 namespace CommonVisionNodes.Runtime
 {
-    /// <summary>
-    /// Acquires images from a GenICam-compatible camera device.
-    /// </summary>
-    public sealed class DeviceNode : Node, IInitializable, ITriggerableNode
-    {
-        private GenICamDevice? _device;
-        private ImageStream? _stream;
-        private Image? _lastAcquiredImage;
+	/// <summary>
+	/// Acquires images from a GenICam-compatible camera device.
+	/// </summary>
+	public sealed class DeviceNode : Node, IInitializable, ITriggerableNode
+	{
+		private GenICamDevice? _device;
+		private ImageStream? _stream;
+		private Image? _lastAcquiredImage;
 
-        /// <summary>
-        /// Optional trigger input that gates when a frame is acquired and sent downstream.
-        /// </summary>
-        public Port TriggerInput { get; }
+		/// <summary>
+		/// Optional trigger input that gates when a frame is acquired and sent downstream.
+		/// </summary>
+		public Port TriggerInput { get; }
 
-        /// <summary>
-        /// Output port that provides the most recently acquired image.
-        /// </summary>
-        public Port ImageOutput { get; }
+		/// <summary>
+		/// Output port that provides the most recently acquired image.
+		/// </summary>
+		public Port ImageOutput { get; }
 
-        /// <summary>
-        /// Access token used to open the device (e.g. from device discovery).
-        /// </summary>
-        public string AccessToken { get; set; } = string.Empty;
+		/// <summary>
+		/// Access token used to open the device (e.g. from device discovery).
+		/// </summary>
+		public string AccessToken { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Serial number read from the device after initialization.
-        /// </summary>
-        public string SerialNumber { get; private set; } = string.Empty;
+		/// <summary>
+		/// Serial number read from the device after initialization.
+		/// </summary>
+		public string SerialNumber { get; private set; } = string.Empty;
 
-        /// <inheritdoc/>
-        public bool IsInitialized { get; private set; }
+		/// <inheritdoc/>
+		public bool IsInitialized { get; private set; }
 
-        /// <summary>
-        /// Creates a camera device node with an optional trigger input and one image output.
-        /// </summary>
-        public DeviceNode()
-        {
-            TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a frame is acquired.");
-            ImageOutput = AddOutput("Image", typeof(Image), "The most recently acquired camera image.");
-        }
+		/// <summary>
+		/// Creates a camera device node with an optional trigger input and one image output.
+		/// </summary>
+		public DeviceNode()
+		{
+			TriggerInput = AddInput("Trigger", typeof(TriggerSignal), "Optional trigger that controls when a frame is acquired.");
+			ImageOutput = AddOutput("Image", typeof(Image), "The most recently acquired camera image.");
+		}
 
-        /// <inheritdoc/>
-        public void Initialize()
-        {
-            Dispose();
-            _device = DeviceFactory.Open(AccessToken, AcquisitionStack.GenTL) as GenICamDevice;
+		/// <inheritdoc/>
+		public void Initialize()
+		{
+			Dispose();
+			_device = DeviceFactory.Open(AccessToken, AcquisitionStack.GenTL) as GenICamDevice;
 
-            if (_device?.NodeMaps[NodeMapNames.Device]["DeviceID"] is StringNode serialNode)
-                SerialNumber = serialNode.Value;
+			if (_device?.NodeMaps[NodeMapNames.Device]["DeviceID"] is StringNode serialNode)
+				SerialNumber = serialNode.Value;
 
-            _stream = _device!.GetStream<ImageStream>(0);
-            _stream.Start();
-            IsInitialized = true;
-        }
+			_stream = _device!.GetStream<ImageStream>(0);
+			_stream.Start();
+			IsInitialized = true;
+		}
 
-        /// <inheritdoc/>
-        public override void Execute()
-        {
-            if (!IsInitialized)
-                throw new InvalidOperationException($"{nameof(DeviceNode)} must be initialized before execution.");
+		/// <inheritdoc/>
+		public override void Execute()
+		{
+			if (!IsInitialized)
+				throw new InvalidOperationException($"{nameof(DeviceNode)} must be initialized before execution.");
 
-            using var streamImage = _stream!.WaitFor(TimeSpan.FromSeconds(3));
-            _lastAcquiredImage?.Dispose();
-            _lastAcquiredImage = streamImage.Clone();
-            ImageOutput.Value = _lastAcquiredImage;
-        }
+			using var streamImage = _stream!.WaitFor(TimeSpan.FromSeconds(3));
+			_lastAcquiredImage?.Dispose();
+			_lastAcquiredImage = streamImage.Clone();
+			ImageOutput.Value = _lastAcquiredImage;
+		}
 
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            // TryStop tolerates already-stopped streams better than Stop and keeps disposal
-            // idempotent across failed initialization and normal shutdown paths.
-            _stream?.TryStop();
-            _stream = null;
+		/// <inheritdoc/>
+		public void Dispose()
+		{
+			// TryStop tolerates already-stopped streams better than Stop and keeps disposal
+			// idempotent across failed initialization and normal shutdown paths.
+			_stream?.TryStop();
+			_stream = null;
 
-            _device?.Dispose();
-            _device = null;
+			_device?.Dispose();
+			_device = null;
 
-            _lastAcquiredImage?.Dispose();
-            _lastAcquiredImage = null;
+			_lastAcquiredImage?.Dispose();
+			_lastAcquiredImage = null;
 
-            SerialNumber = string.Empty;
-            IsInitialized = false;
-        }
+			SerialNumber = string.Empty;
+			IsInitialized = false;
+		}
 
-        // Code generation
+		// Code generation
 
-        /// <inheritdoc/>
-        public override string CodeVariableName => "acquiredImage";
+		/// <inheritdoc/>
+		public override string CodeVariableName => "acquiredImage";
 
-        /// <inheritdoc/>
-        public override IReadOnlyList<string> RequiredUsings => ["Stemmer.Cvb.Driver", "System.Linq"];
+		/// <inheritdoc/>
+		public override IReadOnlyList<string> RequiredUsings => ["Stemmer.Cvb.Driver", "System.Linq"];
 
-        /// <inheritdoc/>
-        public override void EmitCode(CodeEmitContext context)
-        {
-            var discoveryVar = context.GetUniqueVariable("discoveredDevice");
-            var deviceVar = context.GetUniqueVariable("device");
-            var streamVar = context.GetUniqueVariable("stream");
-            var waitVar = context.GetUniqueVariable("streamResult");
-            var imageVar = context.GetUniqueVariable(CodeVariableName);
+		/// <inheritdoc/>
+		public override void EmitCode(CodeEmitContext context)
+		{
+			var discoveryVar = context.GetUniqueVariable("discoveredDevice");
+			var deviceVar = context.GetUniqueVariable("device");
+			var streamVar = context.GetUniqueVariable("stream");
+			var waitVar = context.GetUniqueVariable("streamResult");
+			var imageVar = context.GetUniqueVariable(CodeVariableName);
 
-            var sb = context.Builder;
-            sb.AppendLine("// Discover and open device by serial number");
-            sb.AppendLine($"var {discoveryVar} = DeviceFactory.Discover(DiscoverFlags.IgnoreVins)");
-            sb.AppendLine($"    .First(d => d.TryGetProperty(DiscoveryProperties.DeviceSerialNumber, out var s) && s == \"{SerialNumber}\");");
-            sb.AppendLine($"using var {deviceVar} = DeviceFactory.Open({discoveryVar}.AccessToken, AcquisitionStack.GenTL) as GenICamDevice;");
-            sb.AppendLine($"using var {streamVar} = {deviceVar}!.GetStream<ImageStream>(0);");
-            sb.AppendLine($"{streamVar}.Start();");
-            sb.AppendLine($"using var {waitVar} = {streamVar}.WaitFor(TimeSpan.FromSeconds(3));");
-            sb.AppendLine($"using var {imageVar} = {waitVar}.Clone();");
-            sb.AppendLine($"{streamVar}.TryStop();");
-            context.RegisterOutput(ImageOutput, imageVar);
-        }
-    }
+			var sb = context.Builder;
+			sb.AppendLine("// Discover and open device by serial number");
+			sb.AppendLine($"var {discoveryVar} = DeviceFactory.Discover(DiscoverFlags.IgnoreVins)");
+			sb.AppendLine($"    .First(d => d.TryGetProperty(DiscoveryProperties.DeviceSerialNumber, out var s) && s == \"{SerialNumber}\");");
+			sb.AppendLine($"using var {deviceVar} = DeviceFactory.Open({discoveryVar}.AccessToken, AcquisitionStack.GenTL) as GenICamDevice;");
+			sb.AppendLine($"using var {streamVar} = {deviceVar}!.GetStream<ImageStream>(0);");
+			sb.AppendLine($"{streamVar}.Start();");
+			sb.AppendLine($"using var {waitVar} = {streamVar}.WaitFor(TimeSpan.FromSeconds(3));");
+			sb.AppendLine($"using var {imageVar} = {waitVar}.Clone();");
+			sb.AppendLine($"{streamVar}.TryStop();");
+			context.RegisterOutput(ImageOutput, imageVar);
+		}
+	}
 }

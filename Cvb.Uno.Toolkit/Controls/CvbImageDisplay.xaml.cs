@@ -10,42 +10,42 @@ namespace Cvb.Uno.Toolkit.Controls;
 /// </summary>
 public sealed partial class CvbImageDisplay : UserControl
 {
-    /// <summary>
-    /// Creates the image preview control.
-    /// </summary>
-    public CvbImageDisplay()
-    {
-        this.InitializeComponent();
-    }
+	/// <summary>
+	/// Creates the image preview control.
+	/// </summary>
+	public CvbImageDisplay()
+	{
+		this.InitializeComponent();
+	}
 
-    /// <summary>
-    /// Updates the displayed image from a preview payload.
-    /// </summary>
-    /// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
-    public async void SetImage(ImagePreviewDto? preview)
-    {
-        if (preview is null)
-        {
-            Clear();
-            return;
-        }
+	/// <summary>
+	/// Updates the displayed image from a preview payload.
+	/// </summary>
+	/// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
+	public async void SetImage(ImagePreviewDto? preview)
+	{
+		if (preview is null)
+		{
+			Clear();
+			return;
+		}
 
-        var appliedPreview = await DisplayImage.SetImageAsync(preview);
-        if (appliedPreview is null)
-            return;
+		var appliedPreview = await DisplayImage.SetImageAsync(preview);
+		if (appliedPreview is null)
+			return;
 
-        PlaceholderText.Visibility = Visibility.Collapsed;
-        InfoOverlay.Visibility = Visibility.Visible;
-        InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(appliedPreview);
-    }
+		PlaceholderText.Visibility = Visibility.Collapsed;
+		InfoOverlay.Visibility = Visibility.Visible;
+		InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(appliedPreview);
+	}
 
-    /// <summary>
-    /// Clears the displayed image and restores the placeholder.
-    /// </summary>
-    public void Clear()
-    {
-        DisplayImage.Clear();
-        PlaceholderText.Visibility = Visibility.Visible;
-        InfoOverlay.Visibility = Visibility.Collapsed;
-    }
+	/// <summary>
+	/// Clears the displayed image and restores the placeholder.
+	/// </summary>
+	public void Clear()
+	{
+		DisplayImage.Clear();
+		PlaceholderText.Visibility = Visibility.Visible;
+		InfoOverlay.Visibility = Visibility.Collapsed;
+	}
 }

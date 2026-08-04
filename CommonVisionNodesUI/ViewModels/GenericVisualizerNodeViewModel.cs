@@ -21,24 +21,24 @@ public partial class GenericVisualizerNodeViewModel(NodeDto node, NodeDefinition
 	[ObservableProperty]
 	public partial string DisplayText { get; set; } = string.Empty;
 
-    /// <inheritdoc/>
-    public override string? Summary => TypeDescription;
+	/// <inheritdoc/>
+	public override string? Summary => TypeDescription;
 
-    /// <inheritdoc/>
-    public override void ApplyImagePreview(ImagePreviewDto? preview)
-    {
-        PreviewImage = preview;
-        TypeDescription = preview is null ? "No data" : $"Image ({preview.Width}x{preview.Height})";
-        DisplayText = string.Empty;
-        RaiseSummaryChanged();
-    }
+	/// <inheritdoc/>
+	public override void ApplyImagePreview(ImagePreviewDto? preview)
+	{
+		PreviewImage = preview;
+		TypeDescription = preview is null ? "No data" : $"Image ({preview.Width}x{preview.Height})";
+		DisplayText = string.Empty;
+		RaiseSummaryChanged();
+	}
 
-    /// <inheritdoc/>
-    public override void ApplyTextPreview(TextPreviewDto preview)
-    {
-        PreviewImage = null;
-        TypeDescription = preview.TypeDescription;
-        DisplayText = preview.DisplayText;
-        RaiseSummaryChanged();
-    }
+	/// <inheritdoc/>
+	public override void ApplyTextPreview(TextPreviewDto preview)
+	{
+		PreviewImage = null;
+		TypeDescription = preview.TypeDescription;
+		DisplayText = preview.DisplayText;
+		RaiseSummaryChanged();
+	}
 }

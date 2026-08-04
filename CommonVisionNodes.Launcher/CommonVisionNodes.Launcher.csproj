@@ -10,6 +10,7 @@
     <SelfContained>false</SelfContained>
     <DebugType>none</DebugType>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
 </Project>

@@ -5,6 +5,7 @@
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <UnoSingleProject>true</UnoSingleProject>
+    <UnoDisableHotDesign>true</UnoDisableHotDesign>
 
     <ApplicationTitle>CommonVisionNodesUI</ApplicationTitle>
     <ApplicationId>com.companyname.CommonVisionNodesUI</ApplicationId>

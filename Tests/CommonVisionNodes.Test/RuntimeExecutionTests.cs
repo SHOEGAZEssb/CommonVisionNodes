@@ -9,45 +9,45 @@ namespace CommonVisionNodes.Test;
 
 public sealed class RuntimeGraphFactoryTests
 {
-    [Test]
-    public void Build_ShouldCreateNodesApplyPropertiesAndConnections()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes =
-            [
-                new NodeDto
-                {
-                    Id = "generator",
-                    Type = nameof(ImageGeneratorNode),
-                    Properties =
-                    [
-                        new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
-                        new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
-                        new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.Rings) },
-                        new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "5" }
-                    ]
-                },
-                new NodeDto
-                {
-                    Id = "visualizer",
-                    Type = nameof(GenericVisualizerNode)
-                }
-            ],
-            Connections =
-            [
-                new ConnectionDto
-                {
-                    OutputNodeId = "generator",
-                    OutputPortName = "Image",
-                    InputNodeId = "visualizer",
-                    InputPortName = "Data"
-                }
-            ]
-        };
+	[Test]
+	public void Build_ShouldCreateNodesApplyPropertiesAndConnections()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes =
+			[
+				new NodeDto
+				{
+					Id = "generator",
+					Type = nameof(ImageGeneratorNode),
+					Properties =
+					[
+						new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
+						new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
+						new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.Rings) },
+						new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "5" }
+					]
+				},
+				new NodeDto
+				{
+					Id = "visualizer",
+					Type = nameof(GenericVisualizerNode)
+				}
+			],
+			Connections =
+			[
+				new ConnectionDto
+				{
+					OutputNodeId = "generator",
+					OutputPortName = "Image",
+					InputNodeId = "visualizer",
+					InputPortName = "Data"
+				}
+			]
+		};
 
-        using var result = factory.Build(graphDto);
+		using var result = factory.Build(graphDto);
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -60,126 +60,126 @@ public sealed class RuntimeGraphFactoryTests
 		var generator = (ImageGeneratorNode)result.NodesById["generator"];
 		using (Assert.EnterMultipleScope())
 		{
-            Assert.That(generator.Width, Is.EqualTo(32));
-            Assert.That(generator.Height, Is.EqualTo(16));
-            Assert.That(generator.Pattern, Is.EqualTo(TestPattern.Rings));
-            Assert.That(generator.Speed, Is.EqualTo(5));
-        }
-    }
+			Assert.That(generator.Width, Is.EqualTo(32));
+			Assert.That(generator.Height, Is.EqualTo(16));
+			Assert.That(generator.Pattern, Is.EqualTo(TestPattern.Rings));
+			Assert.That(generator.Speed, Is.EqualTo(5));
+		}
+	}
 
-    [Test]
-    public void Build_WithMissingNodeId_ShouldThrow()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes = [new NodeDto { Id = "", Type = nameof(ImageGeneratorNode) }]
-        };
+	[Test]
+	public void Build_WithMissingNodeId_ShouldThrow()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes = [new NodeDto { Id = "", Type = nameof(ImageGeneratorNode) }]
+		};
 
-        Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
-    }
+		Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
+	}
 
-    [Test]
-    public void Build_WithUnknownNodeType_ShouldThrow()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes = [new NodeDto { Id = "missing", Type = "MissingNode" }]
-        };
+	[Test]
+	public void Build_WithUnknownNodeType_ShouldThrow()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes = [new NodeDto { Id = "missing", Type = "MissingNode" }]
+		};
 
-        Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
-    }
+		Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
+	}
 
-    [Test]
-    public void Build_WithUnknownConnectionEndpoint_ShouldThrow()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes = [new NodeDto { Id = "generator", Type = nameof(ImageGeneratorNode) }],
-            Connections =
-            [
-                new ConnectionDto
-                {
-                    OutputNodeId = "generator",
-                    OutputPortName = "Image",
-                    InputNodeId = "missing",
-                    InputPortName = "Data"
-                }
-            ]
-        };
+	[Test]
+	public void Build_WithUnknownConnectionEndpoint_ShouldThrow()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes = [new NodeDto { Id = "generator", Type = nameof(ImageGeneratorNode) }],
+			Connections =
+			[
+				new ConnectionDto
+				{
+					OutputNodeId = "generator",
+					OutputPortName = "Image",
+					InputNodeId = "missing",
+					InputPortName = "Data"
+				}
+			]
+		};
 
-        Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
-    }
+		Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
+	}
 
-    [Test]
-    public void Build_WithIncompatiblePorts_ShouldThrow()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes =
-            [
-                new NodeDto { Id = "generator", Type = nameof(ImageGeneratorNode) },
-                new NodeDto { Id = "classifier", Type = nameof(PolimagoClassifyNode) }
-            ],
-            Connections =
-            [
-                new ConnectionDto
-                {
-                    OutputNodeId = "generator",
-                    OutputPortName = "Image",
-                    InputNodeId = "classifier",
-                    InputPortName = "Blobs"
-                }
-            ]
-        };
+	[Test]
+	public void Build_WithIncompatiblePorts_ShouldThrow()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes =
+			[
+				new NodeDto { Id = "generator", Type = nameof(ImageGeneratorNode) },
+				new NodeDto { Id = "classifier", Type = nameof(PolimagoClassifyNode) }
+			],
+			Connections =
+			[
+				new ConnectionDto
+				{
+					OutputNodeId = "generator",
+					OutputPortName = "Image",
+					InputNodeId = "classifier",
+					InputPortName = "Blobs"
+				}
+			]
+		};
 
-        Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
-    }
+		Assert.Throws<InvalidOperationException>(() => factory.Build(graphDto));
+	}
 
-    [Test]
-    public void Build_TimeTriggerWithNonFiniteFramesPerSecond_ShouldKeepDefaultRate()
-    {
-        var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var graphDto = new GraphDto
-        {
-            Nodes =
-            [
-                new NodeDto
-                {
-                    Id = "trigger",
-                    Type = nameof(TimeTriggerNode),
-                    Properties =
-                    [
-                        new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "NaN" }
-                    ]
-                }
-            ]
-        };
+	[Test]
+	public void Build_TimeTriggerWithNonFiniteFramesPerSecond_ShouldKeepDefaultRate()
+	{
+		var factory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var graphDto = new GraphDto
+		{
+			Nodes =
+			[
+				new NodeDto
+				{
+					Id = "trigger",
+					Type = nameof(TimeTriggerNode),
+					Properties =
+					[
+						new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "NaN" }
+					]
+				}
+			]
+		};
 
-        using var result = factory.Build(graphDto);
+		using var result = factory.Build(graphDto);
 
-        var trigger = (TimeTriggerNode)result.NodesById["trigger"];
-        Assert.That(trigger.FramesPerSecond, Is.EqualTo(1.0));
-    }
+		var trigger = (TimeTriggerNode)result.NodesById["trigger"];
+		Assert.That(trigger.FramesPerSecond, Is.EqualTo(1.0));
+	}
 
 }
 
 public sealed class GraphExecutionRunnerTests
 {
-    [Test]
-    public async Task SingleExecution_ShouldPublishStateNodePreviewAndCompletionMessages()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: true);
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task SingleExecution_ShouldPublishStateNodePreviewAndCompletionMessages()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: true);
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
-        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.DisposeAsync();
+		runner.Start();
+		await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+		await runner.DisposeAsync();
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -197,43 +197,43 @@ public sealed class GraphExecutionRunnerTests
 		}
 
 		var imagePreview = messages
-            .Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
-            .Select(message => message.ImagePreview)
-            .SingleOrDefault(preview => preview?.NodeId == "generator");
+			.Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+			.Select(message => message.ImagePreview)
+			.SingleOrDefault(preview => preview?.NodeId == "generator");
 
-        Assert.That(imagePreview, Is.Not.Null);
+		Assert.That(imagePreview, Is.Not.Null);
 		using (Assert.EnterMultipleScope())
 		{
-            Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Gray8));
-            Assert.That(imagePreview.PreviewSequence, Is.GreaterThan(0));
-            Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-gray8"));
-            Assert.That(imagePreview.BinaryData, Is.Not.Null.And.Not.Empty);
-            Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth));
-        }
-    }
+			Assert.That(imagePreview!.Encoding, Is.EqualTo(ImagePreviewEncodingDto.Gray8));
+			Assert.That(imagePreview.PreviewSequence, Is.GreaterThan(0));
+			Assert.That(imagePreview.MediaType, Is.EqualTo("application/x-gray8"));
+			Assert.That(imagePreview.BinaryData, Is.Not.Null.And.Not.Empty);
+			Assert.That(imagePreview.Stride, Is.EqualTo(imagePreview.PreviewWidth));
+		}
+	}
 
-    [Test]
-    public async Task SingleExecution_WithInvalidGraph_ShouldPublishFailureMessage()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new ExecutionRequestDto
-        {
-            ClientId = "test-client",
-            Mode = ExecutionModeDto.Single,
-            Graph = new GraphDto
-            {
-                Nodes = [new NodeDto { Id = "missing", Type = "MissingNode" }]
-            }
-        };
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task SingleExecution_WithInvalidGraph_ShouldPublishFailureMessage()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = new ExecutionRequestDto
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Single,
+			Graph = new GraphDto
+			{
+				Nodes = [new NodeDto { Id = "missing", Type = "MissingNode" }]
+			}
+		};
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
-        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.DisposeAsync();
+		runner.Start();
+		await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+		await runner.DisposeAsync();
 
-        var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
-        Assert.That(failure, Is.Not.Null);
+		var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
+		Assert.That(failure, Is.Not.Null);
 		using (Assert.EnterMultipleScope())
 		{
 			Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
@@ -241,97 +241,100 @@ public sealed class GraphExecutionRunnerTests
 		}
 	}
 
-    [Test]
-    public async Task SingleExecution_WithNodeException_ShouldPublishFailedNodeAndFailureContext()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new ExecutionRequestDto
-        {
-            ClientId = "test-client",
-            Mode = ExecutionModeDto.Single,
-            Graph = new GraphDto
-            {
-                Nodes =
-                [
-                    new NodeDto
-                    {
-                        Id = "save",
-                        Type = nameof(SaveImageNode),
-                        Properties =
-                        [
-                            new NodePropertyDto { Name = nameof(SaveImageNode.FilePath), Value = "not-used.bmp" }
-                        ]
-                    }
-                ]
-            }
-        };
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task SingleExecution_WithNodeException_ShouldPublishFailedNodeAndFailureContext()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = new ExecutionRequestDto
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Single,
+			Graph = new GraphDto
+			{
+				Nodes =
+				[
+					new NodeDto
+					{
+						Id = "save",
+						Type = nameof(SaveImageNode),
+						Properties =
+						[
+							new NodePropertyDto { Name = nameof(SaveImageNode.FilePath), Value = "not-used.bmp" }
+						]
+					}
+				]
+			}
+		};
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
-        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.DisposeAsync();
+		runner.Start();
+		await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+		await runner.DisposeAsync();
 
-        var nodeFailure = messages.FirstOrDefault(message =>
-            message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
-            message.NodeUpdate?.NodeId == "save" &&
-            message.NodeUpdate.Status == NodeExecutionStatusDto.Failed);
-        var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
+		var nodeFailure = messages.FirstOrDefault(message =>
+			message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+			message.NodeUpdate?.NodeId == "save" &&
+			message.NodeUpdate.Status == NodeExecutionStatusDto.Failed);
+		var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
 
-        Assert.That(nodeFailure, Is.Not.Null);
-        Assert.That(failure, Is.Not.Null);
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(nodeFailure!.NodeUpdate?.Message, Is.Not.Null.And.Not.Empty);
-            Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
-            Assert.That(failure.ExecutionState?.Message, Does.Contain(nameof(SaveImageNode)).And.Contain("'save'"));
-            Assert.That(failure.Error, Is.EqualTo(failure.ExecutionState?.Message));
-        }
-    }
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(nodeFailure, Is.Not.Null);
+			Assert.That(failure, Is.Not.Null);
+		}
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(nodeFailure!.NodeUpdate?.Message, Is.Not.Null.And.Not.Empty);
+			Assert.That(failure!.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
+			Assert.That(failure.ExecutionState?.Message, Does.Contain(nameof(SaveImageNode)).And.Contain("'save'"));
+			Assert.That(failure.Error, Is.EqualTo(failure.ExecutionState?.Message));
+		}
+	}
 
-    [Test]
-    public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new ExecutionRequestDto
-        {
-            ClientId = "test-client",
-            Mode = ExecutionModeDto.Continuous,
-            PreviewRefreshRate = 30,
-            PreviewImageMaxDimension = 64,
-            Graph = new GraphDto
-            {
-                Nodes =
-                [
-                    new NodeDto
-                    {
-                        Id = "trigger",
-                        Type = nameof(TimeTriggerNode),
-                        Properties =
-                        [
-                            new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "1" }
-                        ]
-                    }
-                ]
-            }
-        };
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = new ExecutionRequestDto
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Continuous,
+			PreviewRefreshRate = 30,
+			PreviewImageMaxDimension = 64,
+			Graph = new GraphDto
+			{
+				Nodes =
+				[
+					new NodeDto
+					{
+						Id = "trigger",
+						Type = nameof(TimeTriggerNode),
+						Properties =
+						[
+							new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "1" }
+						]
+					}
+				]
+			}
+		};
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
+		runner.Start();
 
-        var updated = false;
-        for (var attempt = 0; attempt < 100 && !updated; attempt++)
-        {
-            updated = runner.UpdateNodeProperties(
-                "trigger",
-                [new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "4" }]);
+		var updated = false;
+		for (var attempt = 0; attempt < 100 && !updated; attempt++)
+		{
+			updated = runner.UpdateNodeProperties(
+				"trigger",
+				[new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "4" }]);
 
-            if (!updated)
-                await Task.Delay(20);
-        }
+			if (!updated)
+				await Task.Delay(20);
+		}
 
-        await runner.DisposeAsync();
+		await runner.DisposeAsync();
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -340,79 +343,79 @@ public sealed class GraphExecutionRunnerTests
 		}
 	}
 
-    [Test]
-    public async Task ContinuousExecution_WithTimeTrigger_ShouldCountOnlyTriggeredFrames()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: false);
-        request.Mode = ExecutionModeDto.Continuous;
-        request.Graph.Nodes.Insert(0, new NodeDto
-        {
-            Id = "trigger",
-            Type = nameof(TimeTriggerNode),
-            Properties =
-            [
-                new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "2" }
-            ]
-        });
-        request.Graph.Connections.Add(new ConnectionDto
-        {
-            OutputNodeId = "trigger",
-            OutputPortName = "Trigger",
-            InputNodeId = "generator",
-            InputPortName = "Trigger"
-        });
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task ContinuousExecution_WithTimeTrigger_ShouldCountOnlyTriggeredFrames()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: false);
+		request.Mode = ExecutionModeDto.Continuous;
+		request.Graph.Nodes.Insert(0, new NodeDto
+		{
+			Id = "trigger",
+			Type = nameof(TimeTriggerNode),
+			Properties =
+			[
+				new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "2" }
+			]
+		});
+		request.Graph.Connections.Add(new ConnectionDto
+		{
+			OutputNodeId = "trigger",
+			OutputPortName = "Trigger",
+			InputNodeId = "generator",
+			InputPortName = "Trigger"
+		});
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
-        await Task.Delay(350);
-        await runner.DisposeAsync();
+		runner.Start();
+		await Task.Delay(350);
+		await runner.DisposeAsync();
 
-        List<ExecutionMessageDto> snapshot;
-        lock (messages)
-            snapshot = [.. messages];
+		List<ExecutionMessageDto> snapshot;
+		lock (messages)
+			snapshot = [.. messages];
 
-        var framesProcessed = snapshot
-            .Where(message => message.ExecutionState is not null)
-            .Max(message => message.ExecutionState!.FramesProcessed);
+		var framesProcessed = snapshot
+			.Where(message => message.ExecutionState is not null)
+			.Max(message => message.ExecutionState!.FramesProcessed);
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(framesProcessed, Is.EqualTo(1));
-            Assert.That(snapshot.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
-        }
-    }
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(framesProcessed, Is.EqualTo(1));
+			Assert.That(snapshot.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
+		}
+	}
 
-    [Test]
-    public async Task ContinuousExecution_ShouldUpdateImageGeneratorSpeedWithoutRestartingGraph()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: false);
-        request.Mode = ExecutionModeDto.Continuous;
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task ContinuousExecution_ShouldUpdateImageGeneratorSpeedWithoutRestartingGraph()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: false);
+		request.Mode = ExecutionModeDto.Continuous;
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
+		runner.Start();
 
-        var updated = false;
-        for (var attempt = 0; attempt < 100 && !updated; attempt++)
-        {
-            updated = runner.UpdateNodeProperties(
-                "generator",
-                [
-                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
-                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
-                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.GradientH) },
-                    new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "8" },
-                    new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
-                ]);
+		var updated = false;
+		for (var attempt = 0; attempt < 100 && !updated; attempt++)
+		{
+			updated = runner.UpdateNodeProperties(
+				"generator",
+				[
+					new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
+					new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
+					new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.GradientH) },
+					new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "8" },
+					new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.FalseString }
+				]);
 
-            if (!updated)
-                await Task.Delay(20);
-        }
+			if (!updated)
+				await Task.Delay(20);
+		}
 
-        await runner.DisposeAsync();
+		await runner.DisposeAsync();
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -420,46 +423,46 @@ public sealed class GraphExecutionRunnerTests
 			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
 			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
 		}
-    }
+	}
 
-    [Test]
-    public async Task ContinuousExecution_ShouldToggleNodePreviewWithoutRestartingGraph()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: false);
-        request.Mode = ExecutionModeDto.Continuous;
-        request.PreviewRefreshRate = 30;
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task ContinuousExecution_ShouldToggleNodePreviewWithoutRestartingGraph()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: false);
+		request.Mode = ExecutionModeDto.Continuous;
+		request.PreviewRefreshRate = 30;
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
+		runner.Start();
 
-        var updated = false;
-        for (var attempt = 0; attempt < 100 && !updated; attempt++)
-        {
-            updated = runner.UpdateNodeProperties(
-                "generator",
-                [new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }]);
+		var updated = false;
+		for (var attempt = 0; attempt < 100 && !updated; attempt++)
+		{
+			updated = runner.UpdateNodeProperties(
+				"generator",
+				[new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = bool.TrueString }]);
 
-            if (!updated)
-                await Task.Delay(20);
-        }
+			if (!updated)
+				await Task.Delay(20);
+		}
 
-        var previewReceived = false;
-        for (var attempt = 0; attempt < 100 && !previewReceived; attempt++)
-        {
-            lock (messages)
-            {
-                previewReceived = messages.Any(message =>
-                    message.MessageType == ExecutionMessageTypeDto.ImagePreview &&
-                    message.ImagePreview?.NodeId == "generator");
-            }
+		var previewReceived = false;
+		for (var attempt = 0; attempt < 100 && !previewReceived; attempt++)
+		{
+			lock (messages)
+			{
+				previewReceived = messages.Any(message =>
+					message.MessageType == ExecutionMessageTypeDto.ImagePreview &&
+					message.ImagePreview?.NodeId == "generator");
+			}
 
-            if (!previewReceived)
-                await Task.Delay(20);
-        }
+			if (!previewReceived)
+				await Task.Delay(20);
+		}
 
-        await runner.DisposeAsync();
+		await runner.DisposeAsync();
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -468,231 +471,230 @@ public sealed class GraphExecutionRunnerTests
 			Assert.That(messages.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
 			Assert.That(messages.Select(message => message.ExecutionId), Is.All.EqualTo(runner.ExecutionId));
 		}
-    }
+	}
 
-    [Test]
-    public async Task ContinuousExecution_ShouldThrottleTelemetryMessages()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: false);
-        request.Mode = ExecutionModeDto.Continuous;
-        var runner = CreateRunner(request, messages, completed);
+	[Test]
+	public async Task ContinuousExecution_ShouldThrottleTelemetryMessages()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: false);
+		request.Mode = ExecutionModeDto.Continuous;
+		var runner = CreateRunner(request, messages, completed);
 
-        runner.Start();
+		runner.Start();
 
-        var started = false;
-        for (var attempt = 0; attempt < 100 && !started; attempt++)
-        {
-            lock (messages)
-            {
-                started = messages.Any(message =>
-                    message.ExecutionState?.Status == ExecutionStatusDto.Running);
-            }
+		var started = false;
+		for (var attempt = 0; attempt < 100 && !started; attempt++)
+		{
+			lock (messages)
+			{
+				started = messages.Any(message =>
+					message.ExecutionState?.Status == ExecutionStatusDto.Running);
+			}
 
-            if (!started)
-                await Task.Delay(10);
-        }
+			if (!started)
+				await Task.Delay(10);
+		}
 
-        var telemetryWindow = Stopwatch.StartNew();
-        await Task.Delay(500);
-        telemetryWindow.Stop();
-        await runner.DisposeAsync();
+		var telemetryWindow = Stopwatch.StartNew();
+		await Task.Delay(500);
+		telemetryWindow.Stop();
+		await runner.DisposeAsync();
 
-        List<ExecutionMessageDto> snapshot;
-        lock (messages)
-            snapshot = [.. messages];
+		List<ExecutionMessageDto> snapshot;
+		lock (messages)
+			snapshot = [.. messages];
 
-        var runningTelemetryCount = snapshot.Count(message =>
-            message.ExecutionState?.Status == ExecutionStatusDto.Running &&
-            string.Equals(message.ExecutionState.Message, "Executing.", StringComparison.Ordinal));
-        var nodeUpdateCount = snapshot.Count(message => message.MessageType == ExecutionMessageTypeDto.NodeUpdate);
-        var expectedTelemetryLimit = (int)Math.Ceiling(telemetryWindow.Elapsed.TotalMilliseconds / 100.0) + 3;
+		var runningTelemetryCount = snapshot.Count(message =>
+			message.ExecutionState?.Status == ExecutionStatusDto.Running &&
+			string.Equals(message.ExecutionState.Message, "Executing.", StringComparison.Ordinal));
+		var nodeUpdateCount = snapshot.Count(message => message.MessageType == ExecutionMessageTypeDto.NodeUpdate);
+		var expectedTelemetryLimit = (int)Math.Ceiling(telemetryWindow.Elapsed.TotalMilliseconds / 100.0) + 3;
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(started, Is.True);
-            Assert.That(runningTelemetryCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
-            Assert.That(nodeUpdateCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
-            Assert.That(snapshot.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
-        }
-    }
-
-    [Test]
-    public async Task ContinuousExecution_WithoutPreviewSubscribers_ShouldSkipImagePreviewMessages()
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: true);
-        request.Mode = ExecutionModeDto.Continuous;
-        request.PreviewRefreshRate = 1001;
-        var runner = CreateRunner(request, messages, completed, hasPreviewSubscribers: () => false);
-
-        runner.Start();
-        await Task.Delay(150);
-        await runner.DisposeAsync();
-
-        Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview), Is.False);
-        Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
-    }
-
-    [Test]
-    public async Task ContinuousExecution_WithSlowPreviewConsumer_ShouldKeepOnlyOnePreviewPerNodeInFlight()
-    {
-        var firstPreviewStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releasePreview = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: true);
-        request.Mode = ExecutionModeDto.Continuous;
-        request.PreviewRefreshRate = 1001;
-        var previewPublishCount = 0;
-        var latestFrameCount = 0L;
-        var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var runner = new GraphExecutionRunner(
-            request,
-            graphFactory,
-            new RuntimePreviewFactory(),
-            async (message, cancellationToken) =>
-            {
-                if (message.MessageType == ExecutionMessageTypeDto.ImagePreview)
-                {
-                    Interlocked.Increment(ref previewPublishCount);
-                    firstPreviewStarted.TrySetResult();
-                    await releasePreview.Task.WaitAsync(cancellationToken);
-                    return;
-                }
-
-                if (message.ExecutionState is
-                    {
-                        Status: ExecutionStatusDto.Running,
-                        Message: "Executing."
-                    } state)
-                {
-                    Interlocked.Exchange(ref latestFrameCount, state.FramesProcessed);
-                }
-            },
-            _ => { });
-
-        try
-        {
-            runner.Start();
-            await firstPreviewStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await Task.Delay(350);
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(Volatile.Read(ref previewPublishCount), Is.EqualTo(1));
-                Assert.That(Volatile.Read(ref latestFrameCount), Is.GreaterThan(1));
-            }
-        }
-        finally
-        {
-            releasePreview.TrySetResult();
-            await runner.DisposeAsync();
-        }
-    }
-
-    [TestCase(0, 1000.0)]
-    [TestCase(1, 1000.0)]
-    [TestCase(30, 1000.0 / 30)]
-    [TestCase(60, 1000.0 / 60)]
-    [TestCase(999, 1000.0 / 999)]
-    [TestCase(1000, 1.0)]
-    [TestCase(1001, 0)]
-    [TestCase(2000, 0)]
-    public void PreviewRefreshRate_ShouldMapToExpectedInterval(int refreshRate, double expectedIntervalMs)
-    {
-        var method = typeof(GraphExecutionRunner).GetMethod(
-            "GetPreviewIntervalMilliseconds",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.That(method, Is.Not.Null);
-        var interval = (double)method!.Invoke(null, [refreshRate])!;
-        Assert.That(interval, Is.EqualTo(expectedIntervalMs).Within(0.0001));
-    }
-
-    [TestCase(0, 32, 16)]
-    [TestCase(64, 32, 16)]
-    [TestCase(16, 16, 8)]
-    [TestCase(10, 10, 5)]
-    public async Task SingleExecution_ShouldHonorPreviewMaxDimension(int maxDimension, int expectedPreviewWidth, int expectedPreviewHeight)
-    {
-        var messages = new List<ExecutionMessageDto>();
-        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = CreateSingleGeneratorRequest(showPreview: true, previewImageMaxDimension: maxDimension);
-        var runner = CreateRunner(request, messages, completed);
-
-        runner.Start();
-        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.DisposeAsync();
-
-        var imagePreview = messages
-            .Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
-            .Select(message => message.ImagePreview)
-            .SingleOrDefault(preview => preview?.NodeId == "generator");
-
-        Assert.That(imagePreview, Is.Not.Null);
 		using (Assert.EnterMultipleScope())
 		{
-            Assert.That(imagePreview!.Width, Is.EqualTo(32));
-            Assert.That(imagePreview.Height, Is.EqualTo(16));
-            Assert.That(imagePreview.PreviewWidth, Is.EqualTo(expectedPreviewWidth));
-            Assert.That(imagePreview.PreviewHeight, Is.EqualTo(expectedPreviewHeight));
-            Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth));
-        }
-    }
+			Assert.That(started, Is.True);
+			Assert.That(runningTelemetryCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
+			Assert.That(nodeUpdateCount, Is.LessThanOrEqualTo(expectedTelemetryLimit));
+			Assert.That(snapshot.Any(message => message.ExecutionState?.Status == ExecutionStatusDto.Failed), Is.False);
+		}
+	}
 
-    private static GraphExecutionRunner CreateRunner(
-        ExecutionRequestDto request,
-        List<ExecutionMessageDto> messages,
-        TaskCompletionSource completed,
-        Func<bool>? hasPreviewSubscribers = null)
-    {
-        var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
-        var previewFactory = new RuntimePreviewFactory();
+	[Test]
+	public async Task ContinuousExecution_WithoutPreviewSubscribers_ShouldSkipImagePreviewMessages()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: true);
+		request.Mode = ExecutionModeDto.Continuous;
+		request.PreviewRefreshRate = 1001;
+		var runner = CreateRunner(request, messages, completed, hasPreviewSubscribers: () => false);
 
-        return new GraphExecutionRunner(
-            request,
-            graphFactory,
-            previewFactory,
-            (message, _) =>
-            {
-                lock (messages)
-                    messages.Add(message);
+		runner.Start();
+		await Task.Delay(150);
+		await runner.DisposeAsync();
 
-                if (message.MessageType is ExecutionMessageTypeDto.Completed or ExecutionMessageTypeDto.Failure)
-                    completed.TrySetResult();
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview), Is.False);
+			Assert.That(messages.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
+		}
+	}
 
-                return Task.CompletedTask;
-            },
-            _ => completed.TrySetResult(),
-            hasPreviewSubscribers);
-    }
+	[Test]
+	public async Task ContinuousExecution_WithSlowPreviewConsumer_ShouldKeepOnlyOnePreviewPerNodeInFlight()
+	{
+		var firstPreviewStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var releasePreview = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: true);
+		request.Mode = ExecutionModeDto.Continuous;
+		request.PreviewRefreshRate = 1001;
+		var previewPublishCount = 0;
+		var latestFrameCount = 0L;
+		var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		var runner = new GraphExecutionRunner(
+			request,
+			graphFactory,
+			async (message, cancellationToken) =>
+			{
+				if (message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+				{
+					Interlocked.Increment(ref previewPublishCount);
+					firstPreviewStarted.TrySetResult();
+					await releasePreview.Task.WaitAsync(cancellationToken);
+					return;
+				}
 
-    private static ExecutionRequestDto CreateSingleGeneratorRequest(bool showPreview, int previewImageMaxDimension = 64)
-        => new()
-        {
-            ClientId = "test-client",
-            Mode = ExecutionModeDto.Single,
-            PreviewRefreshRate = 30,
-            PreviewImageMaxDimension = previewImageMaxDimension,
-            Graph = new GraphDto
-            {
-                Nodes =
-                [
-                    new NodeDto
-                    {
-                        Id = "generator",
-                        Type = nameof(ImageGeneratorNode),
-                        Properties =
-                        [
-                            new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
-                            new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
-                            new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.GradientH) },
-                            new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "1" },
-                            new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = showPreview.ToString() }
-                        ]
-                    }
-                ]
-            }
-        };
+				if (message.ExecutionState is
+					{
+						Status: ExecutionStatusDto.Running,
+						Message: "Executing."
+					} state)
+				{
+					Interlocked.Exchange(ref latestFrameCount, state.FramesProcessed);
+				}
+			},
+			_ => { });
+
+		try
+		{
+			runner.Start();
+			await firstPreviewStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+			await Task.Delay(350);
+
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(Volatile.Read(ref previewPublishCount), Is.EqualTo(1));
+				Assert.That(Volatile.Read(ref latestFrameCount), Is.GreaterThan(1));
+			}
+		}
+		finally
+		{
+			releasePreview.TrySetResult();
+			await runner.DisposeAsync();
+		}
+	}
+
+	[TestCase(0, 1000.0)]
+	[TestCase(1, 1000.0)]
+	[TestCase(30, 1000.0 / 30)]
+	[TestCase(60, 1000.0 / 60)]
+	[TestCase(999, 1000.0 / 999)]
+	[TestCase(1000, 1.0)]
+	[TestCase(1001, 0)]
+	[TestCase(2000, 0)]
+	public void PreviewRefreshRate_ShouldMapToExpectedInterval(int refreshRate, double expectedIntervalMs)
+	{
+		var method = typeof(GraphExecutionRunner).GetMethod(
+			"GetPreviewIntervalMilliseconds",
+			BindingFlags.NonPublic | BindingFlags.Static);
+
+		Assert.That(method, Is.Not.Null);
+		var interval = (double)method!.Invoke(null, [refreshRate])!;
+		Assert.That(interval, Is.EqualTo(expectedIntervalMs).Within(0.0001));
+	}
+
+	[TestCase(0, 32, 16)]
+	[TestCase(64, 32, 16)]
+	[TestCase(16, 16, 8)]
+	[TestCase(10, 10, 5)]
+	public async Task SingleExecution_ShouldHonorPreviewMaxDimension(int maxDimension, int expectedPreviewWidth, int expectedPreviewHeight)
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateSingleGeneratorRequest(showPreview: true, previewImageMaxDimension: maxDimension);
+		var runner = CreateRunner(request, messages, completed);
+
+		runner.Start();
+		await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+		await runner.DisposeAsync();
+
+		var imagePreview = messages
+			.Where(message => message.MessageType == ExecutionMessageTypeDto.ImagePreview)
+			.Select(message => message.ImagePreview)
+			.SingleOrDefault(preview => preview?.NodeId == "generator");
+
+		Assert.That(imagePreview, Is.Not.Null);
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(imagePreview!.Width, Is.EqualTo(32));
+			Assert.That(imagePreview.Height, Is.EqualTo(16));
+			Assert.That(imagePreview.PreviewWidth, Is.EqualTo(expectedPreviewWidth));
+			Assert.That(imagePreview.PreviewHeight, Is.EqualTo(expectedPreviewHeight));
+			Assert.That(imagePreview.Stride, Is.EqualTo(expectedPreviewWidth));
+		}
+	}
+
+	private static GraphExecutionRunner CreateRunner(
+		ExecutionRequestDto request,
+		List<ExecutionMessageDto> messages,
+		TaskCompletionSource completed,
+		Func<bool>? hasPreviewSubscribers = null)
+	{
+		var graphFactory = new RuntimeGraphFactory(new RuntimeNodeCatalog());
+		return new GraphExecutionRunner(
+			request,
+			graphFactory,
+			(message, _) =>
+			{
+				lock (messages)
+					messages.Add(message);
+
+				if (message.MessageType is ExecutionMessageTypeDto.Completed or ExecutionMessageTypeDto.Failure)
+					completed.TrySetResult();
+
+				return Task.CompletedTask;
+			},
+			_ => completed.TrySetResult(),
+			hasPreviewSubscribers);
+	}
+
+	private static ExecutionRequestDto CreateSingleGeneratorRequest(bool showPreview, int previewImageMaxDimension = 64)
+		=> new()
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Single,
+			PreviewRefreshRate = 30,
+			PreviewImageMaxDimension = previewImageMaxDimension,
+			Graph = new GraphDto
+			{
+				Nodes =
+				[
+					new NodeDto
+					{
+						Id = "generator",
+						Type = nameof(ImageGeneratorNode),
+						Properties =
+						[
+							new NodePropertyDto { Name = nameof(ImageGeneratorNode.Width), Value = "32" },
+							new NodePropertyDto { Name = nameof(ImageGeneratorNode.Height), Value = "16" },
+							new NodePropertyDto { Name = nameof(ImageGeneratorNode.Pattern), Value = nameof(TestPattern.GradientH) },
+							new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "1" },
+							new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = showPreview.ToString() }
+						]
+					}
+				]
+			}
+		};
 }

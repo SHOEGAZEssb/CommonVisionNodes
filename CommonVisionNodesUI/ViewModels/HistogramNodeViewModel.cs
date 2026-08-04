@@ -21,17 +21,17 @@ public partial class HistogramNodeViewModel(NodeDto node, NodeDefinitionDto defi
 	[ObservableProperty]
 	public partial double StdDev { get; set; }
 
-    /// <inheritdoc/>
-    public override string? Summary => Bins.Length > 0
-        ? $"u {Mean:F1}  s {StdDev:F1}"
-        : "No data";
+	/// <inheritdoc/>
+	public override string? Summary => Bins.Length > 0
+		? $"u {Mean:F1}  s {StdDev:F1}"
+		: "No data";
 
-    /// <inheritdoc/>
-    public override void ApplyHistogramPreview(HistogramPreviewDto preview)
-    {
-        Bins = [.. preview.Bins];
-        Mean = preview.Mean;
-        StdDev = preview.StdDev;
-        RaiseSummaryChanged();
-    }
+	/// <inheritdoc/>
+	public override void ApplyHistogramPreview(HistogramPreviewDto preview)
+	{
+		Bins = [.. preview.Bins];
+		Mean = preview.Mean;
+		StdDev = preview.StdDev;
+		RaiseSummaryChanged();
+	}
 }
