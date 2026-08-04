@@ -2,7 +2,8 @@
     x:Class="CommonVisionNodesUI.Controls.BlobImageDisplay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:cvb="using:Cvb.Uno.Toolkit.Controls">
+    xmlns:cvb="using:Cvb.Uno.Toolkit.Controls"
+    xmlns:local="using:CommonVisionNodesUI.Controls">
 
     <Grid x:Name="RootGrid" Background="#1A1A1A" CornerRadius="4">
         <cvb:PreviewImagePresenter x:Name="DisplayImage"/>
@@ -21,6 +22,6 @@
             <TextBlock x:Name="InfoText" FontSize="10" Foreground="#CCCCCC"/>
         </Border>
 
-        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
+        <local:BlobOverlayCanvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
     </Grid>
 </UserControl>
