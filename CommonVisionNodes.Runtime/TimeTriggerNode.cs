@@ -61,6 +61,18 @@ namespace CommonVisionNodes.Runtime
                 : TriggerSignal.Inactive;
         }
 
+        /// <summary>
+        /// Gets the remaining time until this trigger can fire again.
+        /// </summary>
+        public TimeSpan GetDelayUntilNextTrigger()
+        {
+            if (!_hasTriggered || FramesPerSecond <= 0.0)
+                return TimeSpan.Zero;
+
+            var elapsedSeconds = (Stopwatch.GetTimestamp() - _lastTriggerTimestamp) / (double)Stopwatch.Frequency;
+            return TimeSpan.FromSeconds(Math.Max(0.0, 1.0 / FramesPerSecond - elapsedSeconds));
+        }
+
         /// <inheritdoc/>
         public override void EmitCode(CodeEmitContext context)
         {

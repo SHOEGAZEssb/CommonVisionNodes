@@ -13,9 +13,33 @@
         <DataTemplate x:Key="ImageNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="Source Path" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="6" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Source Path" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Click="BrowseImageFileButton_Click"
+                                IsEnabled="{Binding CanEditSourcePath}"
+                                ToolTipService.ToolTip="Open image file"
+                                AutomationProperties.Name="Open image file"
+                                Padding="8,5" CornerRadius="4">
+                            <FontIcon Glyph="&#xE8E5;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="2"
+                                Click="BrowseImageFolderButton_Click"
+                                IsEnabled="{Binding CanEditSourcePath}"
+                                ToolTipService.ToolTip="Open image directory"
+                                AutomationProperties.Name="Open image directory"
+                                Padding="8,5" CornerRadius="4">
+                            <FontIcon Glyph="&#xE838;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                    </Grid>
                     <TextBox Text="{Binding FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              IsEnabled="{Binding CanEditSourcePath}"
+                             HorizontalAlignment="Stretch"
                              FontSize="13"/>
                 </StackPanel>
                 <StackPanel Spacing="8"
@@ -61,8 +85,23 @@
         <DataTemplate x:Key="SaveImageNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="File Path" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="13"/>
+                    <Grid ColumnSpacing="6" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="File Path" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Click="BrowseSaveImageFileButton_Click"
+                                ToolTipService.ToolTip="Select output image file"
+                                AutomationProperties.Name="Select output image file"
+                                Padding="8,5" CornerRadius="4">
+                            <FontIcon Glyph="&#xE74E;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                    </Grid>
+                    <TextBox Text="{Binding FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             HorizontalAlignment="Stretch"
+                             FontSize="13"/>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
@@ -352,9 +391,24 @@
         <DataTemplate x:Key="MinosSearchNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="6" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Click="BrowseClassifierFileButton_Click"
+                                IsEnabled="{Binding IsClassifierPathEditable}"
+                                ToolTipService.ToolTip="Open classifier file"
+                                AutomationProperties.Name="Open classifier file"
+                                Padding="8,5" CornerRadius="4">
+                            <FontIcon Glyph="&#xE8E5;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                    </Grid>
                     <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              IsEnabled="{Binding IsClassifierPathEditable}"
+                             HorizontalAlignment="Stretch"
                              FontSize="13"
                              PlaceholderText="Path to Minos .clf file"/>
                     <TextBlock Text="Stop execution to change the classifier file."
@@ -371,14 +425,14 @@
                               HorizontalAlignment="Stretch"/>
                 </StackPanel>
                 <StackPanel>
-                    <TextBlock Text="Density (0.0â€“1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="Density (0.0&#x2013;1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <Slider Minimum="0" Maximum="1" Value="{Binding Density, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.05"/>
-                    <TextBlock Text="{Binding Density}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding DensityDisplay}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>
-                    <TextBlock Text="Min Quality (0.0â€“1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="Min Quality (0.0&#x2013;1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
                     <Slider Minimum="0" Maximum="1" Value="{Binding MinQuality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.05"/>
-                    <TextBlock Text="{Binding MinQuality}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding MinQualityDisplay}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Locality (Find All)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
@@ -399,9 +453,24 @@
         <DataTemplate x:Key="PolimagoClassifyNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
-                    <TextBlock Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="6" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Click="BrowseClassifierFileButton_Click"
+                                IsEnabled="{Binding IsClassifierPathEditable}"
+                                ToolTipService.ToolTip="Open classifier file"
+                                AutomationProperties.Name="Open classifier file"
+                                Padding="8,5" CornerRadius="4">
+                            <FontIcon Glyph="&#xE8E5;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"/>
+                        </Button>
+                    </Grid>
                     <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              IsEnabled="{Binding IsClassifierPathEditable}"
+                             HorizontalAlignment="Stretch"
                              FontSize="13"
                              PlaceholderText="Path to .clf file"/>
                     <TextBlock Text="Stop execution to change the classifier file."

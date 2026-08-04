@@ -15,6 +15,13 @@ public interface IBackendClient
     Task<IReadOnlyList<NodeDefinitionDto>> GetNodeDefinitionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Shows a native path picker on the local execution backend.
+    /// </summary>
+    Task<PathPickerResultDto> PickPathAsync(
+        PathPickerRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Starts graph execution.
     /// </summary>
     /// <param name="request">Execution request.</param>

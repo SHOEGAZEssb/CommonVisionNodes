@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using CommonVisionNodes.Contracts;
 using Microsoft.UI.Xaml;
@@ -63,6 +64,16 @@ public partial class MinosSearchNodeViewModel : NodeViewModel
     [ObservableProperty]
     public partial double MinQuality { get; set; }
 
+    /// <summary>
+    /// Density formatted for the slider readout without floating-point artifacts.
+    /// </summary>
+    public string DensityDisplay => Density.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Minimum quality formatted for the slider readout without floating-point artifacts.
+    /// </summary>
+    public string MinQualityDisplay => MinQuality.ToString("0.##", CultureInfo.InvariantCulture);
+
     [ObservableProperty]
     public partial int Locality { get; set; }
 
@@ -115,12 +126,14 @@ public partial class MinosSearchNodeViewModel : NodeViewModel
     {
         Density = double.IsFinite(value) ? Math.Clamp(value, 0.0, 1.0) : 1.0;
         SetDouble("Density", Density);
+        OnPropertyChanged(nameof(DensityDisplay));
     }
 
     partial void OnMinQualityChanged(double value)
     {
         MinQuality = double.IsFinite(value) ? Math.Clamp(value, 0.0, 1.0) : 0.5;
         SetDouble("MinQuality", MinQuality);
+        OnPropertyChanged(nameof(MinQualityDisplay));
     }
 
     partial void OnLocalityChanged(int value)

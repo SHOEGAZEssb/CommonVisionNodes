@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Controls;
+using CommonVisionNodesUI.Services;
 using CommonVisionNodesUI.ViewModels;
 using Microsoft.UI.Input;
 using Microsoft.UI;
@@ -14,6 +15,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.Storage.Provider;
 
 namespace CommonVisionNodesUI;
 
@@ -22,6 +24,11 @@ namespace CommonVisionNodesUI;
 /// </summary>
 public sealed partial class MainPage : Page
 {
+    private static readonly string[] ImageFileExtensions =
+    [
+        ".bmp", ".dib", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif"
+    ];
+
     private static readonly JsonSerializerOptions GraphJsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -29,6 +36,9 @@ public sealed partial class MainPage : Page
     };
 
     private readonly MainViewModel _viewModel;
+#if __WASM__
+    private readonly IBackendClient _backendClient;
+#endif
     private readonly List<Path> _connectionPaths = [];
     private readonly Dictionary<NodeViewModel, NodeControl> _nodeControls = [];
 
@@ -87,6 +97,9 @@ public sealed partial class MainPage : Page
         _propertiesPanelResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
 
         _viewModel = ((App)Application.Current).Host!.Services.GetRequiredService<MainViewModel>();
+#if __WASM__
+        _backendClient = ((App)Application.Current).Host!.Services.GetRequiredService<IBackendClient>();
+#endif
         DataContext = _viewModel;
 
         Loaded += async (_, _) => await _viewModel.Graph.InitializeAsync();
@@ -494,6 +507,153 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void BrowseImageFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not ImageNodeViewModel viewModel)
+            return;
+
+        var path = await PickOpenFilePathAsync("Open Image File", viewModel.FilePath, ImageFileExtensions);
+        if (path is not null)
+            viewModel.FilePath = path;
+    }
+
+    private async void BrowseImageFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not ImageNodeViewModel viewModel)
+            return;
+
+        var path = await PickFolderPathAsync("Open Image Directory", viewModel.FilePath);
+        if (path is not null)
+            viewModel.FilePath = path;
+    }
+
+    private async void BrowseSaveImageFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not SaveImageNodeViewModel viewModel)
+            return;
+
+        var path = await PickSaveFilePathAsync(
+            "Select Output Image File",
+            viewModel.FilePath,
+            GetFileName(viewModel.FilePath, "output.bmp"),
+            ImageFileExtensions);
+        if (path is not null)
+            viewModel.FilePath = path;
+    }
+
+    private async void BrowseClassifierFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dataContext = (sender as FrameworkElement)?.DataContext;
+        if (dataContext is not MinosSearchNodeViewModel and not PolimagoClassifyNodeViewModel)
+            return;
+
+        var currentPath = dataContext switch
+        {
+            MinosSearchNodeViewModel viewModel => viewModel.ClassifierPath,
+            PolimagoClassifyNodeViewModel viewModel => viewModel.ClassifierPath,
+            _ => string.Empty
+        };
+        var path = await PickOpenFilePathAsync("Open Classifier File", currentPath, [".clf"]);
+        if (path is null)
+            return;
+
+        switch (dataContext)
+        {
+            case MinosSearchNodeViewModel minosViewModel:
+                minosViewModel.ClassifierPath = path;
+                break;
+            case PolimagoClassifyNodeViewModel polimagoViewModel:
+                polimagoViewModel.ClassifierPath = path;
+                break;
+        }
+    }
+
+    private async Task<string?> PickOpenFilePathAsync(
+        string title,
+        string? initialPath,
+        IReadOnlyCollection<string> fileExtensions)
+    {
+#if __WASM__
+        var result = await _backendClient.PickPathAsync(new PathPickerRequestDto
+        {
+            Mode = PathPickerModeDto.OpenFile,
+            Title = title,
+            InitialPath = initialPath,
+            FileExtensions = [.. fileExtensions]
+        });
+        return result.Path;
+#else
+        var picker = new FileOpenPicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+        };
+        foreach (var extension in fileExtensions)
+            picker.FileTypeFilter.Add(extension);
+
+        InitializePicker(picker);
+        return (await picker.PickSingleFileAsync())?.Path;
+#endif
+    }
+
+    private async Task<string?> PickFolderPathAsync(string title, string? initialPath)
+    {
+#if __WASM__
+        var result = await _backendClient.PickPathAsync(new PathPickerRequestDto
+        {
+            Mode = PathPickerModeDto.OpenFolder,
+            Title = title,
+            InitialPath = initialPath
+        });
+        return result.Path;
+#else
+        var picker = new FolderPicker
+        {
+            SuggestedStartLocation = PickerLocationId.PicturesLibrary
+        };
+        picker.FileTypeFilter.Add("*");
+        InitializePicker(picker);
+        return (await picker.PickSingleFolderAsync())?.Path;
+#endif
+    }
+
+    private async Task<string?> PickSaveFilePathAsync(
+        string title,
+        string? initialPath,
+        string suggestedFileName,
+        IReadOnlyCollection<string> fileExtensions)
+    {
+#if __WASM__
+        var result = await _backendClient.PickPathAsync(new PathPickerRequestDto
+        {
+            Mode = PathPickerModeDto.SaveFile,
+            Title = title,
+            InitialPath = initialPath,
+            SuggestedFileName = suggestedFileName,
+            FileExtensions = [.. fileExtensions]
+        });
+        return result.Path;
+#else
+        var picker = new FileSavePicker
+        {
+            SuggestedStartLocation = PickerLocationId.PicturesLibrary,
+            SuggestedFileName = suggestedFileName
+        };
+        picker.FileTypeChoices.Add("Image", [.. fileExtensions]);
+        InitializePicker(picker);
+        return (await picker.PickSaveFileAsync())?.Path;
+#endif
+    }
+
+    private static string GetFileName(string path, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return fallback;
+
+        var separatorIndex = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+        var fileName = path[(separatorIndex + 1)..];
+        return string.IsNullOrWhiteSpace(fileName) ? fallback : fileName;
+    }
+
     private async void SaveGraphButton_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FileSavePicker
@@ -508,8 +668,12 @@ public sealed partial class MainPage : Page
         if (file is null)
             return;
 
+        CachedFileManager.DeferUpdates(file);
+
         var json = JsonSerializer.Serialize(_viewModel.Graph.ToGraphDto(), GraphJsonOptions);
         await FileIO.WriteTextAsync(file, json);
+
+        await CachedFileManager.CompleteUpdatesAsync(file);
     }
 
     private async void LoadGraphButton_Click(object sender, RoutedEventArgs e)
@@ -554,4 +718,5 @@ public sealed partial class MainPage : Page
     {
         GraphCanvas.Focus(FocusState.Programmatic);
     }
+
 }

@@ -47,6 +47,20 @@ public sealed class BackendClient : IBackendClient
     }
 
     /// <inheritdoc/>
+    public async Task<PathPickerResultDto> PickPathAsync(
+        PathPickerRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "api/path-picker",
+            request,
+            _jsonOptions,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await ReadAsync<PathPickerResultDto>(response, cancellationToken) ?? new PathPickerResultDto();
+    }
+
+    /// <inheritdoc/>
     public async Task<ExecutionAcceptedDto> ExecuteAsync(ExecutionRequestDto request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/graph/execute", request, _jsonOptions, cancellationToken);

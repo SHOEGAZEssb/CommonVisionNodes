@@ -44,6 +44,7 @@ builder.Services.AddSingleton<RuntimeGraphFactory>();
 builder.Services.AddSingleton<RuntimePreviewFactory>();
 builder.Services.AddSingleton<RuntimeCodeGenerationService>();
 builder.Services.AddSingleton<ExecutionClientManager>();
+builder.Services.AddSingleton<WindowsNativePathPicker>();
 
 var app = builder.Build();
 
@@ -141,6 +142,22 @@ app.MapGet("/browser-reset", async context =>
 });
 
 app.MapGet("/api/nodes/definitions", (RuntimeNodeCatalog catalog) => Results.Ok(catalog.GetDefinitions()));
+
+app.MapPost("/api/path-picker", async (PathPickerRequestDto request, WindowsNativePathPicker picker) =>
+{
+    if (!OperatingSystem.IsWindows())
+        return Results.Problem("Native path pickers are only available on Windows.", statusCode: StatusCodes.Status501NotImplemented);
+
+    try
+    {
+        var path = await picker.PickAsync(request);
+        return Results.Ok(new PathPickerResultDto { Path = path });
+    }
+    catch (Exception exception)
+    {
+        return Results.Problem(exception.Message, statusCode: StatusCodes.Status500InternalServerError);
+    }
+});
 
 app.MapPost("/api/graph/execute", async (ExecutionRequestDto request, ExecutionClientManager manager, CancellationToken cancellationToken) =>
 {

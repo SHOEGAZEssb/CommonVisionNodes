@@ -117,10 +117,17 @@ namespace CommonVisionNodes.Runtime
         /// <param name="afterExecute">Optional callback invoked immediately after a node executes.</param>
         /// <exception cref="NodeExecutionException">Thrown when a node fails during execution.</exception>
         public void Execute(Action<Node>? beforeExecute = null, Action<Node>? afterExecute = null)
+            => ExecuteWithActivity(beforeExecute, afterExecute);
+
+        /// <summary>
+        /// Executes the graph and reports whether at least one non-trigger node ran.
+        /// </summary>
+        internal bool ExecuteWithActivity(Action<Node>? beforeExecute = null, Action<Node>? afterExecute = null)
         {
             var sorted = _cachedSort ??= TopologicalSort();
             var lookup = _connectionLookup ??= BuildConnectionLookup();
             var activeOutputs = new HashSet<Port>();
+            var executedWork = false;
 
             foreach (var node in sorted)
             {
@@ -156,8 +163,13 @@ namespace CommonVisionNodes.Runtime
                 foreach (var output in node.Outputs)
                     activeOutputs.Add(output);
 
+                if (node is not TimeTriggerNode and not ManualTriggerNode)
+                    executedWork = true;
+
                 afterExecute?.Invoke(node);
             }
+
+            return executedWork;
         }
 
         /// <summary>

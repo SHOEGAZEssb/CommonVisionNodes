@@ -341,6 +341,50 @@ public sealed class GraphExecutionRunnerTests
 	}
 
     [Test]
+    public async Task ContinuousExecution_WithTimeTrigger_ShouldCountOnlyTriggeredFrames()
+    {
+        var messages = new List<ExecutionMessageDto>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = CreateSingleGeneratorRequest(showPreview: false);
+        request.Mode = ExecutionModeDto.Continuous;
+        request.Graph.Nodes.Insert(0, new NodeDto
+        {
+            Id = "trigger",
+            Type = nameof(TimeTriggerNode),
+            Properties =
+            [
+                new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "2" }
+            ]
+        });
+        request.Graph.Connections.Add(new ConnectionDto
+        {
+            OutputNodeId = "trigger",
+            OutputPortName = "Trigger",
+            InputNodeId = "generator",
+            InputPortName = "Trigger"
+        });
+        var runner = CreateRunner(request, messages, completed);
+
+        runner.Start();
+        await Task.Delay(350);
+        await runner.DisposeAsync();
+
+        List<ExecutionMessageDto> snapshot;
+        lock (messages)
+            snapshot = [.. messages];
+
+        var framesProcessed = snapshot
+            .Where(message => message.ExecutionState is not null)
+            .Max(message => message.ExecutionState!.FramesProcessed);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(framesProcessed, Is.EqualTo(1));
+            Assert.That(snapshot.Any(message => message.MessageType == ExecutionMessageTypeDto.Failure), Is.False);
+        }
+    }
+
+    [Test]
     public async Task ContinuousExecution_ShouldUpdateImageGeneratorSpeedWithoutRestartingGraph()
     {
         var messages = new List<ExecutionMessageDto>();
