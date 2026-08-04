@@ -17,7 +17,7 @@ CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vis
 - Input, processing, analysis, and output nodes:
   - image file, camera device, generated test pattern
   - binarize, crop, transform, filter, morphology, normalize, C# script
-  - histogram, blob detection, Polimago classification, generic visualizer
+  - histogram, blob detection, Minos search, Polimago classification, generic visualizer
   - save image
 - Single-frame and continuous execution modes.
 - WebSocket status updates with per-node execution timing.
@@ -37,6 +37,7 @@ CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vis
 ```text
 $(CVB)\Lib\Net\Stemmer.Cvb.dll
 $(CVB)\Lib\Net\Stemmer.Cvb.Foundation.dll
+$(CVB)\Lib\Net\Stemmer.Cvb.Minos.dll
 $(CVB)\Lib\Net\Stemmer.Cvb.Polimago.dll
 ```
 

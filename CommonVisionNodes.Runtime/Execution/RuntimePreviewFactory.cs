@@ -38,6 +38,7 @@ public sealed class RuntimePreviewFactory
             CSharpNode csharpNode => CreateImagePreviewMessage(nodeId, csharpNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
             HistogramNode histogramNode => CreateHistogramPreviewMessage(nodeId, histogramNode),
             BlobNode blobNode => CreateBlobPreviewMessage(nodeId, blobNode, previewImageMaxDimension, imageBufferCache),
+            MinosSearchNode minosNode => CreateClassificationPreviewMessage(nodeId, minosNode, previewImageMaxDimension, imageBufferCache),
             PolimagoClassifyNode classifyNode => CreateClassificationPreviewMessage(nodeId, classifyNode, previewImageMaxDimension, imageBufferCache),
             CodeReaderNode codeReaderNode => CreateCodeReaderPreviewMessage(nodeId, codeReaderNode, previewImageMaxDimension, imageBufferCache),
             GenericVisualizerNode genericVisualizerNode => CreateGenericPreviewMessage(nodeId, genericVisualizerNode.LastValue, previewImageMaxDimension, imageBufferCache),
@@ -105,6 +106,38 @@ public sealed class RuntimePreviewFactory
                     BoundsY = blob.BoundsY,
                     BoundsWidth = blob.BoundsWidth,
                     BoundsHeight = blob.BoundsHeight
+                })],
+                TimestampUtc = DateTimeOffset.UtcNow
+            }
+        };
+    }
+
+    private static ExecutionMessageDto CreateClassificationPreviewMessage(
+        string nodeId,
+        MinosSearchNode node,
+        int previewImageMaxDimension,
+        BinaryImageBufferCache? imageBufferCache)
+    {
+        // MaxResults is live-editable. Reapply it while snapshotting so a reduced limit
+        // also affects the previous frame before the node executes again.
+        var results = node.MaxResults > 0
+            ? node.Results.Take(node.MaxResults)
+            : node.Results;
+
+        return new()
+        {
+            MessageType = ExecutionMessageTypeDto.ClassificationPreview,
+            ClassificationPreview = new ClassificationPreviewDto
+            {
+                NodeId = nodeId,
+                Image = CreateImagePreview(nodeId, node.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+                Results = [.. results.Select(result => new ClassificationResultDto
+                {
+                    BlobIndex = -1,
+                    ClassName = result.ClassName,
+                    Quality = result.Quality,
+                    X = result.X,
+                    Y = result.Y
                 })],
                 TimestampUtc = DateTimeOffset.UtcNow
             }
@@ -182,6 +215,8 @@ public sealed class RuntimePreviewFactory
                 $"#{index + 1} ({rect.X},{rect.Y}) {rect.Width}x{rect.Height}"))),
             IReadOnlyList<PolimagoClassifyResultItem> results => CreateTextPreviewMessage(nodeId, "Classification[]", string.Join(Environment.NewLine, results.Select(result =>
                 $"{(result.BlobIndex >= 0 ? $"#{result.BlobIndex}" : "image")} {result.ClassName} q={result.Quality:F3} ({result.X:F0},{result.Y:F0})"))),
+            IReadOnlyList<MinosSearchResultItem> results => CreateTextPreviewMessage(nodeId, "MinosSearch[]", string.Join(Environment.NewLine, results.Select(result =>
+                $"#{result.Index} {result.ClassName} q={result.Quality:F3} ({result.X:F1},{result.Y:F1}) advance=({result.AdvanceX:F1},{result.AdvanceY:F1})"))),
             IReadOnlyList<CodeReaderResultItem> results => CreateTextPreviewMessage(nodeId, "CodeReader[]", CodeReaderNode.FormatResultsForPreview(results, timeLimitReached: false)),
             null => CreateTextPreviewMessage(nodeId, "Empty", "No data"),
             _ => CreateTextPreviewMessage(nodeId, value.GetType().Name, value.ToString() ?? value.GetType().Name)

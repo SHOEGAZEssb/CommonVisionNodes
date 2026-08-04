@@ -390,6 +390,13 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
     }
 
     [RelayCommand]
+    private async Task AddMinosSearchNode()
+    {
+        await InitializeAsync();
+        AddNode("MinosSearchNode");
+    }
+
+    [RelayCommand]
     private async Task AddPolimagoClassifyNode()
     {
         await InitializeAsync();

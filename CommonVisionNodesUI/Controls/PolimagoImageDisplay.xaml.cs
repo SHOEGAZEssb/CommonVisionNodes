@@ -14,6 +14,8 @@ public sealed partial class PolimagoImageDisplay : UserControl
 {
     private ImagePreviewDto? _currentImage;
     private IReadOnlyList<ClassificationResultDto> _results = [];
+    private ImagePreviewDto? _requestedImage;
+    private IReadOnlyList<ClassificationResultDto> _requestedResults = [];
 
     /// <summary>
     /// Creates the Polimago image display control.
@@ -25,39 +27,42 @@ public sealed partial class PolimagoImageDisplay : UserControl
     }
 
     /// <summary>
-    /// Updates the image used behind classification overlays.
+    /// Updates the image and classification overlays as one preview frame.
     /// </summary>
     /// <param name="preview">Preview payload, or <c>null</c> to clear the display.</param>
-    public async void SetImage(ImagePreviewDto? preview)
+    /// <param name="results">Classification results belonging to <paramref name="preview"/>.</param>
+    public void SetPreview(ImagePreviewDto? preview, IReadOnlyList<ClassificationResultDto> results)
     {
-        _currentImage = preview;
+        _requestedImage = preview;
+        _requestedResults = results;
 
         if (preview is null)
         {
             DisplayImage.Clear();
+            _currentImage = null;
+            _results = results;
             PlaceholderText.Visibility = Visibility.Visible;
             InfoOverlay.Visibility = Visibility.Collapsed;
             OverlayCanvas.Children.Clear();
             return;
         }
 
+        _ = ApplyPreviewAsync(preview);
+    }
+
+    private async Task ApplyPreviewAsync(ImagePreviewDto preview)
+    {
         var appliedPreview = await DisplayImage.SetImageAsync(preview);
-        if (appliedPreview is null)
+        if (appliedPreview is null || !ReferenceEquals(appliedPreview, _requestedImage))
             return;
 
+        // SetImageAsync may coalesce multiple encoded frames and return the newest image to the
+        // oldest awaiting caller. Commit the result snapshot belonging to the image it applied.
+        _currentImage = appliedPreview;
+        _results = _requestedResults;
         PlaceholderText.Visibility = Visibility.Collapsed;
         InfoOverlay.Visibility = Visibility.Visible;
         InfoText.Text = PreviewImageSourceLoader.GetPreviewInfoText(appliedPreview);
-        RedrawOverlays();
-    }
-
-    /// <summary>
-    /// Updates classification result overlays.
-    /// </summary>
-    /// <param name="results">Classification results to draw.</param>
-    public void SetResults(IReadOnlyList<ClassificationResultDto> results)
-    {
-        _results = results;
         RedrawOverlays();
     }
 

@@ -21,16 +21,18 @@
 
             <!-- Header (drag handle) -->
             <Border x:Name="HeaderBorder" Grid.Row="0"
-                    CornerRadius="7,7,0,0" Padding="12,8"
+                    Height="36"
+                    CornerRadius="7,7,0,0" Padding="12,0"
                     PointerPressed="Header_PointerPressed"
                     PointerMoved="Header_PointerMoved"
                     PointerReleased="Header_PointerReleased">
                 <TextBlock x:Name="TitleText"
+                           VerticalAlignment="Center"
                            Foreground="White" FontWeight="SemiBold" FontSize="13"/>
             </Border>
 
             <!-- Ports -->
-            <Grid Grid.Row="1" Padding="0,4,0,8">
+            <Grid Grid.Row="1" Padding="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -40,11 +42,12 @@
                 <ItemsControl x:Name="InputPortsList" Grid.Column="0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Padding="4,4">
+                            <StackPanel Orientation="Horizontal" Height="28" Padding="4,0">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Content="{Binding Tooltip}" Opened="PortToolTip_Opened"/>
                                 </ToolTipService.ToolTip>
                                 <Ellipse Width="12" Height="12" Fill="#4FC3F7"
+                                         VerticalAlignment="Center"
                                          PointerPressed="Port_PointerPressed"/>
                                 <TextBlock Text="{Binding Port.Name}" Margin="6,0,0,0"
                                            VerticalAlignment="Center" FontSize="12"
@@ -58,7 +61,7 @@
                 <ItemsControl x:Name="OutputPortsList" Grid.Column="1">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Padding="4,4">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Height="28" Padding="4,0">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Content="{Binding Tooltip}" Opened="PortToolTip_Opened"/>
                                 </ToolTipService.ToolTip>
@@ -66,6 +69,7 @@
                                            VerticalAlignment="Center" FontSize="12"
                                            Foreground="#CCCCCC"/>
                                 <Ellipse Width="12" Height="12" Fill="#FFB74D"
+                                         VerticalAlignment="Center"
                                          PointerPressed="Port_PointerPressed"/>
                             </StackPanel>
                         </DataTemplate>
@@ -123,7 +127,7 @@
                                     Margin="4,0,4,4"
                                     Visibility="Collapsed"/>
 
-            <!-- Polimago preview with classification result overlays -->
+            <!-- Pattern recognition preview with result overlays -->
             <local:PolimagoImageDisplay x:Name="PolimagoPreview" Grid.Row="4"
                                         Margin="4,0,4,4"
                                         Visibility="Collapsed"/>
@@ -140,11 +144,13 @@
 
             <Border x:Name="ResizeGrip"
                     Grid.RowSpan="5"
+                    Canvas.ZIndex="100"
                     Width="18"
                     Height="18"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
-                    Background="#00000000"
+                    Background="#01000000"
+                    Visibility="Collapsed"
                     PointerPressed="ResizeGrip_PointerPressed"
                     PointerMoved="ResizeGrip_PointerMoved"
                     PointerReleased="ResizeGrip_PointerReleased"

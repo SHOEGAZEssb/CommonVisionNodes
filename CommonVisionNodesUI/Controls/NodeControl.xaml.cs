@@ -1,3 +1,4 @@
+using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.ViewModels;
 using Cvb.Uno.Toolkit.Controls;
 using Microsoft.UI.Xaml;
@@ -76,6 +77,7 @@ public sealed partial class NodeControl : UserControl
         Canvas.SetLeft(this, vm.X);
         Canvas.SetTop(this, vm.Y);
         ApplyNodeSize();
+        UpdateResizeGrip();
 
         vm.PropertyChanged += (_, e) =>
         {
@@ -92,6 +94,10 @@ public sealed partial class NodeControl : UserControl
             {
                 ApplyNodeSize();
                 NodeMoved?.Invoke(this);
+            }
+            else if (e.PropertyName == nameof(NodeViewModel.CanResize))
+            {
+                UpdateResizeGrip();
             }
         };
         UpdateSummary();
@@ -229,15 +235,24 @@ public sealed partial class NodeControl : UserControl
                     UpdateBlobPreview(vm, blobVM);
             };
         }
+        else if (vm is MinosSearchNodeViewModel minosVM)
+        {
+            UpdateClassificationPreview(vm, minosVM.PreviewImage, minosVM.Results);
+            minosVM.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(MinosSearchNodeViewModel.Results)
+                    or nameof(NodeViewModel.ShowPreview))
+                    UpdateClassificationPreview(vm, minosVM.PreviewImage, minosVM.Results);
+            };
+        }
         else if (vm is PolimagoClassifyNodeViewModel polimagoVM)
         {
-            UpdatePolimagoPreview(vm, polimagoVM);
+            UpdateClassificationPreview(vm, polimagoVM.PreviewImage, polimagoVM.Results);
             polimagoVM.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(PolimagoClassifyNodeViewModel.PreviewImage)
-                    or nameof(PolimagoClassifyNodeViewModel.Results)
+                if (e.PropertyName is nameof(PolimagoClassifyNodeViewModel.Results)
                     or nameof(NodeViewModel.ShowPreview))
-                    UpdatePolimagoPreview(vm, polimagoVM);
+                    UpdateClassificationPreview(vm, polimagoVM.PreviewImage, polimagoVM.Results);
             };
         }
         else if (vm is CodeReaderNodeViewModel codeReaderVM)
@@ -303,8 +318,17 @@ public sealed partial class NodeControl : UserControl
         if (_viewModel is null)
             return;
 
+        Width = _viewModel.Width;
+        Height = _viewModel.Height;
         NodeBorder.Width = _viewModel.Width;
         NodeBorder.Height = _viewModel.Height;
+    }
+
+    private void UpdateResizeGrip()
+    {
+        ResizeGrip.Visibility = _viewModel?.CanResize == true
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private static void UpdateImagePreview(CvbImageDisplay previewControl, NodeViewModel vm, CommonVisionNodes.Contracts.ImagePreviewDto? preview)
@@ -330,11 +354,13 @@ public sealed partial class NodeControl : UserControl
         BlobPreview.SetBlobs(blobVM.Blobs);
     }
 
-    private void UpdatePolimagoPreview(NodeViewModel vm, PolimagoClassifyNodeViewModel polimagoVM)
+    private void UpdateClassificationPreview(
+        NodeViewModel vm,
+        ImagePreviewDto? previewImage,
+        IReadOnlyList<ClassificationResultDto> results)
     {
         PolimagoPreview.Visibility = vm.ShowPreview ? Visibility.Visible : Visibility.Collapsed;
-        PolimagoPreview.SetImage(vm.ShowPreview ? polimagoVM.PreviewImage : null);
-        PolimagoPreview.SetResults(polimagoVM.Results);
+        PolimagoPreview.SetPreview(vm.ShowPreview ? previewImage : null, results);
     }
 
     private void UpdateCodeReaderPreview(NodeViewModel vm, CodeReaderNodeViewModel codeReaderVM)
@@ -459,7 +485,7 @@ public sealed partial class NodeControl : UserControl
 
     private void ResizeGrip_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (_viewModel == null) return;
+        if (_viewModel?.CanResize != true) return;
         if (Parent is not UIElement canvas) return;
 
         _isDragging = false;

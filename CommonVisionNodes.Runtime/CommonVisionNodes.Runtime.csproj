@@ -32,6 +32,9 @@
     <Reference Include="Stemmer.Cvb.Polimago">
       <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Polimago.dll</HintPath>
     </Reference>
+    <Reference Include="Stemmer.Cvb.Minos">
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Minos.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

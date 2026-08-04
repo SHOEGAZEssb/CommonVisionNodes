@@ -349,6 +349,53 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="MinosSearchNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Classifier File (.clf)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding ClassifierPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding IsClassifierPathEditable}"
+                             FontSize="13"
+                             PlaceholderText="Path to Minos .clf file"/>
+                    <TextBlock Text="Stop execution to change the classifier file."
+                               Visibility="{Binding ClassifierPathRuntimeLockVisibility}"
+                               FontSize="11"
+                               Foreground="#FFB74D"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Search Operation" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableSearchOperations}"
+                              SelectedItem="{Binding SearchOperation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Density (0.0â€“1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding Density, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.05"/>
+                    <TextBlock Text="{Binding Density}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Min Quality (0.0â€“1.0)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding MinQuality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" StepFrequency="0.05"/>
+                    <TextBlock Text="{Binding MinQuality}" FontSize="13" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Locality (Find All)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding Locality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Max Results (0 = no limit)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding MaxResults, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" SpinButtonPlacementMode="Compact" FontSize="13"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Results" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding ResultCount}" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="match(es)" FontSize="12" Foreground="#888888"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="PolimagoClassifyNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -486,6 +533,7 @@
             MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
             NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
+            MinosSearchNodeTemplate="{StaticResource MinosSearchNodePropertiesTemplate}"
             PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"
             CodeReaderNodeTemplate="{StaticResource CodeReaderNodePropertiesTemplate}"
             GenericVisualizerNodeTemplate="{StaticResource GenericVisualizerNodePropertiesTemplate}"
@@ -652,6 +700,11 @@
                         <MenuFlyoutItem Text="Code Reader" Command="{Binding Graph.AddCodeReaderNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE8A5;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Minos Search" Command="{Binding Graph.AddMinosSearchNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE721;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem Text="Polimago Classify" Command="{Binding Graph.AddPolimagoClassifyNodeCommand}">

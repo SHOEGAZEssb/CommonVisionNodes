@@ -15,6 +15,9 @@
     <Reference Include="Stemmer.Cvb.CodeReader">
       <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.CodeReader.dll</HintPath>
     </Reference>
+    <Reference Include="Stemmer.Cvb.Minos">
+      <HintPath>$(CVB)\Lib\Net\Stemmer.Cvb.Minos.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseBuiltRuntimeReferences)' != 'true'">

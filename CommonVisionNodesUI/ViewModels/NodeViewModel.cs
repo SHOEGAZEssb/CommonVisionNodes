@@ -109,6 +109,11 @@ public abstract partial class NodeViewModel : ObservableObject
     /// </summary>
     public bool SupportsPreviewToggle => _propertyDefinitions.ContainsKey(NodePreviewSettings.ShowPreviewPropertyName);
 
+    /// <summary>
+    /// Indicates whether this node has preview content whose viewport can be resized.
+    /// </summary>
+    public bool CanResize => Definition.PreviewKind != NodePreviewKindDto.None;
+
 	[ObservableProperty]
 	public partial string ExecutionTime { get; set; } = string.Empty;
 
@@ -183,6 +188,7 @@ public abstract partial class NodeViewModel : ObservableObject
         "MorphologyNode" => Color.FromArgb(255, 121, 85, 72),
         "BlobNode" => Color.FromArgb(255, 0, 150, 136),
         "NormalizeNode" => Color.FromArgb(255, 255, 183, 77),
+        "MinosSearchNode" => Color.FromArgb(255, 94, 53, 177),
         "PolimagoClassifyNode" => Color.FromArgb(255, 123, 31, 162),
         "CodeReaderNode" => Color.FromArgb(255, 0, 121, 107),
         "GenericVisualizerNode" => Color.FromArgb(255, 84, 110, 122),
@@ -226,6 +232,7 @@ public abstract partial class NodeViewModel : ObservableObject
         OnDefinitionUpdated();
         OnPropertyChanged(nameof(IsEditableWhileRunning));
         OnPropertyChanged(nameof(SupportsPreviewToggle));
+        OnPropertyChanged(nameof(CanResize));
         OnPropertyChanged(nameof(Summary));
     }
 

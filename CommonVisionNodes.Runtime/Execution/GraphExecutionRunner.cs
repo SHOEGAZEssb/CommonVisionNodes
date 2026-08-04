@@ -532,6 +532,13 @@ public sealed class GraphExecutionRunner(
                 continue;
             }
 
+            if (node is MinosSearchNode &&
+                !string.Equals(property.Name, nameof(MinosSearchNode.ClassifierPath), StringComparison.OrdinalIgnoreCase))
+            {
+                yield return property;
+                continue;
+            }
+
             if (node is ImageNode &&
                 (string.Equals(property.Name, nameof(ImageNode.SelectedImageIndex), StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(property.Name, nameof(ImageNode.IsPlaying), StringComparison.OrdinalIgnoreCase)))
@@ -570,6 +577,7 @@ public sealed class GraphExecutionRunner(
         {
             HistogramNode histogramNode => $"Mean {histogramNode.Mean:F2}, StdDev {histogramNode.StdDev:F2}",
             BlobNode blobNode => $"{blobNode.BlobCount} blob(s)",
+            MinosSearchNode minosNode => $"{minosNode.ResultCount} match(es)",
             PolimagoClassifyNode classifyNode => $"{classifyNode.ResultCount} result(s)",
             GevServerNode gevServerNode => gevServerNode.LastStatus,
             ImageNode imageNode when imageNode.IsFolderSource => $"Image {imageNode.SelectedImageIndex + 1}/{imageNode.ImageCount} {(imageNode.IsPlaying ? "Playing" : "Stopped")}",
