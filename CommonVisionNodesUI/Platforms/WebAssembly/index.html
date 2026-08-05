@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#f7f5fc" />
+
+    <script type="text/javascript" src="./require.js"></script>
+    <script type="module" src="./uno-bootstrap.js"></script>
+    $(ADDITIONAL_CSS)
+    $(ADDITIONAL_HEAD)
+
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        .uno-loader.cvn-loader {
+            display: grid;
+            place-items: center;
+            padding: 32px;
+            box-sizing: border-box;
+            background:
+                radial-gradient(circle at 50% 42%, rgba(89, 70, 210, 0.10), transparent 34%),
+                var(--light-theme-bg-color, #f7f5fc);
+        }
+
+        .cvn-loading-card {
+            width: min(420px, calc(100vw - 48px));
+            text-align: center;
+        }
+
+        .uno-loader.cvn-loader .logo {
+            position: static;
+            width: 88px;
+            height: 88px;
+            max-width: none;
+            max-height: none;
+            transform: none;
+            margin-bottom: 22px;
+        }
+
+        .cvn-loading-title {
+            margin: 0;
+            color: #1c1b1f;
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .cvn-loading-status {
+            min-height: 22px;
+            margin: 12px 0 22px;
+            color: #625f69;
+            font-size: 14px;
+        }
+
+        .cvn-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .uno-loader.cvn-loader progress {
+            position: static;
+            flex: 1;
+            width: auto;
+            height: 7px;
+            border-radius: 999px;
+            background: rgba(89, 70, 210, 0.15);
+        }
+
+        .uno-loader.cvn-loader progress::-webkit-progress-bar {
+            border-radius: 999px;
+            background: rgba(89, 70, 210, 0.15);
+        }
+
+        .uno-loader.cvn-loader progress::-webkit-progress-value,
+        .uno-loader.cvn-loader progress::-moz-progress-bar {
+            border-radius: 999px;
+            background: var(--accent-color, #5946d2);
+        }
+
+        .cvn-loading-percent {
+            width: 42px;
+            color: #625f69;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
+
+        .cvn-loading-hint {
+            min-height: 18px;
+            margin: 14px 0 0;
+            color: #7d7885;
+            font-size: 12px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .uno-loader.cvn-loader {
+                background:
+                    radial-gradient(circle at 50% 42%, rgba(199, 191, 255, 0.10), transparent 34%),
+                    var(--dark-theme-bg-color, #1c1b1f);
+            }
+
+            .cvn-loading-title {
+                color: #e6e1e5;
+            }
+
+            .cvn-loading-status,
+            .cvn-loading-percent {
+                color: #cac4d0;
+            }
+
+            .cvn-loading-hint {
+                color: #938f99;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="uno-body" class="container-fluid uno-body">
+        <div class="uno-loader cvn-loader"
+             loading-position="bottom"
+             loading-alert="none">
+            <main class="cvn-loading-card" aria-labelledby="cvn-loading-title">
+                <img class="logo" src="" alt="" />
+                <h1 id="cvn-loading-title" class="cvn-loading-title">Common Vision Nodes</h1>
+                <p id="cvn-loading-status"
+                   class="cvn-loading-status"
+                   role="status"
+                   aria-live="polite">Preparing application…</p>
+                <div class="cvn-progress-row">
+                    <progress id="cvn-loading-progress" max="100" aria-label="Application loading progress"></progress>
+                    <span id="cvn-loading-percent" class="cvn-loading-percent">0%</span>
+                </div>
+                <p id="cvn-loading-hint" class="cvn-loading-hint"></p>
+            </main>
+            <span class="alert"></span>
+        </div>
+    </div>
+    <noscript>
+        <p>This application requires JavaScript and WebAssembly to be enabled.</p>
+    </noscript>
+    <script>
+        (() => {
+            const startedAt = performance.now();
+            const progress = document.getElementById("cvn-loading-progress");
+            const percent = document.getElementById("cvn-loading-percent");
+            const status = document.getElementById("cvn-loading-status");
+            const hint = document.getElementById("cvn-loading-hint");
+
+            const updateLoadingDetails = () => {
+                if (!document.body.contains(progress)) {
+                    clearInterval(updateTimer);
+                    return;
+                }
+
+                const value = Number.isFinite(progress.value) ? progress.value : 0;
+                const roundedValue = Math.max(0, Math.min(100, Math.round(value)));
+                percent.textContent = roundedValue + "%";
+
+                if (roundedValue === 0) {
+                    status.textContent = "Preparing application…";
+                } else if (roundedValue < 85) {
+                    status.textContent = "Loading application resources…";
+                } else if (roundedValue < 100) {
+                    status.textContent = "Starting the workspace…";
+                } else {
+                    status.textContent = "Ready";
+                }
+
+                if (performance.now() - startedAt > 8000 && roundedValue < 100) {
+                    hint.textContent = "The first launch can take a little longer.";
+                }
+            };
+
+            const updateTimer = setInterval(updateLoadingDetails, 100);
+            updateLoadingDetails();
+        })();
+    </script>
+</body>
+</html>

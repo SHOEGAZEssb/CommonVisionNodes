@@ -35,6 +35,7 @@
 
   <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-browserwasm'">
     <PublishTrimmed>false</PublishTrimmed>
+    <WasmShellIndexHtmlPath>$(MSBuildProjectDirectory)\Platforms\WebAssembly\index.html</WasmShellIndexHtmlPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -63,5 +64,16 @@
 
   <Target Name="PatchUnoBootstrapForBrowserWasm" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net10.0-browserwasm'">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\Platforms\WebAssembly\Patch-UnoBootstrap.ps1&quot; &quot;$(OutputPath)wwwroot&quot;" />
+  </Target>
+
+  <!--
+    The .NET WebAssembly publish pipeline keeps a second WebCIL cache below
+    webcil\publish. Package upgrades do not always invalidate that cache, which
+    can mix current Uno JavaScript with older managed exports at runtime.
+  -->
+  <Target Name="ClearBrowserWasmPublishWebCilCache"
+          BeforeTargets="ProcessPublishFilesForWasm"
+          Condition="'$(TargetFramework)' == 'net10.0-browserwasm'">
+    <RemoveDir Directories="$(IntermediateOutputPath)webcil\publish;$(IntermediateOutputPath)tmp-webcil\publish" />
   </Target>
 </Project>
