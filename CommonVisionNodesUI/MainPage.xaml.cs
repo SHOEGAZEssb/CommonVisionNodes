@@ -41,8 +41,11 @@ public sealed partial class MainPage : Page
 #if __WASM__
 	private readonly IBackendClient _backendClient;
 #endif
-	private readonly List<Path> _connectionPaths = [];
+	private readonly Dictionary<ConnectionViewModel, Path> _connectionPaths = [];
 	private readonly Dictionary<NodeViewModel, NodeControl> _nodeControls = [];
+	private readonly HashSet<NodeViewModel> _nodesWithPendingConnectionUpdates = [];
+	private readonly Dictionary<NodeViewModel, HashSet<ConnectionViewModel>> _connectionsByNode = [];
+	private readonly HashSet<ConnectionViewModel> _connectionsToUpdate = [];
 
 	private PortViewModel? _connectionDragSource;
 	private Path? _pendingConnectionPath;
@@ -52,6 +55,10 @@ public sealed partial class MainPage : Page
 	private bool _isPanning;
 	private bool _panHasMoved;
 	private bool _isResizingPropertiesPanel;
+	private bool _isPageLoaded;
+	private bool _isGraphRenderScheduled;
+	private bool _gridRedrawPending;
+	private bool _connectionSynchronizationPending;
 	private Point _panStart;
 	private Point _propertiesPanelResizeStart;
 	private double _panStartTranslateX;
@@ -61,29 +68,8 @@ public sealed partial class MainPage : Page
 	private const double MinZoom = 0.1;
 	private const double MaxZoom = 3.0;
 	private const double ZoomFactor = 1.1;
-	private const double MinorGridSpacing = 25;
-	private const double MajorGridSpacing = 100;
 	private const double MinPropertiesPanelWidth = 240;
 	private const double MaxPropertiesPanelWidth = 560;
-
-	private readonly Path _minorGridPath = new()
-	{
-		Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 40, 40, 40)),
-		StrokeThickness = 1,
-		IsHitTestVisible = false
-	};
-	private readonly Path _majorGridPath = new()
-	{
-		Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 50, 50)),
-		StrokeThickness = 1,
-		IsHitTestVisible = false
-	};
-	private readonly Path _originGridPath = new()
-	{
-		Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 65, 65, 65)),
-		StrokeThickness = 1,
-		IsHitTestVisible = false
-	};
 
 	static MainPage()
 	{
@@ -104,7 +90,17 @@ public sealed partial class MainPage : Page
 #endif
 		DataContext = _viewModel;
 
-		Loaded += async (_, _) => await _viewModel.Graph.InitializeAsync();
+		Loaded += async (_, _) =>
+		{
+			_isPageLoaded = true;
+			await _viewModel.Graph.InitializeAsync();
+			ScheduleGraphRender();
+		};
+		Unloaded += (_, _) =>
+		{
+			_isPageLoaded = false;
+			CancelScheduledGraphRender();
+		};
 
 		GraphCanvasContainer.SizeChanged += (_, e) =>
 		{
@@ -112,12 +108,8 @@ public sealed partial class MainPage : Page
 			{
 				Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height)
 			};
-			RedrawGrid();
+			RequestGridRedraw();
 		};
-
-		GridCanvas.Children.Add(_minorGridPath);
-		GridCanvas.Children.Add(_majorGridPath);
-		GridCanvas.Children.Add(_originGridPath);
 
 		_viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
 		{
@@ -140,7 +132,7 @@ public sealed partial class MainPage : Page
 			}
 		};
 
-		_viewModel.Graph.Connections.CollectionChanged += (_, _) => RedrawConnections();
+		_viewModel.Graph.Connections.CollectionChanged += (_, _) => RequestConnectionSynchronization();
 		_viewModel.Graph.PropertyChanged += (_, e) =>
 		{
 			if (e.PropertyName == nameof(NodeGraphViewModel.SelectedNode))
@@ -157,7 +149,7 @@ public sealed partial class MainPage : Page
 	{
 		var control = new NodeControl();
 		control.SetViewModel(nodeViewModel);
-		control.NodeMoved += _ => RedrawConnections();
+		control.NodeMoved += OnNodeMoved;
 		control.PortPressed += OnPortPressed;
 		control.PortRightTapped += OnPortRightTapped;
 		control.NodeSelected += OnNodeSelected;
@@ -181,6 +173,16 @@ public sealed partial class MainPage : Page
 
 		_nodeControls.Clear();
 		_selectedControl = null;
+		_nodesWithPendingConnectionUpdates.Clear();
+		_connectionsToUpdate.Clear();
+		_connectionSynchronizationPending = false;
+		ClearConnectionPaths();
+	}
+
+	private void OnNodeMoved(NodeControl control)
+	{
+		if (control.ViewModel is not null)
+			RequestConnectionUpdate(control.ViewModel);
 	}
 
 	private void OnNodeSelected(NodeControl control)
@@ -256,7 +258,7 @@ public sealed partial class MainPage : Page
 				_panHasMoved = true;
 			CanvasTransform.TranslateX = _panStartTranslateX + dx;
 			CanvasTransform.TranslateY = _panStartTranslateY + dy;
-			RedrawGrid();
+			RequestGridRedraw();
 		}
 	}
 
@@ -305,21 +307,170 @@ public sealed partial class MainPage : Page
 		return null;
 	}
 
-	private void RedrawConnections()
+	private void RequestGridRedraw()
 	{
-		foreach (var path in _connectionPaths)
-			GraphCanvas.Children.Remove(path);
-		_connectionPaths.Clear();
+		_gridRedrawPending = true;
+		ScheduleGraphRender();
+	}
 
-		foreach (var connection in _viewModel.Graph.Connections)
+	private void RequestConnectionSynchronization()
+	{
+		_connectionSynchronizationPending = true;
+		ScheduleGraphRender();
+	}
+
+	private void RequestConnectionUpdate(NodeViewModel node)
+	{
+		if (_connectionSynchronizationPending)
+			return;
+
+		_nodesWithPendingConnectionUpdates.Add(node);
+		ScheduleGraphRender();
+	}
+
+	private void ScheduleGraphRender()
+	{
+		if (!_isPageLoaded || _isGraphRenderScheduled || XamlRoot is null)
+			return;
+
+		_isGraphRenderScheduled = true;
+		CompositionTarget.Rendering += OnGraphRendering;
+	}
+
+	private void CancelScheduledGraphRender()
+	{
+		if (!_isGraphRenderScheduled)
+			return;
+
+		CompositionTarget.Rendering -= OnGraphRendering;
+		_isGraphRenderScheduled = false;
+	}
+
+	private void OnGraphRendering(object? sender, object e)
+	{
+		CompositionTarget.Rendering -= OnGraphRendering;
+		_isGraphRenderScheduled = false;
+
+		if (_gridRedrawPending)
 		{
-			var path = CreateBezierPath(
-				connection.Source.CenterX, connection.Source.CenterY,
-				connection.Target.CenterX, connection.Target.CenterY,
-				new SolidColorBrush(Windows.UI.Color.FromArgb(255, 144, 164, 174)));
-			_connectionPaths.Add(path);
-			GraphCanvas.Children.Insert(0, path);
+			_gridRedrawPending = false;
+			GridCanvas.SetViewTransform(
+				CanvasTransform.ScaleX,
+				CanvasTransform.TranslateX,
+				CanvasTransform.TranslateY);
 		}
+
+		if (_connectionSynchronizationPending)
+		{
+			_connectionSynchronizationPending = false;
+			_nodesWithPendingConnectionUpdates.Clear();
+			SynchronizeConnectionPaths();
+		}
+		else if (_nodesWithPendingConnectionUpdates.Count > 0)
+		{
+			var movedNodes = _nodesWithPendingConnectionUpdates.ToArray();
+			_nodesWithPendingConnectionUpdates.Clear();
+			UpdateConnectionsForNodes(movedNodes);
+		}
+	}
+
+	private void SynchronizeConnectionPaths()
+	{
+		var connections = _viewModel.Graph.Connections;
+		foreach (var removedConnection in _connectionPaths.Keys.Where(connection => !connections.Contains(connection)).ToArray())
+		{
+			GraphCanvas.Children.Remove(_connectionPaths[removedConnection]);
+			_connectionPaths.Remove(removedConnection);
+			RemoveConnectionFromNodeIndex(removedConnection);
+		}
+
+		foreach (var connection in connections)
+		{
+			if (!_connectionPaths.TryGetValue(connection, out var path))
+			{
+				path = CreateBezierPath(
+					connection.Source.CenterX, connection.Source.CenterY,
+					connection.Target.CenterX, connection.Target.CenterY,
+					new SolidColorBrush(Windows.UI.Color.FromArgb(255, 144, 164, 174)));
+				_connectionPaths.Add(connection, path);
+				AddConnectionToNodeIndex(connection);
+				GraphCanvas.Children.Insert(0, path);
+			}
+			else
+			{
+				UpdateConnectionPath(path, connection);
+			}
+		}
+	}
+
+	private void UpdateConnectionsForNodes(IReadOnlyCollection<NodeViewModel> movedNodes)
+	{
+		foreach (var node in movedNodes)
+		{
+			if (_connectionsByNode.TryGetValue(node, out var connections))
+				_connectionsToUpdate.UnionWith(connections);
+		}
+
+		foreach (var connection in _connectionsToUpdate)
+		{
+			if (_connectionPaths.TryGetValue(connection, out var path))
+				UpdateConnectionPath(path, connection);
+		}
+
+		_connectionsToUpdate.Clear();
+	}
+
+	private static void UpdateConnectionPath(Path path, ConnectionViewModel connection)
+		=> UpdateBezierPath(
+			path,
+			connection.Source.CenterX,
+			connection.Source.CenterY,
+			connection.Target.CenterX,
+			connection.Target.CenterY);
+
+	private void ClearConnectionPaths()
+	{
+		foreach (var path in _connectionPaths.Values)
+			GraphCanvas.Children.Remove(path);
+
+		_connectionPaths.Clear();
+		_connectionsByNode.Clear();
+		_connectionsToUpdate.Clear();
+	}
+
+	private void AddConnectionToNodeIndex(ConnectionViewModel connection)
+	{
+		AddConnectionToNodeIndex(connection.Source.ParentNode, connection);
+		if (!ReferenceEquals(connection.Source.ParentNode, connection.Target.ParentNode))
+			AddConnectionToNodeIndex(connection.Target.ParentNode, connection);
+	}
+
+	private void AddConnectionToNodeIndex(NodeViewModel node, ConnectionViewModel connection)
+	{
+		if (!_connectionsByNode.TryGetValue(node, out var connections))
+		{
+			connections = [];
+			_connectionsByNode.Add(node, connections);
+		}
+
+		connections.Add(connection);
+	}
+
+	private void RemoveConnectionFromNodeIndex(ConnectionViewModel connection)
+	{
+		RemoveConnectionFromNodeIndex(connection.Source.ParentNode, connection);
+		if (!ReferenceEquals(connection.Source.ParentNode, connection.Target.ParentNode))
+			RemoveConnectionFromNodeIndex(connection.Target.ParentNode, connection);
+	}
+
+	private void RemoveConnectionFromNodeIndex(NodeViewModel node, ConnectionViewModel connection)
+	{
+		if (!_connectionsByNode.TryGetValue(node, out var connections))
+			return;
+
+		connections.Remove(connection);
+		if (connections.Count == 0)
+			_connectionsByNode.Remove(node);
 	}
 
 	private static Path CreateBezierPath(double x1, double y1, double x2, double y2, Brush stroke)
@@ -374,58 +525,8 @@ public sealed partial class MainPage : Page
 		CanvasTransform.ScaleX = newScale;
 		CanvasTransform.ScaleY = newScale;
 
-		RedrawGrid();
+		RequestGridRedraw();
 		e.Handled = true;
-	}
-
-	private void RedrawGrid()
-	{
-		var scale = CanvasTransform.ScaleX;
-		var tx = CanvasTransform.TranslateX;
-		var ty = CanvasTransform.TranslateY;
-		var viewW = GraphCanvasContainer.ActualWidth;
-		var viewH = GraphCanvasContainer.ActualHeight;
-		if (viewW <= 0 || viewH <= 0 || scale <= 0) return;
-
-		var minorGeo = new PathGeometry();
-		var majorGeo = new PathGeometry();
-		var originGeo = new PathGeometry();
-
-		var screenMinorSpacing = MinorGridSpacing * scale;
-		var showMinor = screenMinorSpacing >= 6;
-		var canvasLeft = -tx / scale;
-		var canvasTop = -ty / scale;
-		var canvasRight = (viewW - tx) / scale;
-		var canvasBottom = (viewH - ty) / scale;
-		var spacing = showMinor ? MinorGridSpacing : MajorGridSpacing;
-
-		var startX = Math.Floor(canvasLeft / spacing) * spacing;
-		for (var cx = startX; cx <= canvasRight; cx += spacing)
-		{
-			var sx = cx * scale + tx;
-			var geo = Math.Abs(cx) < 0.5 ? originGeo
-					: (!showMinor || Math.Abs(cx % MajorGridSpacing) < 0.5) ? majorGeo
-					: minorGeo;
-			var fig = new PathFigure { StartPoint = new Point(sx, 0) };
-			fig.Segments.Add(new LineSegment { Point = new Point(sx, viewH) });
-			geo.Figures.Add(fig);
-		}
-
-		var startY = Math.Floor(canvasTop / spacing) * spacing;
-		for (var cy = startY; cy <= canvasBottom; cy += spacing)
-		{
-			var sy = cy * scale + ty;
-			var geo = Math.Abs(cy) < 0.5 ? originGeo
-					: (!showMinor || Math.Abs(cy % MajorGridSpacing) < 0.5) ? majorGeo
-					: minorGeo;
-			var fig = new PathFigure { StartPoint = new Point(0, sy) };
-			fig.Segments.Add(new LineSegment { Point = new Point(viewW, sy) });
-			geo.Figures.Add(fig);
-		}
-
-		_minorGridPath.Data = minorGeo;
-		_majorGridPath.Data = majorGeo;
-		_originGridPath.Data = originGeo;
 	}
 
 	private void GraphCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -469,7 +570,7 @@ public sealed partial class MainPage : Page
 			_propertiesPanelResizeStartWidth - deltaX,
 			MinPropertiesPanelWidth,
 			MaxPropertiesPanelWidth);
-		RedrawGrid();
+		RequestGridRedraw();
 		e.Handled = true;
 	}
 
