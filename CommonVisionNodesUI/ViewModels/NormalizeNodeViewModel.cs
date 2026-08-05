@@ -25,9 +25,6 @@ public partial class NormalizeNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial int OutputMax { get; set; }
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => $"{OutputMin}-{OutputMax}";
 

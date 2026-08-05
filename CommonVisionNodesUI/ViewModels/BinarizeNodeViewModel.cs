@@ -21,9 +21,6 @@ public partial class BinarizeNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial int Threshold { get; set; }
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => $"Threshold {Threshold}";
 

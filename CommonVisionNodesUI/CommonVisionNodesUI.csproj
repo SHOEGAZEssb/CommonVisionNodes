@@ -38,6 +38,37 @@
     <WasmShellIndexHtmlPath>$(MSBuildProjectDirectory)\Platforms\WebAssembly\index.html</WasmShellIndexHtmlPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-browserwasm' and '$(Configuration)'=='Release'">
+    <!-- Partial trimming removes unused assemblies while keeping the actively used framework surface intact. -->
+    <!-- Uno evaluates implicit package conditions before the SDK supplies this Release default. -->
+    <Optimize>true</Optimize>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+  </PropertyGroup>
+
+  <!--
+    Uno 6.6 auto-adds the desktop-oriented Microsoft.Windows.Compatibility bundle to every
+    executable WebAssembly project. It brings WCF, SqlClient, MEF, and reflection assemblies
+    that this browser UI does not use, and that are not trim-safe. Remove only that browser
+    restore item from Uno's implicit-package inputs before its resolver runs.
+  -->
+  <Target Name="ExcludeBrowserWasmWindowsCompatibility"
+          BeforeTargets="UnoImplicitPackages"
+          Condition="'$(TargetFramework)' == 'net10.0-browserwasm'">
+    <ItemGroup>
+      <_UnoProjectSystemPackageReference Remove="Microsoft.Windows.Compatibility" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The SDK evaluates these design-time packages before multi-targeted Release defaults apply. -->
+  <Target Name="ExcludeBrowserWasmReleaseDevelopmentPackages"
+          BeforeTargets="UnoImplicitPackages"
+          Condition="'$(TargetFramework)' == 'net10.0-browserwasm' and '$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <_UnoProjectSystemPackageReference Remove="Uno.UI.App.Mcp;Uno.WinUI.DevServer" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <Page Update="Controls\NodeControl.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -75,5 +106,16 @@
           BeforeTargets="ProcessPublishFilesForWasm"
           Condition="'$(TargetFramework)' == 'net10.0-browserwasm'">
     <RemoveDir Directories="$(IntermediateOutputPath)webcil\publish;$(IntermediateOutputPath)tmp-webcil\publish" />
+  </Target>
+
+  <!--
+    Compression output is derived from the post-link asset set. Remove the previous publish
+    cache before static-web-asset resolution so a trimmed publish cannot reuse sidecars for
+    assemblies that were removed or renamed by the linker.
+  -->
+  <Target Name="ClearBrowserWasmPublishCompressionCache"
+          BeforeTargets="ResolvePublishCompressedStaticWebAssetsConfiguration"
+          Condition="'$(TargetFramework)' == 'net10.0-browserwasm'">
+    <RemoveDir Directories="$(IntermediateOutputPath)compressed\publish" />
   </Target>
 </Project>

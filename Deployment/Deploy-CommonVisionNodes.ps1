@@ -180,11 +180,6 @@ try {
             -Recurse -File -Filter "Stemmer.Cvb*.xml"
     )
 
-    # The backend uses PhysicalFileProvider/UseStaticFiles and does not negotiate
-    # the precompressed static-web-asset sidecars produced by the Uno publish.
-    $unnecessaryFiles += Get-ChildItem -LiteralPath $publishedWebRoot -Recurse -File |
-        Where-Object { $_.Extension -in @(".br", ".gz") }
-
     foreach ($file in $unnecessaryFiles) {
         Remove-Item -LiteralPath $file.FullName -Force
     }

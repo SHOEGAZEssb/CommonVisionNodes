@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodes.Runtime.Execution;
 
@@ -17,20 +16,12 @@ namespace CommonVisionNodes.Server.Services;
 public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory)
 {
 	private static readonly TimeSpan PreviewAcknowledgementTimeout = TimeSpan.FromSeconds(2);
-	private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-	{
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-	};
+	private static readonly ContractsJsonSerializerContext JsonContext = ContractsJsonSerializerContext.Default;
 
 	private readonly ConcurrentDictionary<string, ClientSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
 	private readonly RuntimeGraphFactory _graphFactory = graphFactory;
 
 	internal int SessionCount => _sessions.Count;
-
-	static ExecutionClientManager()
-	{
-		JsonOptions.Converters.Add(new JsonStringEnumConverter());
-	}
 
 	/// <summary>
 	/// Starts execution for a client, replacing any existing runner for that client.
@@ -306,7 +297,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory)
 				return SendBinaryPayloadAsync(socket, message, imageBytes, cancellationToken);
 		}
 
-		var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
+		var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonContext.ExecutionMessageDto);
 		return socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
 	}
 
@@ -363,7 +354,9 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory)
 
 		try
 		{
-			var message = JsonSerializer.Deserialize<PreviewClientMessageDto>(messageStream.GetBuffer().AsSpan(0, checked((int)messageStream.Length)), JsonOptions);
+			var message = JsonSerializer.Deserialize(
+				messageStream.GetBuffer().AsSpan(0, checked((int)messageStream.Length)),
+				JsonContext.PreviewClientMessageDto);
 			switch (message?.MessageType)
 			{
 				case PreviewClientMessageTypeDto.Configure:
@@ -397,7 +390,7 @@ public sealed class ExecutionClientManager(RuntimeGraphFactory graphFactory)
 
 	private static async Task SendBinaryPayloadAsync(WebSocket socket, ExecutionMessageDto message, byte[] imageBytes, CancellationToken cancellationToken)
 	{
-		var metadataBytes = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonOptions);
+		var metadataBytes = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonContext.ExecutionMessageDto);
 		var metadataLengthHeader = BinaryExecutionMessageCodec.CreateMetadataLengthHeader(metadataBytes.Length);
 
 		await socket.SendAsync(metadataLengthHeader, WebSocketMessageType.Binary, endOfMessage: false, cancellationToken).ConfigureAwait(false);

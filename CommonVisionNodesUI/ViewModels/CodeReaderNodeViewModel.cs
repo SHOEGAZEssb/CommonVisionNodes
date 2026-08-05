@@ -115,12 +115,6 @@ public partial class CodeReaderNodeViewModel : NodeViewModel
 	public partial string TypeDescription { get; set; } = "No results";
 
 	[ObservableProperty]
-	public partial string DisplayText { get; set; } = string.Empty;
-
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
-	[ObservableProperty]
 	public partial IReadOnlyList<CodeReaderResultDto> Results { get; set; } = [];
 
 	[ObservableProperty]

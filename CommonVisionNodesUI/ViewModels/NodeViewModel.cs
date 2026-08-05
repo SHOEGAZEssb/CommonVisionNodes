@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using CommonVisionNodes.Contracts;
 using Windows.UI;
 
@@ -134,6 +133,12 @@ public abstract partial class NodeViewModel : ObservableObject
 
 	[ObservableProperty]
 	public partial bool ShowPreview { get; set; }
+
+	[ObservableProperty]
+	public partial ImagePreviewDto? PreviewImage { get; set; }
+
+	[ObservableProperty]
+	public partial string DisplayText { get; set; } = string.Empty;
 
 	[ObservableProperty]
 	public partial bool IsGraphRunning { get; set; }
@@ -584,16 +589,7 @@ public abstract partial class NodeViewModel : ObservableObject
 
 	private void ClearPreviewState()
 	{
-		const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
-
-		// Preview properties live only on specialized view models. Reflection keeps the base
-		// class from needing an interface for every preview flavor while still clearing stale UI.
-		var previewImageProperty = GetType().GetProperty("PreviewImage", flags);
-		if (previewImageProperty?.CanWrite == true && previewImageProperty.PropertyType == typeof(ImagePreviewDto))
-			previewImageProperty.SetValue(this, null);
-
-		var displayTextProperty = GetType().GetProperty("DisplayText", flags);
-		if (displayTextProperty?.CanWrite == true && displayTextProperty.PropertyType == typeof(string))
-			displayTextProperty.SetValue(this, string.Empty);
+		PreviewImage = null;
+		DisplayText = string.Empty;
 	}
 }

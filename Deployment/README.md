@@ -53,9 +53,12 @@ CommonVisionNodes/
 `-- Web/
 ```
 
-The deployment omits debugging symbols, CVB XML API documentation, Web publish
-metadata outside the served site, and precompressed Web sidecars that the local
-static-file server does not use.
+The deployment omits debugging symbols, CVB XML API documentation, and Web
+publish metadata outside the served site. Brotli and gzip WebAssembly sidecars
+remain in the Web folder; the local backend negotiates them for browsers that
+support compression. The two Uno scripts patched after publish (`uno-bootstrap.js`
+and `uno-config.js`) intentionally fall back to their raw copies, so no browser
+can receive a stale compressed version.
 
 ## Start
 
@@ -83,11 +86,19 @@ For web mode without opening a browser automatically:
 .\CommonVisionNodes.Launcher.exe --mode Web --no-browser
 ```
 
+Normal Web launches open the application directly and reuse fingerprinted
+WebAssembly assets from the browser cache. If an older deployment or service
+worker leaves the browser in a bad state, repair that browser profile explicitly:
+
+```powershell
+.\CommonVisionNodes.Launcher.exe --mode Web --reset-browser-cache
+```
+
 Desktop mode stops the backend when the desktop window closes. Web mode keeps
 the launcher open; press Enter in its console window to stop all processes
 started by the launcher.
 
-Web mode first opens a local browser-reset page. It unregisters service workers
-and clears WebAssembly caches left by older deployments before redirecting to
-the UI. PWA registration is disabled in the deployed Uno configuration because
-the folder deployment does not require offline caching.
+The reset option opens a local repair page that unregisters legacy service
+workers and clears cached WebAssembly assets before redirecting to the UI. PWA
+registration remains disabled in the deployed Uno configuration because the
+folder deployment does not require offline caching.

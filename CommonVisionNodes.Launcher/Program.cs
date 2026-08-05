@@ -9,7 +9,8 @@ internal static class Program
 	private const int FrameworkMissingExitCode = unchecked((int)0x80008096);
 	private const string BackendUrl = "http://127.0.0.1:5077";
 	private static readonly Uri HealthUri = new($"{BackendUrl}/api/health");
-	private static readonly Uri BrowserStartUri = new($"{BackendUrl}/browser-reset");
+	private static readonly Uri WebUiUri = new($"{BackendUrl}/");
+	private static readonly Uri BrowserResetUri = new($"{BackendUrl}/browser-reset");
 
 	public static async Task<int> Main(string[] args)
 	{
@@ -67,7 +68,7 @@ internal static class Program
 			{
 				Console.WriteLine($"Web UI available at {BackendUrl}");
 				if (!options.NoBrowser)
-					OpenBrowser(BrowserStartUri);
+					OpenBrowser(options.ResetBrowserCache ? BrowserResetUri : WebUiUri);
 
 				Console.WriteLine();
 				Console.WriteLine("Press Enter to stop CommonVisionNodes.");
@@ -253,11 +254,13 @@ internal static class Program
             CommonVisionNodes launcher
 
             Usage:
-              CommonVisionNodes.Launcher.exe [--mode Web|Desktop] [--no-browser]
+              CommonVisionNodes.Launcher.exe [--mode Web|Desktop] [--no-browser] [--reset-browser-cache]
 
             Options:
               --mode, -m       UI mode. Defaults to Web.
               --no-browser     Start Web mode without opening the default browser.
+              --reset-browser-cache
+                               Clear cached WebAssembly assets and legacy service workers before opening Web mode.
               --help, -h       Show this help.
             """);
 	}
@@ -269,7 +272,7 @@ internal enum LaunchMode
 	Desktop
 }
 
-internal sealed record LauncherOptions(LaunchMode Mode, bool NoBrowser)
+internal sealed record LauncherOptions(LaunchMode Mode, bool NoBrowser, bool ResetBrowserCache)
 {
 	public static bool TryParse(
 		IReadOnlyList<string> args,
@@ -278,6 +281,7 @@ internal sealed record LauncherOptions(LaunchMode Mode, bool NoBrowser)
 	{
 		var mode = LaunchMode.Web;
 		var noBrowser = false;
+		var resetBrowserCache = false;
 
 		for (var index = 0; index < args.Count; index++)
 		{
@@ -288,7 +292,7 @@ internal sealed record LauncherOptions(LaunchMode Mode, bool NoBrowser)
 					if (++index >= args.Count ||
 						!Enum.TryParse(args[index], ignoreCase: true, out mode))
 					{
-						options = new LauncherOptions(LaunchMode.Web, false);
+						options = new LauncherOptions(LaunchMode.Web, false, false);
 						error = "--mode must be either Web or Desktop.";
 						return false;
 					}
@@ -296,20 +300,23 @@ internal sealed record LauncherOptions(LaunchMode Mode, bool NoBrowser)
 				case "--no-browser":
 					noBrowser = true;
 					break;
+				case "--reset-browser-cache":
+					resetBrowserCache = true;
+					break;
 				case "--help":
 				case "-h":
 				case "/?":
-					options = new LauncherOptions(mode, noBrowser);
+					options = new LauncherOptions(mode, noBrowser, resetBrowserCache);
 					error = null;
 					return false;
 				default:
-					options = new LauncherOptions(LaunchMode.Web, false);
+					options = new LauncherOptions(LaunchMode.Web, false, false);
 					error = $"Unknown option '{args[index]}'.";
 					return false;
 			}
 		}
 
-		options = new LauncherOptions(mode, noBrowser);
+		options = new LauncherOptions(mode, noBrowser, resetBrowserCache);
 		error = null;
 		return true;
 	}

@@ -75,10 +75,20 @@ if (!string.IsNullOrWhiteSpace(configuredWebRoot))
 	var contentTypeProvider = new FileExtensionContentTypeProvider();
 	contentTypeProvider.Mappings[".dat"] = "application/octet-stream";
 
+	app.Use(async (context, next) =>
+	{
+		if (await PrecompressedStaticFileResponder.TryServeAsync(context, webFileProvider, contentTypeProvider))
+			return;
+
+		await next();
+	});
+
 	app.UseStaticFiles(new StaticFileOptions
 	{
 		FileProvider = webFileProvider,
-		ContentTypeProvider = contentTypeProvider
+		ContentTypeProvider = contentTypeProvider,
+		OnPrepareResponse = context =>
+			PrecompressedStaticFileResponder.ApplyCacheHeaders(context.Context.Response, context.Context.Request.Path)
 	});
 }
 
@@ -92,7 +102,12 @@ if (webIndexPath is null)
 }
 else
 {
-	app.MapGet("/", () => Results.File(webIndexPath, "text/html; charset=utf-8"));
+	app.MapGet("/", async context =>
+	{
+		PrecompressedStaticFileResponder.ApplyCacheHeaders(context.Response, context.Request.Path);
+		context.Response.ContentType = "text/html; charset=utf-8";
+		await context.Response.SendFileAsync(webIndexPath, context.RequestAborted);
+	});
 }
 
 app.MapGet("/api/health", () => Results.Ok(new

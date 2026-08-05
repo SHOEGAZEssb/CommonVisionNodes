@@ -40,9 +40,6 @@ public partial class ImageGeneratorNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial int Speed { get; set; }
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => $"{ImageWidth}x{ImageHeight}  {Pattern}";
 

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Net.WebSockets;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodesUI.Services;
@@ -13,8 +13,8 @@ public sealed class BackendClient : IBackendClient
 {
 	private const int WebSocketReceiveBufferSize = 64 * 1024;
 
+	private static readonly ContractsJsonSerializerContext JsonContext = ContractsJsonSerializerContext.Default;
 	private readonly HttpClient _httpClient;
-	private readonly JsonSerializerOptions _jsonOptions;
 	private readonly Uri _webSocketUriBase;
 
 	/// <summary>
@@ -30,12 +30,6 @@ public sealed class BackendClient : IBackendClient
 			BaseAddress = baseUri
 		};
 		_webSocketUriBase = BuildWebSocketBaseUri(baseUri);
-
-		_jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-		{
-			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-		};
-		_jsonOptions.Converters.Add(new JsonStringEnumConverter());
 	}
 
 	/// <inheritdoc/>
@@ -43,7 +37,7 @@ public sealed class BackendClient : IBackendClient
 	{
 		using var response = await _httpClient.GetAsync("api/nodes/definitions", cancellationToken);
 		response.EnsureSuccessStatusCode();
-		return await ReadAsync<List<NodeDefinitionDto>>(response, cancellationToken) ?? [];
+		return await ReadAsync(response, JsonContext.NodeDefinitionList, cancellationToken) ?? [];
 	}
 
 	/// <inheritdoc/>
@@ -54,18 +48,18 @@ public sealed class BackendClient : IBackendClient
 		using var response = await _httpClient.PostAsJsonAsync(
 			"api/path-picker",
 			request,
-			_jsonOptions,
+			JsonContext.PathPickerRequestDto,
 			cancellationToken);
 		response.EnsureSuccessStatusCode();
-		return await ReadAsync<PathPickerResultDto>(response, cancellationToken) ?? new PathPickerResultDto();
+		return await ReadAsync(response, JsonContext.PathPickerResultDto, cancellationToken) ?? new PathPickerResultDto();
 	}
 
 	/// <inheritdoc/>
 	public async Task<ExecutionAcceptedDto> ExecuteAsync(ExecutionRequestDto request, CancellationToken cancellationToken = default)
 	{
-		using var response = await _httpClient.PostAsJsonAsync("api/graph/execute", request, _jsonOptions, cancellationToken);
+		using var response = await _httpClient.PostAsJsonAsync("api/graph/execute", request, JsonContext.ExecutionRequestDto, cancellationToken);
 		response.EnsureSuccessStatusCode();
-		return await ReadAsync<ExecutionAcceptedDto>(response, cancellationToken) ?? new ExecutionAcceptedDto();
+		return await ReadAsync(response, JsonContext.ExecutionAcceptedDto, cancellationToken) ?? new ExecutionAcceptedDto();
 	}
 
 	/// <inheritdoc/>
@@ -74,7 +68,7 @@ public sealed class BackendClient : IBackendClient
 		using var response = await _httpClient.PostAsJsonAsync(
 			"api/graph/stop",
 			new StopExecutionRequestDto { ClientId = clientId },
-			_jsonOptions,
+			JsonContext.StopExecutionRequestDto,
 			cancellationToken);
 		response.EnsureSuccessStatusCode();
 	}
@@ -82,28 +76,28 @@ public sealed class BackendClient : IBackendClient
 	/// <inheritdoc/>
 	public async Task TriggerNodeAsync(TriggerNodeRequestDto request, CancellationToken cancellationToken = default)
 	{
-		using var response = await _httpClient.PostAsJsonAsync("api/graph/trigger", request, _jsonOptions, cancellationToken);
+		using var response = await _httpClient.PostAsJsonAsync("api/graph/trigger", request, JsonContext.TriggerNodeRequestDto, cancellationToken);
 		response.EnsureSuccessStatusCode();
 	}
 
 	/// <inheritdoc/>
 	public async Task UpdateExecutionSettingsAsync(UpdateExecutionSettingsRequestDto request, CancellationToken cancellationToken = default)
 	{
-		using var response = await _httpClient.PostAsJsonAsync("api/graph/settings", request, _jsonOptions, cancellationToken);
+		using var response = await _httpClient.PostAsJsonAsync("api/graph/settings", request, JsonContext.UpdateExecutionSettingsRequestDto, cancellationToken);
 		response.EnsureSuccessStatusCode();
 	}
 
 	/// <inheritdoc/>
 	public async Task UpdateNodePropertiesAsync(UpdateNodePropertiesRequestDto request, CancellationToken cancellationToken = default)
 	{
-		using var response = await _httpClient.PostAsJsonAsync("api/graph/node-properties", request, _jsonOptions, cancellationToken);
+		using var response = await _httpClient.PostAsJsonAsync("api/graph/node-properties", request, JsonContext.UpdateNodePropertiesRequestDto, cancellationToken);
 		response.EnsureSuccessStatusCode();
 	}
 
 	/// <inheritdoc/>
 	public async Task<string> GenerateCodeAsync(GraphDto graph, CancellationToken cancellationToken = default)
 	{
-		using var response = await _httpClient.PostAsJsonAsync("api/graph/codegen", graph, _jsonOptions, cancellationToken);
+		using var response = await _httpClient.PostAsJsonAsync("api/graph/codegen", graph, JsonContext.GraphDto, cancellationToken);
 		response.EnsureSuccessStatusCode();
 		return await response.Content.ReadAsStringAsync(cancellationToken);
 	}
@@ -176,14 +170,17 @@ public sealed class BackendClient : IBackendClient
 		PreviewClientMessageDto message,
 		CancellationToken cancellationToken)
 	{
-		var payload = JsonSerializer.SerializeToUtf8Bytes(message, _jsonOptions);
+		var payload = JsonSerializer.SerializeToUtf8Bytes(message, JsonContext.PreviewClientMessageDto);
 		await socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
 	}
 
-	private async Task<T?> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+	private static async Task<T?> ReadAsync<T>(
+		HttpResponseMessage response,
+		JsonTypeInfo<T> typeInfo,
+		CancellationToken cancellationToken)
 	{
 		await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-		return await JsonSerializer.DeserializeAsync<T>(stream, _jsonOptions, cancellationToken);
+		return await JsonSerializer.DeserializeAsync(stream, typeInfo, cancellationToken);
 	}
 
 	private async Task<ExecutionMessageDto?> DeserializeTextExecutionMessageAsync(
@@ -207,7 +204,7 @@ public sealed class BackendClient : IBackendClient
 		}
 
 		messageStream.Position = 0;
-		return await JsonSerializer.DeserializeAsync<ExecutionMessageDto>(messageStream, _jsonOptions, cancellationToken);
+		return await JsonSerializer.DeserializeAsync(messageStream, JsonContext.ExecutionMessageDto, cancellationToken);
 	}
 
 	private async Task<ExecutionMessageDto?> DeserializeBinaryExecutionMessageAsync(
@@ -217,7 +214,7 @@ public sealed class BackendClient : IBackendClient
 		BinaryImageBufferCache imageBufferCache,
 		CancellationToken cancellationToken)
 	{
-		var builder = new BinaryExecutionMessageBuilder(_jsonOptions, imageBufferCache);
+		var builder = new BinaryExecutionMessageBuilder(JsonContext.ExecutionMessageDto, imageBufferCache);
 		var result = firstResult;
 
 		while (true)

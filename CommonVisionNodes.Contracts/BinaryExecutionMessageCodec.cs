@@ -1,5 +1,7 @@
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace CommonVisionNodes.Contracts;
 
@@ -17,8 +19,30 @@ public static class BinaryExecutionMessageCodec
 	/// Serializes the JSON portion of a binary execution message without its image bytes.
 	/// </summary>
 	/// <param name="message">Message to serialize.</param>
+	/// <param name="messageTypeInfo">Source-generated JSON metadata shared by the server and client.</param>
+	/// <returns>UTF-8 encoded metadata.</returns>
+	public static byte[] SerializeMetadata(
+		ExecutionMessageDto message,
+		JsonTypeInfo<ExecutionMessageDto> messageTypeInfo)
+	{
+		ArgumentNullException.ThrowIfNull(message);
+		ArgumentNullException.ThrowIfNull(messageTypeInfo);
+
+		return JsonSerializer.SerializeToUtf8Bytes(CloneWithoutImageData(message), messageTypeInfo);
+	}
+
+	/// <summary>
+	/// Serializes the JSON portion of a binary execution message without its image bytes.
+	/// </summary>
+	/// <param name="message">Message to serialize.</param>
 	/// <param name="jsonOptions">JSON options shared by the server and client.</param>
 	/// <returns>UTF-8 encoded metadata.</returns>
+	/// <remarks>
+	/// Prefer the <see cref="SerializeMetadata(ExecutionMessageDto, JsonTypeInfo{ExecutionMessageDto})"/>
+	/// overload for trim-safe application code.
+	/// </remarks>
+	[RequiresUnreferencedCode("JSON serialization with JsonSerializerOptions may require types removed by trimming.")]
+	[RequiresDynamicCode("JSON serialization with JsonSerializerOptions may require runtime-generated code.")]
 	public static byte[] SerializeMetadata(ExecutionMessageDto message, JsonSerializerOptions jsonOptions)
 	{
 		ArgumentNullException.ThrowIfNull(message);
@@ -147,7 +171,8 @@ public static class BinaryExecutionMessageCodec
 public sealed class BinaryExecutionMessageBuilder
 {
 	private readonly byte[] _header = new byte[sizeof(int)];
-	private readonly JsonSerializerOptions _jsonOptions;
+	private readonly JsonTypeInfo<ExecutionMessageDto>? _messageTypeInfo;
+	private readonly JsonSerializerOptions? _jsonOptions;
 	private readonly BinaryImageBufferCache? _imageBufferCache;
 	private byte[]? _metadata;
 	private ExecutionMessageDto? _message;
@@ -162,8 +187,28 @@ public sealed class BinaryExecutionMessageBuilder
 	/// <summary>
 	/// Creates a binary execution message builder.
 	/// </summary>
+	/// <param name="messageTypeInfo">Source-generated JSON metadata shared by the server and client.</param>
+	/// <param name="imageBufferCache">Optional cache used to reuse raw image destination buffers.</param>
+	public BinaryExecutionMessageBuilder(
+		JsonTypeInfo<ExecutionMessageDto> messageTypeInfo,
+		BinaryImageBufferCache? imageBufferCache = null)
+	{
+		ArgumentNullException.ThrowIfNull(messageTypeInfo);
+		_messageTypeInfo = messageTypeInfo;
+		_imageBufferCache = imageBufferCache;
+	}
+
+	/// <summary>
+	/// Creates a binary execution message builder.
+	/// </summary>
 	/// <param name="jsonOptions">JSON options shared by the server and client.</param>
 	/// <param name="imageBufferCache">Optional cache used to reuse raw image destination buffers.</param>
+	/// <remarks>
+	/// Prefer the <see cref="BinaryExecutionMessageBuilder(JsonTypeInfo{ExecutionMessageDto}, BinaryImageBufferCache?)"/>
+	/// constructor for trim-safe application code.
+	/// </remarks>
+	[RequiresUnreferencedCode("JSON deserialization with JsonSerializerOptions may require types removed by trimming.")]
+	[RequiresDynamicCode("JSON deserialization with JsonSerializerOptions may require runtime-generated code.")]
 	public BinaryExecutionMessageBuilder(
 		JsonSerializerOptions jsonOptions,
 		BinaryImageBufferCache? imageBufferCache = null)
@@ -250,12 +295,18 @@ public sealed class BinaryExecutionMessageBuilder
 		return _message;
 	}
 
+	[UnconditionalSuppressMessage(
+		"Trimming",
+		"IL2026",
+		Justification = "The reflection-based fallback is reachable only through the explicitly RequiresUnreferencedCode constructor. The browser uses the JsonTypeInfo constructor.")]
 	private void EnsureMessageParsed()
 	{
 		if (_message is not null || _metadata is null || _metadataBytesRead != _metadata.Length || _invalid)
 			return;
 
-		_message = JsonSerializer.Deserialize<ExecutionMessageDto>(_metadata, _jsonOptions);
+		_message = _messageTypeInfo is not null
+			? JsonSerializer.Deserialize(_metadata, _messageTypeInfo)
+			: JsonSerializer.Deserialize<ExecutionMessageDto>(_metadata, _jsonOptions!);
 		if (_message is null)
 			_invalid = true;
 	}

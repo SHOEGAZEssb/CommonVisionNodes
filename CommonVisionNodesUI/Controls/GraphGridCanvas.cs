@@ -54,8 +54,6 @@ public sealed class GraphGridCanvas : SKCanvasElement
 	/// <inheritdoc />
 	protected override void RenderOverride(SKCanvas canvas, Size area)
 	{
-		canvas.Clear(SKColors.Transparent);
-
 		if (area.Width <= 0 || area.Height <= 0 || _scale <= 0)
 			return;
 

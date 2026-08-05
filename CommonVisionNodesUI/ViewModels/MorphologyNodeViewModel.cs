@@ -38,9 +38,6 @@ public partial class MorphologyNodeViewModel : NodeViewModel
 
 	private string _kernelSize = string.Empty;
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => string.IsNullOrEmpty(Operation)
 		? "No operation"

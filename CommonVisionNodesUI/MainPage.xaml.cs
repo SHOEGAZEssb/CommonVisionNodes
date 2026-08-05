@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Collections.Specialized;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Controls;
@@ -30,12 +28,6 @@ public sealed partial class MainPage : Page
 		".bmp", ".dib", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif"
 	];
 	private static readonly string[] GraphFileExtensions = [".cvbgraph"];
-
-	private static readonly JsonSerializerOptions GraphJsonOptions = new(JsonSerializerDefaults.Web)
-	{
-		WriteIndented = true,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-	};
 
 	private readonly MainViewModel _viewModel;
 #if __WASM__
@@ -70,11 +62,6 @@ public sealed partial class MainPage : Page
 	private const double ZoomFactor = 1.1;
 	private const double MinPropertiesPanelWidth = 240;
 	private const double MaxPropertiesPanelWidth = 560;
-
-	static MainPage()
-	{
-		GraphJsonOptions.Converters.Add(new JsonStringEnumConverter());
-	}
 
 	/// <summary>
 	/// Creates the main page and wires graph editor interactions.
@@ -788,7 +775,9 @@ public sealed partial class MainPage : Page
 
 		CachedFileManager.DeferUpdates(file);
 
-		var json = JsonSerializer.Serialize(_viewModel.Graph.ToGraphDto(), GraphJsonOptions);
+		var json = System.Text.Json.JsonSerializer.Serialize(
+			_viewModel.Graph.ToGraphDto(),
+			GraphFileJsonSerializerContext.Default.GraphDto);
 		await FileIO.WriteTextAsync(file, json);
 
 		await CachedFileManager.CompleteUpdatesAsync(file);
@@ -809,7 +798,9 @@ public sealed partial class MainPage : Page
 			return;
 
 		var json = await FileIO.ReadTextAsync(file);
-		var graph = JsonSerializer.Deserialize<GraphDto>(json, GraphJsonOptions);
+		var graph = System.Text.Json.JsonSerializer.Deserialize(
+			json,
+			GraphFileJsonSerializerContext.Default.GraphDto);
 		if (graph is null)
 			return;
 

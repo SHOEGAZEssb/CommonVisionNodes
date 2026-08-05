@@ -37,9 +37,6 @@ public partial class MatrixTransformNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial double TranslateY { get; set; }
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => $"{Angle:F1}\u00B0  {ScaleX:F2}x/{ScaleY:F2}x";
 

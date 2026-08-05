@@ -1,22 +1,11 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using CommonVisionNodes.Contracts;
 
 namespace CommonVisionNodes.Test;
 
 public sealed class BinaryExecutionMessageCodecTests
 {
-	private JsonSerializerOptions _jsonOptions = null!;
-
-	[SetUp]
-	public void SetUp()
-	{
-		_jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-		{
-			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-		};
-		_jsonOptions.Converters.Add(new JsonStringEnumConverter());
-	}
+	private static readonly ContractsJsonSerializerContext JsonContext = ContractsJsonSerializerContext.Default;
 
 	[TestCase(1)]
 	[TestCase(3)]
@@ -89,8 +78,8 @@ public sealed class BinaryExecutionMessageCodecTests
 		message.ImagePreview!.PreviewSequence = 42;
 		message.ImagePreview!.Base64Data = Convert.ToBase64String(payload);
 
-		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, _jsonOptions);
-		var deserialized = JsonSerializer.Deserialize<ExecutionMessageDto>(metadata, _jsonOptions);
+		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonContext.ExecutionMessageDto);
+		var deserialized = JsonSerializer.Deserialize(metadata, JsonContext.ExecutionMessageDto);
 
 		using (Assert.EnterMultipleScope())
 		{
@@ -107,8 +96,8 @@ public sealed class BinaryExecutionMessageCodecTests
 	{
 		byte[] payload = [1, 2, 3, 4];
 		var message = CreateImageMessage(ImagePreviewEncodingDto.Bgra32, payload, width: 2, height: 1);
-		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, _jsonOptions);
-		var builder = new BinaryExecutionMessageBuilder(_jsonOptions);
+		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonContext.ExecutionMessageDto);
+		var builder = new BinaryExecutionMessageBuilder(JsonContext.ExecutionMessageDto);
 
 		builder.Append(BinaryExecutionMessageCodec.CreateMetadataLengthHeader(metadata.Length));
 		builder.Append(metadata);
@@ -122,7 +111,7 @@ public sealed class BinaryExecutionMessageCodecTests
 	{
 		var payload = Enumerable.Range(0, 8 * 4).Select(index => (byte)index).ToArray();
 		var message = CreateImageMessage(ImagePreviewEncodingDto.Bgra32, payload, width: 8, height: 1);
-		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, _jsonOptions);
+		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonContext.ExecutionMessageDto);
 		var header = BinaryExecutionMessageCodec.CreateMetadataLengthHeader(metadata.Length);
 		var cache = new BinaryImageBufferCache();
 
@@ -141,10 +130,10 @@ public sealed class BinaryExecutionMessageCodecTests
 
 	private ExecutionMessageDto RoundTrip(ExecutionMessageDto message, byte[] payload, int receiveBufferSize)
 	{
-		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, _jsonOptions);
+		var metadata = BinaryExecutionMessageCodec.SerializeMetadata(message, JsonContext.ExecutionMessageDto);
 		var header = BinaryExecutionMessageCodec.CreateMetadataLengthHeader(metadata.Length);
 		var wirePayload = header.Concat(metadata).Concat(payload).ToArray();
-		var builder = new BinaryExecutionMessageBuilder(_jsonOptions);
+		var builder = new BinaryExecutionMessageBuilder(JsonContext.ExecutionMessageDto);
 
 		for (var offset = 0; offset < wirePayload.Length; offset += receiveBufferSize)
 		{
@@ -161,7 +150,7 @@ public sealed class BinaryExecutionMessageCodecTests
 		byte[] payload,
 		BinaryImageBufferCache cache)
 	{
-		var builder = new BinaryExecutionMessageBuilder(_jsonOptions, cache);
+		var builder = new BinaryExecutionMessageBuilder(JsonContext.ExecutionMessageDto, cache);
 		builder.Append(header);
 		builder.Append(metadata);
 		builder.Append(payload);

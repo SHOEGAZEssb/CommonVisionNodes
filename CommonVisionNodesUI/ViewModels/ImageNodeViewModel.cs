@@ -164,9 +164,6 @@ public partial class ImageNodeViewModel : NodeViewModel
 	/// </summary>
 	public string PlaybackToolTip => IsPlaying ? "Stop folder playback" : "Play folder images";
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary
 	{

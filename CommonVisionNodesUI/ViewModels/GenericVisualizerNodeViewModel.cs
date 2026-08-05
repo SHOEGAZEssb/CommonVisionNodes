@@ -13,13 +13,7 @@ namespace CommonVisionNodesUI.ViewModels;
 public partial class GenericVisualizerNodeViewModel(NodeDto node, NodeDefinitionDto definition) : NodeViewModel(node, definition)
 {
 	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
-	[ObservableProperty]
 	public partial string TypeDescription { get; set; } = "No data";
-
-	[ObservableProperty]
-	public partial string DisplayText { get; set; } = string.Empty;
 
 	/// <inheritdoc/>
 	public override string? Summary => TypeDescription;

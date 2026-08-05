@@ -22,9 +22,6 @@ public partial class CSharpNodeViewModel : NodeViewModel
 	public partial string Code { get; set; } = string.Empty;
 
 	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
-	[ObservableProperty]
 	public partial string CompilationError { get; set; } = string.Empty;
 
 	/// <summary>

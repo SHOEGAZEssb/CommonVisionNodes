@@ -22,9 +22,6 @@ public partial class SaveImageNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial string FilePath { get; set; } = string.Empty;
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => string.IsNullOrEmpty(FilePath)
 		? "No output path"

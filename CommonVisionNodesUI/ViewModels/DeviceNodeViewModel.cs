@@ -60,9 +60,6 @@ public partial class DeviceNodeViewModel : NodeViewModel
 		}
 	}
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => string.IsNullOrEmpty(AccessToken)
 		? "No device configured"

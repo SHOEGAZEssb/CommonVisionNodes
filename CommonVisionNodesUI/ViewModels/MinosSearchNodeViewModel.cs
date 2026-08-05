@@ -72,9 +72,6 @@ public partial class MinosSearchNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial IReadOnlyList<ClassificationResultDto> Results { get; set; } = [];
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <summary>
 	/// Number of Minos matches in the latest preview.
 	/// </summary>

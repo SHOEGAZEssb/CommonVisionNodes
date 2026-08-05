@@ -33,9 +33,6 @@ public partial class SubImageNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial int AreaHeight { get; set; }
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => $"({AreaX}, {AreaY}) {AreaWidth}x{AreaHeight}";
 

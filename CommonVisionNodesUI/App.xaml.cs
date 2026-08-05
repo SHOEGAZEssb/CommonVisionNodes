@@ -1,3 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Uno.Extensions;
@@ -38,37 +42,14 @@ public partial class App : Application
 	public IHost? Host { get; private set; }
 
 	/// <inheritdoc/>
+	[UnconditionalSuppressMessage(
+		"Trimming",
+		"IL2026",
+		Justification = "The Uno hosting setup follows the supported template pattern, and the application assembly is rooted by the WebAssembly linker descriptor.")]
 	protected override void OnLaunched(LaunchActivatedEventArgs args)
 	{
 		var builder = this.CreateBuilder(args)
-			.Configure(host => host
-#if DEBUG
-                .UseEnvironment(Environments.Development)
-#endif
-				.UseLogging(configure: (context, logBuilder) =>
-				{
-					logBuilder
-						.SetMinimumLevel(
-							context.HostingEnvironment.IsDevelopment()
-								? LogLevel.Information
-								: LogLevel.Warning)
-						.CoreLogLevel(LogLevel.Warning);
-				}, enableUnoLogging: true)
-				.UseConfiguration(configure: configBuilder =>
-					configBuilder
-						.EmbeddedSource<App>()
-						.Section<AppConfig>())
-				.UseLocalization()
-				.ConfigureServices((context, services) =>
-				{
-					services.AddSingleton<IBackendClient>(serviceProvider =>
-					{
-						var config = serviceProvider.GetRequiredService<IOptions<AppConfig>>().Value;
-						return new BackendClient(config.BackendBaseUrl);
-					});
-					services.AddSingleton<NodeGraphViewModel>();
-					services.AddSingleton<MainViewModel>();
-				}));
+			.Configure(ConfigureHost);
 
 		MainWindow = builder.Window;
 
@@ -86,5 +67,40 @@ public partial class App : Application
 			rootFrame.Navigate(typeof(MainPage), args.Arguments);
 
 		MainWindow.Activate();
+	}
+
+	[UnconditionalSuppressMessage(
+		"Trimming",
+		"IL2026",
+		Justification = "Uno's supported host configuration uses runtime type discovery. The WebAssembly linker descriptor preserves the application assembly used by that configuration.")]
+	private static void ConfigureHost(IHostBuilder host)
+	{
+		host
+#if DEBUG
+			.UseEnvironment(Environments.Development)
+#endif
+			.UseLogging(configure: (context, logBuilder) =>
+			{
+				logBuilder
+					.SetMinimumLevel(
+						context.HostingEnvironment.IsDevelopment()
+							? LogLevel.Information
+							: LogLevel.Warning)
+					.CoreLogLevel(LogLevel.Warning);
+			}, enableUnoLogging: true)
+			.UseConfiguration(configure: configBuilder =>
+				configBuilder
+					.EmbeddedSource<App>())
+			.UseLocalization()
+			.ConfigureServices(ConfigureServices);
+	}
+
+	private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
+	{
+		var backendBaseUrl = context.Configuration["AppConfig:BackendBaseUrl"]
+			?? "http://127.0.0.1:5077";
+		services.AddSingleton<IBackendClient>(_ => new BackendClient(backendBaseUrl));
+		services.AddSingleton<NodeGraphViewModel>();
+		services.AddSingleton<MainViewModel>();
 	}
 }

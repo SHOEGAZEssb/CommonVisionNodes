@@ -30,9 +30,6 @@ public partial class PolimagoClassifyNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial IReadOnlyList<ClassificationResultDto> Results { get; set; } = [];
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <summary>
 	/// Number of classification results in the latest preview.
 	/// </summary>

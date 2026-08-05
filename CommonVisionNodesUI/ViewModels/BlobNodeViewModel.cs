@@ -44,9 +44,6 @@ public partial class BlobNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial IReadOnlyList<BlobInfoDto> Blobs { get; set; } = [];
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <summary>
 	/// Number of blobs in the latest preview.
 	/// </summary>

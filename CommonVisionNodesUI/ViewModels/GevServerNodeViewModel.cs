@@ -43,9 +43,6 @@ public partial class GevServerNodeViewModel : NodeViewModel
 	[ObservableProperty]
 	public partial string Status { get; set; } = "Stopped.";
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => string.IsNullOrWhiteSpace(Status)
 		? $"{GetAdapterLabel(LocalAddress)} ({DriverType})"

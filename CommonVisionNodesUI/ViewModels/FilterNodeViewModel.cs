@@ -38,9 +38,6 @@ public partial class FilterNodeViewModel : NodeViewModel
 
 	private string _kernelSize = string.Empty;
 
-	[ObservableProperty]
-	public partial ImagePreviewDto? PreviewImage { get; set; }
-
 	/// <inheritdoc/>
 	public override string? Summary => string.IsNullOrEmpty(FilterType)
 		? "No filter"
