@@ -20,6 +20,11 @@ public partial class App : Application
 	public App()
 	{
 		this.InitializeComponent();
+#if __WASM__
+		// Uno's upload-picker fallback maps unknown extensions to application/octet-stream,
+		// which Firefox displays as "All Files". A file extension is also a valid HTML accept token.
+		Uno.WinRTFeatureConfiguration.FileTypes.FileTypeToMimeMapping[".cvbgraph"] = ".cvbgraph";
+#endif
 	}
 
 	/// <summary>

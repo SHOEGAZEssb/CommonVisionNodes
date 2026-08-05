@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.Specialized;
 using CommonVisionNodes.Contracts;
 using CommonVisionNodesUI.Controls;
 using CommonVisionNodesUI.Services;
@@ -28,6 +29,7 @@ public sealed partial class MainPage : Page
 	[
 		".bmp", ".dib", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif"
 	];
+	private static readonly string[] GraphFileExtensions = [".cvbgraph"];
 
 	private static readonly JsonSerializerOptions GraphJsonOptions = new(JsonSerializerDefaults.Web)
 	{
@@ -119,6 +121,12 @@ public sealed partial class MainPage : Page
 
 		_viewModel.Graph.Nodes.CollectionChanged += (_, e) =>
 		{
+			if (e.Action == NotifyCollectionChangedAction.Reset)
+			{
+				ClearNodeControls();
+				return;
+			}
+
 			if (e.NewItems is not null)
 			{
 				foreach (NodeViewModel nodeViewModel in e.NewItems)
@@ -164,6 +172,15 @@ public sealed partial class MainPage : Page
 			GraphCanvas.Children.Remove(control);
 			_nodeControls.Remove(nodeViewModel);
 		}
+	}
+
+	private void ClearNodeControls()
+	{
+		foreach (var control in _nodeControls.Values)
+			GraphCanvas.Children.Remove(control);
+
+		_nodeControls.Clear();
+		_selectedControl = null;
 	}
 
 	private void OnNodeSelected(NodeControl control)
@@ -661,7 +678,7 @@ public sealed partial class MainPage : Page
 			SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
 			SuggestedFileName = "NodeGraph"
 		};
-		picker.FileTypeChoices.Add("Node Graph", [".cvbgraph"]);
+		picker.FileTypeChoices.Add("Node Graph", GraphFileExtensions);
 		InitializePicker(picker);
 
 		var file = await picker.PickSaveFileAsync();
@@ -682,7 +699,8 @@ public sealed partial class MainPage : Page
 		{
 			SuggestedStartLocation = PickerLocationId.DocumentsLibrary
 		};
-		picker.FileTypeFilter.Add(".cvbgraph");
+		foreach (var extension in GraphFileExtensions)
+			picker.FileTypeFilter.Add(extension);
 		InitializePicker(picker);
 
 		var file = await picker.PickSingleFileAsync();
@@ -691,8 +709,30 @@ public sealed partial class MainPage : Page
 
 		var json = await FileIO.ReadTextAsync(file);
 		var graph = JsonSerializer.Deserialize<GraphDto>(json, GraphJsonOptions);
-		if (graph is not null)
-			await _viewModel.Graph.LoadGraphAsync(graph);
+		if (graph is null)
+			return;
+
+		var clearCurrentGraph = true;
+		if (_viewModel.Graph.Nodes.Count > 0)
+		{
+			var clearGraphDialog = new ContentDialog
+			{
+				Title = "Clear current graph?",
+				Content = "Do you want to clear the current graph before loading the selected graph?",
+				PrimaryButtonText = "Yes",
+				SecondaryButtonText = "No",
+				CloseButtonText = "Cancel",
+				XamlRoot = XamlRoot
+			};
+
+			var result = await clearGraphDialog.ShowAsync();
+			if (result == ContentDialogResult.None)
+				return;
+
+			clearCurrentGraph = result == ContentDialogResult.Primary;
+		}
+
+		await _viewModel.Graph.LoadGraphAsync(graph, clearCurrentGraph);
 	}
 
 	private static void InitializePicker(object picker)

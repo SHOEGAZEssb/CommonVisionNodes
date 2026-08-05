@@ -198,14 +198,16 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 		};
 
 	/// <summary>
-	/// Replaces the current editor graph from a serialized DTO.
+	/// Loads a serialized graph into the editor, optionally replacing the current graph.
 	/// </summary>
 	/// <param name="graph">Graph DTO to load.</param>
+	/// <param name="clearCurrentGraph"><c>true</c> to clear the current graph before loading; otherwise, the loaded graph is appended.</param>
 	/// <returns>A task that completes when the graph is loaded.</returns>
-	public async Task LoadGraphAsync(GraphDto graph)
+	public async Task LoadGraphAsync(GraphDto graph, bool clearCurrentGraph = true)
 	{
 		await InitializeAsync();
-		ClearGraph();
+		if (clearCurrentGraph)
+			ClearGraph();
 
 		foreach (var node in graph.Nodes)
 		{
