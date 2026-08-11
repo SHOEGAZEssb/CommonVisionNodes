@@ -349,12 +349,12 @@ public sealed class ExecutionStateDto
 	public string? Message { get; set; }
 
 	/// <summary>
-	/// Number of graph frames processed by the current execution.
+	/// Number of completed graph frames processed by the current execution.
 	/// </summary>
 	public long FramesProcessed { get; set; }
 
 	/// <summary>
-	/// Estimated frames per second for the most recent reporting window.
+	/// Estimated completed frames per second for the most recent reporting window.
 	/// </summary>
 	public double? FramesPerSecond { get; set; }
 
@@ -393,6 +393,11 @@ public sealed class NodeExecutionUpdateDto
 	/// Duration of the node's most recent execution in milliseconds.
 	/// </summary>
 	public double? ExecutionDurationMs { get; set; }
+
+	/// <summary>
+	/// Estimated completed frames per second when this node is a graph terminal.
+	/// </summary>
+	public double? FramesPerSecond { get; set; }
 
 	/// <summary>
 	/// UTC timestamp when the update was produced.

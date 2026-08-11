@@ -388,6 +388,62 @@ public sealed class GraphExecutionRunnerTests
 	}
 
 	[Test]
+	public async Task ContinuousExecution_ShouldCountFramesOnlyWhenEveryTerminalNodeRuns()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = CreateTerminalCompletionRequest();
+		var runner = CreateRunner(request, messages, completed);
+
+		runner.Start();
+		await Task.Delay(350);
+		await runner.DisposeAsync();
+
+		List<ExecutionMessageDto> snapshot;
+		lock (messages)
+			snapshot = [.. messages];
+
+		var framesProcessed = snapshot
+			.Where(message => message.ExecutionState is not null)
+			.Max(message => message.ExecutionState!.FramesProcessed);
+
+		// The untriggered terminal runs continuously, but the triggered terminal runs only once
+		// during this interval. A graph frame is complete only when both terminals run.
+		Assert.That(framesProcessed, Is.EqualTo(1));
+	}
+
+	[Test]
+	public async Task ContinuousExecution_ShouldReportIndividualFramesPerSecondForTerminalNodes()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var runner = CreateRunner(CreateTerminalCompletionRequest(), messages, completed);
+
+		runner.Start();
+		await Task.Delay(1200);
+		await runner.DisposeAsync();
+
+		List<ExecutionMessageDto> snapshot;
+		lock (messages)
+			snapshot = [.. messages];
+
+		var triggeredTerminalFps = snapshot
+			.Where(message => message.NodeUpdate is { NodeId: "triggered-terminal", FramesPerSecond: not null })
+			.Select(message => message.NodeUpdate!.FramesPerSecond!.Value)
+			.Last();
+		var continuousTerminalFps = snapshot
+			.Where(message => message.NodeUpdate is { NodeId: "continuous-terminal", FramesPerSecond: not null })
+			.Select(message => message.NodeUpdate!.FramesPerSecond!.Value)
+			.Last();
+
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(triggeredTerminalFps, Is.GreaterThan(0));
+			Assert.That(continuousTerminalFps, Is.GreaterThan(triggeredTerminalFps));
+		}
+	}
+
+	[Test]
 	public async Task ContinuousExecution_ShouldUpdateImageGeneratorSpeedWithoutRestartingGraph()
 	{
 		var messages = new List<ExecutionMessageDto>();
@@ -693,6 +749,37 @@ public sealed class GraphExecutionRunnerTests
 							new NodePropertyDto { Name = nameof(ImageGeneratorNode.Speed), Value = "1" },
 							new NodePropertyDto { Name = NodePreviewSettings.ShowPreviewPropertyName, Value = showPreview.ToString() }
 						]
+					}
+				]
+			}
+		};
+
+	private static ExecutionRequestDto CreateTerminalCompletionRequest()
+		=> new()
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Continuous,
+			Graph = new GraphDto
+			{
+				Nodes =
+				[
+					new NodeDto
+					{
+						Id = "trigger",
+						Type = nameof(TimeTriggerNode),
+						Properties = [new NodePropertyDto { Name = nameof(TimeTriggerNode.FramesPerSecond), Value = "2" }]
+					},
+					new NodeDto { Id = "triggered-terminal", Type = nameof(ImageGeneratorNode) },
+					new NodeDto { Id = "continuous-terminal", Type = nameof(ImageGeneratorNode) }
+				],
+				Connections =
+				[
+					new ConnectionDto
+					{
+						OutputNodeId = "trigger",
+						OutputPortName = "Trigger",
+						InputNodeId = "triggered-terminal",
+						InputPortName = "Trigger"
 					}
 				]
 			}

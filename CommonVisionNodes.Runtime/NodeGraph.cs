@@ -123,6 +123,25 @@ namespace CommonVisionNodes.Runtime
 		/// Executes the graph and reports whether at least one non-trigger node ran.
 		/// </summary>
 		internal bool ExecuteWithActivity(Action<Node>? beforeExecute = null, Action<Node>? afterExecute = null)
+			=> ExecuteWithActivity(beforeExecute, afterExecute, trackedNodes: null, executedTrackedNodes: null);
+
+		/// <summary>
+		/// Executes the graph, reports whether at least one non-trigger node ran, and records the
+		/// successfully executed nodes in <paramref name="executedTrackedNodes"/>.
+		/// </summary>
+		internal bool ExecuteWithActivity(IReadOnlySet<Node> trackedNodes, ICollection<Node> executedTrackedNodes)
+		{
+			ArgumentNullException.ThrowIfNull(trackedNodes);
+			ArgumentNullException.ThrowIfNull(executedTrackedNodes);
+			executedTrackedNodes.Clear();
+			return ExecuteWithActivity(beforeExecute: null, afterExecute: null, trackedNodes, executedTrackedNodes);
+		}
+
+		private bool ExecuteWithActivity(
+			Action<Node>? beforeExecute,
+			Action<Node>? afterExecute,
+			IReadOnlySet<Node>? trackedNodes,
+			ICollection<Node>? executedTrackedNodes)
 		{
 			var sorted = _cachedSort ??= TopologicalSort();
 			var lookup = _connectionLookup ??= BuildConnectionLookup();
@@ -165,6 +184,9 @@ namespace CommonVisionNodes.Runtime
 
 				if (node is not TimeTriggerNode and not ManualTriggerNode)
 					executedWork = true;
+
+				if (trackedNodes?.Contains(node) == true)
+					executedTrackedNodes?.Add(node);
 
 				afterExecute?.Invoke(node);
 			}

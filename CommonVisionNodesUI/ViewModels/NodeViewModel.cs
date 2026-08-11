@@ -116,6 +116,12 @@ public abstract partial class NodeViewModel : ObservableObject
 	[ObservableProperty]
 	public partial string ExecutionTime { get; set; } = string.Empty;
 
+	/// <summary>
+	/// Recent completed-frame rate when this node is a graph terminal.
+	/// </summary>
+	[ObservableProperty]
+	public partial string SinkFps { get; set; } = string.Empty;
+
 	[ObservableProperty]
 	public partial double X { get; set; }
 
@@ -249,6 +255,8 @@ public abstract partial class NodeViewModel : ObservableObject
 	{
 		if (update.ExecutionDurationMs.HasValue)
 			ExecutionTime = FormatExecutionTime(update.ExecutionDurationMs.Value);
+		if (update.FramesPerSecond.HasValue)
+			SinkFps = $"FPS {update.FramesPerSecond.Value:F1}";
 
 		ExecutionStatus = update.Status;
 		ExecutionMessage = update.Message ?? string.Empty;
@@ -585,6 +593,9 @@ public abstract partial class NodeViewModel : ObservableObject
 
 		if (!string.IsNullOrEmpty(ExecutionMessage))
 			ExecutionMessage = string.Empty;
+
+		if (!string.IsNullOrEmpty(SinkFps))
+			SinkFps = string.Empty;
 	}
 
 	private void ClearPreviewState()

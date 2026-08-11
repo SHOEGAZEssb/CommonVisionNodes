@@ -100,12 +100,18 @@
                        TextTrimming="CharacterEllipsis"
                        Padding="8,0,8,6"/>
 
-            <!-- Execution time -->
-            <TextBlock x:Name="ExecutionTimeText" Grid.Row="3"
-                       Visibility="Collapsed"
-                       FontSize="10" Foreground="#777777"
-                       HorizontalAlignment="Right"
-                       Padding="8,0,8,6"/>
+            <!-- Execution metrics -->
+            <StackPanel x:Name="ExecutionMetricsPanel" Grid.Row="3"
+                        Visibility="Collapsed"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Padding="8,0,8,6">
+                <TextBlock x:Name="ExecutionTimeText"
+                           FontSize="10" Foreground="#777777"/>
+                <TextBlock x:Name="SinkFpsText"
+                           FontSize="10" Foreground="#777777"
+                           Margin="8,0,0,0"/>
+            </StackPanel>
         
             <!-- Image preview -->
             <cvb:CvbImageDisplay x:Name="ImagePreview" Grid.Row="4"

@@ -167,6 +167,7 @@ public sealed class GraphExecutionRunner(
 		var fpsTimer = Stopwatch.StartNew();
 		var telemetryTimer = Stopwatch.StartNew();
 		var framesInWindow = 0;
+		var executedFrameCompletionNodes = new List<Node>();
 
 		try
 		{
@@ -180,13 +181,16 @@ public sealed class GraphExecutionRunner(
 			await PublishStateAsync(ExecutionStatusDto.Initializing, "Initializing runtime nodes.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 			lock (_graphSync)
 				graphBuildResult.Graph.Initialize();
+			var frameCompletionNodes = GetFrameCompletionNodes(graphBuildResult.Graph);
+			var framesInWindowByCompletionNode = frameCompletionNodes.ToDictionary(node => node, _ => 0);
+			var framesPerSecondByCompletionNode = new Dictionary<Node, double>();
 
 			await PublishStateAsync(ExecutionStatusDto.Running, "Execution started.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 
 			if (_request.Mode == ExecutionModeDto.Single)
 			{
-				var (elapsed, _) = await ExecuteFrameAsync(graphBuildResult, publishNodeUpdates: true, cancellationToken).ConfigureAwait(false);
-				framesProcessed = 1;
+				var (elapsed, _, completedFrame) = await ExecuteFrameAsync(graphBuildResult, frameCompletionNodes, executedFrameCompletionNodes, publishNodeUpdates: true, framesPerSecondByCompletionNode, cancellationToken).ConfigureAwait(false);
+				framesProcessed = completedFrame ? 1 : 0;
 				await PublishPreviewsAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
 				await PublishStateAsync(ExecutionStatusDto.Completed, "Execution completed.", framesProcessed, null, elapsed.TotalMilliseconds, ExecutionMessageTypeDto.Completed, cancellationToken).ConfigureAwait(false);
 				return;
@@ -194,8 +198,10 @@ public sealed class GraphExecutionRunner(
 
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				var (elapsed, executedWork) = await ExecuteFrameAsync(graphBuildResult, publishNodeUpdates: false, cancellationToken).ConfigureAwait(false);
-				if (executedWork)
+				var (elapsed, executedWork, completedFrame) = await ExecuteFrameAsync(graphBuildResult, frameCompletionNodes, executedFrameCompletionNodes, publishNodeUpdates: false, framesPerSecondByCompletionNode, cancellationToken).ConfigureAwait(false);
+				foreach (var node in executedFrameCompletionNodes)
+					framesInWindowByCompletionNode[node]++;
+				if (completedFrame)
 				{
 					framesProcessed++;
 					framesInWindow++;
@@ -204,7 +210,13 @@ public sealed class GraphExecutionRunner(
 				double? fps = null;
 				if (fpsTimer.ElapsedMilliseconds >= 1000)
 				{
-					fps = framesInWindow * 1000.0 / fpsTimer.ElapsedMilliseconds;
+					var elapsedMilliseconds = fpsTimer.ElapsedMilliseconds;
+					fps = framesInWindow * 1000.0 / elapsedMilliseconds;
+					foreach (var pair in framesInWindowByCompletionNode)
+					{
+						framesPerSecondByCompletionNode[pair.Key] = pair.Value * 1000.0 / elapsedMilliseconds;
+						framesInWindowByCompletionNode[pair.Key] = 0;
+					}
 					framesInWindow = 0;
 					fpsTimer.Restart();
 				}
@@ -212,7 +224,7 @@ public sealed class GraphExecutionRunner(
 				var shouldPublishTelemetry = telemetryTimer.Elapsed.TotalMilliseconds >= ContinuousTelemetryIntervalMilliseconds;
 				if (shouldPublishTelemetry)
 				{
-					await PublishNodeUpdatesAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
+					await PublishNodeUpdatesAsync(graphBuildResult, framesPerSecondByCompletionNode, cancellationToken).ConfigureAwait(false);
 					await PublishStateAsync(ExecutionStatusDto.Running, "Executing.", framesProcessed, fps, elapsed.TotalMilliseconds, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 					telemetryTimer.Restart();
 				}
@@ -264,7 +276,13 @@ public sealed class GraphExecutionRunner(
 		}
 	}
 
-	private async Task<(TimeSpan Elapsed, bool ExecutedWork)> ExecuteFrameAsync(RuntimeGraphBuildResult graphBuildResult, bool publishNodeUpdates, CancellationToken cancellationToken)
+	private async Task<(TimeSpan Elapsed, bool ExecutedWork, bool CompletedFrame)> ExecuteFrameAsync(
+		RuntimeGraphBuildResult graphBuildResult,
+		HashSet<Node> frameCompletionNodes,
+		List<Node> executedFrameCompletionNodes,
+		bool publishNodeUpdates,
+		IReadOnlyDictionary<Node, double> framesPerSecondByCompletionNode,
+		CancellationToken cancellationToken)
 	{
 		var executionTimer = Stopwatch.StartNew();
 		bool executedWork;
@@ -272,7 +290,7 @@ public sealed class GraphExecutionRunner(
 		try
 		{
 			lock (_graphSync)
-				executedWork = graphBuildResult.Graph.ExecuteWithActivity();
+				executedWork = graphBuildResult.Graph.ExecuteWithActivity(frameCompletionNodes, executedFrameCompletionNodes);
 		}
 		catch (NodeExecutionException nodeExecutionException)
 		{
@@ -285,6 +303,7 @@ public sealed class GraphExecutionRunner(
 					nodeExecutionException.Node,
 					NodeExecutionStatusDto.Failed,
 					nodeExecutionException.InnerException?.Message ?? nodeExecutionException.Message,
+					null,
 					CancellationToken.None).ConfigureAwait(false);
 			}
 
@@ -294,9 +313,26 @@ public sealed class GraphExecutionRunner(
 		executionTimer.Stop();
 
 		if (publishNodeUpdates)
-			await PublishNodeUpdatesAsync(graphBuildResult, cancellationToken).ConfigureAwait(false);
+			await PublishNodeUpdatesAsync(graphBuildResult, framesPerSecondByCompletionNode, cancellationToken).ConfigureAwait(false);
 
-		return (executionTimer.Elapsed, executedWork);
+		var completedFrame = frameCompletionNodes.Count == 0
+			? executedWork
+			: executedFrameCompletionNodes.Count == frameCompletionNodes.Count;
+		return (executionTimer.Elapsed, executedWork, completedFrame);
+	}
+
+	private static HashSet<Node> GetFrameCompletionNodes(NodeGraph graph)
+	{
+		var nodesWithOutgoingConnections = graph.Connections
+			.Select(connection => connection.Output.Node)
+			.ToHashSet();
+
+		// A graph frame has completed only after every non-trigger terminal has run. This is the
+		// final node for a linear graph; requiring every terminal keeps the metric meaningful when
+		// the graph has multiple output branches.
+		return graph.Nodes
+			.Where(node => node is not TimeTriggerNode and not ManualTriggerNode && !nodesWithOutgoingConnections.Contains(node))
+			.ToHashSet();
 	}
 
 	private static Task DelayUntilNextTriggerAsync(NodeGraph graph, CancellationToken cancellationToken)
@@ -316,10 +352,16 @@ public sealed class GraphExecutionRunner(
 			: Task.CompletedTask;
 	}
 
-	private async Task PublishNodeUpdatesAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)
+	private async Task PublishNodeUpdatesAsync(
+		RuntimeGraphBuildResult graphBuildResult,
+		IReadOnlyDictionary<Node, double> framesPerSecondByCompletionNode,
+		CancellationToken cancellationToken)
 	{
 		foreach (var pair in graphBuildResult.NodeIdsByRuntime)
-			await PublishNodeUpdateAsync(pair.Value, pair.Key, GetNodeStatus(pair.Key), GetNodeMessage(pair.Key), cancellationToken).ConfigureAwait(false);
+		{
+			framesPerSecondByCompletionNode.TryGetValue(pair.Key, out var framesPerSecond);
+			await PublishNodeUpdateAsync(pair.Value, pair.Key, GetNodeStatus(pair.Key), GetNodeMessage(pair.Key), framesPerSecondByCompletionNode.ContainsKey(pair.Key) ? framesPerSecond : null, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	private async Task PublishPreviewsAsync(RuntimeGraphBuildResult graphBuildResult, CancellationToken cancellationToken)
@@ -402,6 +444,7 @@ public sealed class GraphExecutionRunner(
 		Node node,
 		NodeExecutionStatusDto status,
 		string? message,
+		double? framesPerSecond,
 		CancellationToken cancellationToken)
 	{
 		return PublishAsync(
@@ -414,6 +457,7 @@ public sealed class GraphExecutionRunner(
 					Status = status,
 					Message = message,
 					ExecutionDurationMs = node.LastExecutionTime.TotalMilliseconds,
+					FramesPerSecond = framesPerSecond,
 					TimestampUtc = DateTimeOffset.UtcNow
 				}
 			},

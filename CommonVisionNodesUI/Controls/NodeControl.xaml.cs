@@ -83,8 +83,8 @@ public sealed partial class NodeControl : UserControl
 		{
 			if (e.PropertyName == nameof(NodeViewModel.Summary))
 				UpdateSummary();
-			else if (e.PropertyName == nameof(NodeViewModel.ExecutionTime))
-				UpdateExecutionTime();
+			else if (e.PropertyName is nameof(NodeViewModel.ExecutionTime) or nameof(NodeViewModel.SinkFps))
+				UpdateExecutionMetrics();
 			else if (e.PropertyName is nameof(NodeViewModel.HasExecutionError) or nameof(NodeViewModel.ExecutionErrorText))
 			{
 				UpdateExecutionError();
@@ -101,6 +101,7 @@ public sealed partial class NodeControl : UserControl
 			}
 		};
 		UpdateSummary();
+		UpdateExecutionMetrics();
 		UpdateExecutionError();
 		UpdateNodeBorder();
 
@@ -412,17 +413,19 @@ public sealed partial class NodeControl : UserControl
 		}
 	}
 
-	private void UpdateExecutionTime()
+	private void UpdateExecutionMetrics()
 	{
 		var time = _viewModel?.ExecutionTime;
-		if (!string.IsNullOrEmpty(time))
+		var fps = _viewModel?.SinkFps;
+		if (!string.IsNullOrEmpty(time) || !string.IsNullOrEmpty(fps))
 		{
 			ExecutionTimeText.Text = time;
-			ExecutionTimeText.Visibility = Visibility.Visible;
+			SinkFpsText.Text = fps;
+			ExecutionMetricsPanel.Visibility = Visibility.Visible;
 		}
 		else
 		{
-			ExecutionTimeText.Visibility = Visibility.Collapsed;
+			ExecutionMetricsPanel.Visibility = Visibility.Collapsed;
 		}
 	}
 
