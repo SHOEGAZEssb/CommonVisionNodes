@@ -176,7 +176,7 @@ try {
     $unnecessaryFiles = @(
         Get-ChildItem -LiteralPath (Join-Path $stagingPath "Server"), (Join-Path $stagingPath "Desktop") `
             -Recurse -File -Filter "*.pdb"
-        Get-ChildItem -LiteralPath (Join-Path $stagingPath "Server") `
+        Get-ChildItem -LiteralPath (Join-Path $stagingPath "Server"), (Join-Path $stagingPath "Desktop") `
             -Recurse -File -Filter "Stemmer.Cvb*.xml"
     )
 

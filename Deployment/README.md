@@ -2,9 +2,10 @@
 
 The local deployment contains framework-dependent Windows executables for the
 single-file launcher, backend, and Uno desktop UI, plus the published Uno
-WebAssembly files. The target computer needs the .NET 10 ASP.NET Core Runtime,
-which also provides the base .NET runtime used by the launcher and Uno Skia
-desktop UI. Installing the .NET 10 SDK also provides these runtimes.
+WebAssembly files. Web mode requires the .NET 10 ASP.NET Core Runtime. Desktop
+mode hosts CVB directly in the Uno application and requires only the base .NET
+10 runtime used by the launcher and Uno Skia desktop UI. Installing the .NET 10
+SDK provides both runtimes.
 
 No separate web server is required. Common Vision Blox, its required drivers,
 and licensing must still be available.
@@ -15,11 +16,9 @@ To verify the runtime installation, run:
 dotnet --list-runtimes
 ```
 
-The output must contain both `Microsoft.NETCore.App 10.0.x` and
-`Microsoft.AspNetCore.App 10.0.x` for x64. Backend exit code `-2147450730`
-(`0x80008096`) means that a required .NET framework was not found; when the
-launcher itself starts, the missing framework is normally the .NET 10 ASP.NET
-Core Runtime.
+Desktop mode requires `Microsoft.NETCore.App 10.0.x` for x64. Web mode also
+requires `Microsoft.AspNetCore.App 10.0.x`. Backend exit code `-2147450730`
+(`0x80008096`) means that a required .NET framework was not found.
 
 ## Publish
 
@@ -94,9 +93,9 @@ worker leaves the browser in a bad state, repair that browser profile explicitly
 .\CommonVisionNodes.Launcher.exe --mode Web --reset-browser-cache
 ```
 
-Desktop mode stops the backend when the desktop window closes. Web mode keeps
-the launcher open; press Enter in its console window to stop all processes
-started by the launcher.
+Desktop mode starts only the desktop UI and exits when its window closes. Web
+mode keeps the launcher open; press Enter in its console window to stop all
+processes started by the launcher.
 
 The reset option opens a local repair page that unregisters legacy service
 workers and clears cached WebAssembly assets before redirecting to the UI. PWA

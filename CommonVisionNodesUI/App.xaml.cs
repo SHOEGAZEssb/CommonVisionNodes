@@ -97,9 +97,13 @@ public partial class App : Application
 
 	private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
 	{
+	#if __WASM__
 		var backendBaseUrl = context.Configuration["AppConfig:BackendBaseUrl"]
 			?? "http://127.0.0.1:5077";
 		services.AddSingleton<IBackendClient>(_ => new BackendClient(backendBaseUrl));
+	#else
+		services.AddSingleton<IBackendClient, DesktopBackendClient>();
+	#endif
 		services.AddSingleton<NodeGraphViewModel>();
 		services.AddSingleton<MainViewModel>();
 	}

@@ -1,12 +1,12 @@
 # CommonVisionNodes
 
-CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vision Blox (CVB). It lets you build an image-processing pipeline as a typed node graph, execute it through a local backend, inspect live previews, and generate standalone CVB SDK C# code from the same graph.
+CommonVisionNodes is a .NET 10 visual image-processing playground for Common Vision Blox (CVB). It lets you build an image-processing pipeline as a typed node graph, inspect live previews, and generate standalone CVB SDK C# code from the same graph. The desktop UI hosts CVB execution in-process; the WebAssembly UI communicates with a local backend.
 
 ## Solution Layout
 
 - `CommonVisionNodes.Contracts` - shared DTOs for graph definitions, execution requests, execution state, and preview messages.
 - `CommonVisionNodes.Runtime` - runtime node graph, CVB processing nodes, graph execution, previews, and C# code generation.
-- `CommonVisionNodes.Server` - ASP.NET Core backend that exposes node definitions, graph execution, stop, code generation, and WebSocket execution updates.
+- `CommonVisionNodes.Server` - ASP.NET Core backend for the browser UI: node definitions, graph execution, code generation, and WebSocket execution updates.
 - `CommonVisionNodesUI` - Uno Platform UI for editing node graphs, saving/loading graph files, running pipelines, and viewing previews.
 - `Benchmarks/CommonVisionNodes.Benchmarks` - BenchmarkDotNet benchmarks for binary image transfer and frontend pixel-buffer uploads.
 - `Tests/CommonVisionNodes.Test` - NUnit tests for graph behavior, image nodes, code generation, runtime graph building, and execution messages.
@@ -79,7 +79,7 @@ See [`Benchmarks/README.md`](Benchmarks/README.md) for benchmark scope, focused 
 
 ## Running The App
 
-Start the backend first:
+The WebAssembly UI requires the backend:
 
 ```powershell
 dotnet run --project CommonVisionNodes.Server\CommonVisionNodes.Server.csproj
@@ -91,7 +91,7 @@ By default the backend listens on:
 http://localhost:5077
 ```
 
-Run the Uno UI in desktop mode:
+Run the Uno UI in desktop mode. It executes CVB locally and does not require the backend:
 
 ```powershell
 dotnet run --project CommonVisionNodesUI\CommonVisionNodesUI.csproj -f net10.0-desktop
@@ -103,7 +103,7 @@ Run the Uno UI in WebAssembly mode:
 dotnet run --project CommonVisionNodesUI\CommonVisionNodesUI.csproj -f net10.0-browserwasm
 ```
 
-The UI reads the backend URL from `CommonVisionNodesUI/appsettings.json`:
+The WebAssembly UI reads the backend URL from `CommonVisionNodesUI/appsettings.json`:
 
 ```json
 {

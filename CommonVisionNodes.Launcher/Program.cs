@@ -41,23 +41,9 @@ internal static class Program
 
 		try
 		{
-			RequireFile(serverExecutable, "The backend executable");
-
-			string? webRoot = null;
-			if (options.Mode == LaunchMode.Web)
-				webRoot = FindWebRoot(deploymentRoot);
-			else
-				RequireFile(desktopExecutable, "The desktop UI executable");
-
-			Console.WriteLine("Starting CommonVisionNodes backend...");
-			serverProcess = StartBackend(serverExecutable, webRoot);
-			childProcessJob?.TryAdd(serverProcess);
-
-			await WaitForBackendAsync(serverProcess, cancellation.Token);
-			Console.WriteLine($"Backend ready at {BackendUrl}");
-
 			if (options.Mode == LaunchMode.Desktop)
 			{
+				RequireFile(desktopExecutable, "The desktop UI executable");
 				Console.WriteLine("Starting Uno desktop UI...");
 				desktopProcess = StartDesktop(desktopExecutable);
 				childProcessJob?.TryAdd(desktopProcess);
@@ -66,6 +52,15 @@ internal static class Program
 			}
 			else
 			{
+				RequireFile(serverExecutable, "The backend executable");
+				var webRoot = FindWebRoot(deploymentRoot);
+
+				Console.WriteLine("Starting CommonVisionNodes backend...");
+				serverProcess = StartBackend(serverExecutable, webRoot);
+				childProcessJob?.TryAdd(serverProcess);
+
+				await WaitForBackendAsync(serverProcess, cancellation.Token);
+				Console.WriteLine($"Backend ready at {BackendUrl}");
 				Console.WriteLine($"Web UI available at {BackendUrl}");
 				if (!options.NoBrowser)
 					OpenBrowser(options.ResetBrowserCache ? BrowserResetUri : WebUiUri);

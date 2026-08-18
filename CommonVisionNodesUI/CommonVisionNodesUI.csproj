@@ -33,6 +33,15 @@
     <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 
+  <!-- Desktop hosts the CVB runtime directly; the browser remains transport-only. -->
+  <ItemGroup Condition="'$(TargetFramework)'!='net10.0-browserwasm'">
+    <ProjectReference Include="..\CommonVisionNodes.Runtime\CommonVisionNodes.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net10.0-browserwasm'">
+    <Compile Remove="Services\DesktopBackendClient.cs" />
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-browserwasm'">
     <PublishTrimmed>false</PublishTrimmed>
     <WasmShellIndexHtmlPath>$(MSBuildProjectDirectory)\Platforms\WebAssembly\index.html</WasmShellIndexHtmlPath>
