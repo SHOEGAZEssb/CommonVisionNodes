@@ -1,7 +1,7 @@
 namespace CommonVisionNodes.Runtime
 {
 	/// <summary>
-	/// Raised when a node throws while the graph is executing.
+	/// Raised when a node throws while the graph is initializing or executing.
 	/// </summary>
 	/// <remarks>
 	/// Creates an exception that preserves the failing node and original error.
@@ -12,7 +12,7 @@ namespace CommonVisionNodes.Runtime
 	{
 
 		/// <summary>
-		/// Node that failed during graph execution.
+		/// Node that failed during graph initialization or execution.
 		/// </summary>
 		public Node Node { get; } = node;
 	}

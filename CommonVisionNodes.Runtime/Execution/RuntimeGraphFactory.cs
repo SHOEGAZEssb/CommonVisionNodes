@@ -40,20 +40,41 @@ public sealed class RuntimeGraphFactory(RuntimeNodeCatalog catalog)
 			nodeIdsByRuntime.Add(node, nodeDto.Id);
 		}
 
-		foreach (var connectionDto in graphDto.Connections)
+		var pendingConnections = graphDto.Connections.ToList();
+		while (pendingConnections.Count > 0)
 		{
-			if (!nodesById.TryGetValue(connectionDto.OutputNodeId, out var outputNode))
-				throw new InvalidOperationException($"Unknown output node '{connectionDto.OutputNodeId}'.");
+			var connectedAny = false;
+			foreach (var connectionDto in pendingConnections.ToList())
+			{
+				try
+				{
+					Connect(graph, nodesById, connectionDto);
+					pendingConnections.Remove(connectionDto);
+					connectedAny = true;
+				}
+				catch (InvalidOperationException exception) when (exception.Message == "Incompatible port types")
+				{
+					// A dynamic pass-through output may need its own input connection first.
+				}
+			}
 
-			if (!nodesById.TryGetValue(connectionDto.InputNodeId, out var inputNode))
-				throw new InvalidOperationException($"Unknown input node '{connectionDto.InputNodeId}'.");
-
-			var outputPort = outputNode.Outputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.OutputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown output port '{connectionDto.OutputPortName}' on node '{connectionDto.OutputNodeId}'.");
-
-			var inputPort = inputNode.Inputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.InputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown input port '{connectionDto.InputPortName}' on node '{connectionDto.InputNodeId}'.");
-			graph.Connect(outputPort, inputPort);
+			if (!connectedAny)
+				Connect(graph, nodesById, pendingConnections[0]);
 		}
 
 		return new RuntimeGraphBuildResult(graph, nodesById, nodeIdsByRuntime);
+	}
+
+	private static void Connect(NodeGraph graph, IReadOnlyDictionary<string, Node> nodesById, ConnectionDto connectionDto)
+	{
+		if (!nodesById.TryGetValue(connectionDto.OutputNodeId, out var outputNode))
+			throw new InvalidOperationException($"Unknown output node '{connectionDto.OutputNodeId}'.");
+
+		if (!nodesById.TryGetValue(connectionDto.InputNodeId, out var inputNode))
+			throw new InvalidOperationException($"Unknown input node '{connectionDto.InputNodeId}'.");
+
+		var outputPort = outputNode.Outputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.OutputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown output port '{connectionDto.OutputPortName}' on node '{connectionDto.OutputNodeId}'.");
+		var inputPort = inputNode.Inputs.FirstOrDefault(port => string.Equals(port.Name, connectionDto.InputPortName, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Unknown input port '{connectionDto.InputPortName}' on node '{connectionDto.InputNodeId}'.");
+		graph.Connect(outputPort, inputPort);
 	}
 }

@@ -449,6 +449,22 @@ namespace CommonVisionNodes.Test
 		}
 
 		[Test]
+		public void Initialize_WhenNodeThrows_ShouldPreserveTheFailingNode()
+		{
+			var graph = new NodeGraph();
+			var node = new FailingInitializableNode();
+			graph.AddNode(node);
+
+			var exception = Assert.Throws<NodeExecutionException>(() => graph.Initialize());
+
+			using (Assert.EnterMultipleScope())
+			{
+				Assert.That(exception!.Node, Is.SameAs(node));
+				Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+			}
+		}
+
+		[Test]
 		public void Initialize_ShouldSkipNonInitializableNodes()
 		{
 			// Arrange
@@ -667,5 +683,16 @@ namespace CommonVisionNodes.Test
 		{
 			IsInitialized = false;
 		}
+	}
+
+	internal sealed class FailingInitializableNode : Node, IInitializable
+	{
+		public bool IsInitialized => false;
+
+		public void Initialize() => throw new InvalidOperationException("Initialization failed.");
+
+		public override void Execute() { }
+
+		public void Dispose() { }
 	}
 }

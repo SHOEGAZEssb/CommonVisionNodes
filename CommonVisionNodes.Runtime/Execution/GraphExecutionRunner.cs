@@ -246,6 +246,11 @@ public sealed class GraphExecutionRunner(
 		{
 			await PublishStateAsync(ExecutionStatusDto.Stopped, "Execution stopped.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, CancellationToken.None).ConfigureAwait(false);
 		}
+		catch (NodeExecutionException nodeExecutionException)
+		{
+			await PublishFailedNodeAsync(nodeExecutionException, graphBuildResult).ConfigureAwait(false);
+			await PublishFailureAsync(nodeExecutionException, graphBuildResult, framesProcessed).ConfigureAwait(false);
+		}
 		catch (Exception ex)
 		{
 			await PublishFailureAsync(ex, graphBuildResult, framesProcessed).ConfigureAwait(false);
@@ -292,21 +297,9 @@ public sealed class GraphExecutionRunner(
 			lock (_graphSync)
 				executedWork = graphBuildResult.Graph.ExecuteWithActivity(frameCompletionNodes, executedFrameCompletionNodes);
 		}
-		catch (NodeExecutionException nodeExecutionException)
+		catch
 		{
 			executionTimer.Stop();
-
-			if (graphBuildResult.NodeIdsByRuntime.TryGetValue(nodeExecutionException.Node, out var nodeId))
-			{
-				await PublishNodeUpdateAsync(
-					nodeId,
-					nodeExecutionException.Node,
-					NodeExecutionStatusDto.Failed,
-					nodeExecutionException.InnerException?.Message ?? nodeExecutionException.Message,
-					null,
-					CancellationToken.None).ConfigureAwait(false);
-			}
-
 			throw;
 		}
 
@@ -462,6 +455,21 @@ public sealed class GraphExecutionRunner(
 				}
 			},
 			cancellationToken);
+	}
+
+	private Task PublishFailedNodeAsync(NodeExecutionException exception, RuntimeGraphBuildResult? graphBuildResult)
+	{
+		if (graphBuildResult is null ||
+			!graphBuildResult.NodeIdsByRuntime.TryGetValue(exception.Node, out var nodeId))
+			return Task.CompletedTask;
+
+		return PublishNodeUpdateAsync(
+			nodeId,
+			exception.Node,
+			NodeExecutionStatusDto.Failed,
+			exception.InnerException?.Message ?? exception.Message,
+			null,
+			CancellationToken.None);
 	}
 
 	private Task PublishStateAsync(

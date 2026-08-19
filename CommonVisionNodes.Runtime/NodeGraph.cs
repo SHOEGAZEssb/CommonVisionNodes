@@ -90,7 +90,8 @@ namespace CommonVisionNodes.Runtime
 			if (_connections.Any(c => c.Input == input))
 				throw new InvalidOperationException("Input port already has a connection");
 
-			if (!input.Type.IsAssignableFrom(output.Type))
+			var outputType = ResolveOutputType(output);
+			if (outputType is null || !input.Type.IsAssignableFrom(outputType))
 				throw new InvalidOperationException("Incompatible port types");
 
 			_connections.Add(new Connection(output, input));
@@ -106,7 +107,16 @@ namespace CommonVisionNodes.Runtime
 			foreach (var node in sorted)
 			{
 				if (node is IInitializable initializable && !initializable.IsInitialized)
-					initializable.Initialize();
+				{
+					try
+					{
+						initializable.Initialize();
+					}
+					catch (Exception exception)
+					{
+						throw new NodeExecutionException(node, exception);
+					}
+				}
 			}
 		}
 
@@ -212,6 +222,25 @@ namespace CommonVisionNodes.Runtime
 		{
 			_cachedSort = null;
 			_connectionLookup = null;
+		}
+
+		/// <summary>
+		/// Resolves the concrete type emitted by an output port. A generic visualizer's output
+		/// takes the type of the port connected to its input, allowing it to remain in a typed pipeline.
+		/// </summary>
+		private Type? ResolveOutputType(Port output)
+			=> ResolveOutputType(output, []);
+
+		private Type? ResolveOutputType(Port output, HashSet<Port> visitedPorts)
+		{
+			if (!visitedPorts.Add(output))
+				return null;
+
+			if (output.Node is not GenericVisualizerNode visualizer || output != visualizer.DataOutput)
+				return output.Type;
+
+			var inputConnection = _connections.FirstOrDefault(connection => connection.Input == visualizer.DataInput);
+			return inputConnection is null ? null : ResolveOutputType(inputConnection.Output, visitedPorts);
 		}
 
 		private Dictionary<Port, Connection> BuildConnectionLookup()

@@ -293,6 +293,40 @@ public sealed class GraphExecutionRunnerTests
 	}
 
 	[Test]
+	public async Task SingleExecution_WithNodeInitializationException_ShouldPublishFailedNodeAndFailureContext()
+	{
+		var messages = new List<ExecutionMessageDto>();
+		var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var request = new ExecutionRequestDto
+		{
+			ClientId = "test-client",
+			Mode = ExecutionModeDto.Single,
+			Graph = new GraphDto
+			{
+				Nodes = [new NodeDto { Id = "image", Type = nameof(ImageNode) }]
+			}
+		};
+		var runner = CreateRunner(request, messages, completed);
+
+		runner.Start();
+		await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+		await runner.DisposeAsync();
+
+		var nodeFailure = messages.FirstOrDefault(message =>
+			message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+			message.NodeUpdate?.NodeId == "image" &&
+			message.NodeUpdate.Status == NodeExecutionStatusDto.Failed);
+		var failure = messages.LastOrDefault(message => message.MessageType == ExecutionMessageTypeDto.Failure);
+
+		using (Assert.EnterMultipleScope())
+		{
+			Assert.That(nodeFailure?.NodeUpdate?.Message, Is.Not.Null.And.Not.Empty);
+			Assert.That(failure?.ExecutionState?.Status, Is.EqualTo(ExecutionStatusDto.Failed));
+			Assert.That(failure?.ExecutionState?.Message, Does.Contain(nameof(ImageNode)).And.Contain("'image'"));
+		}
+	}
+
+	[Test]
 	public async Task ContinuousExecution_ShouldUpdateTimeTriggerPropertiesWithoutRestartingGraph()
 	{
 		var messages = new List<ExecutionMessageDto>();

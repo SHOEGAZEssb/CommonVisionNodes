@@ -218,16 +218,27 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 			AddLoadedNode(viewModel);
 		}
 
-		foreach (var connection in graph.Connections)
+		var pendingConnections = graph.Connections.ToList();
+		while (pendingConnections.Count > 0)
 		{
-			if (!_nodesById.TryGetValue(connection.OutputNodeId, out var outputNode) ||
-				!_nodesById.TryGetValue(connection.InputNodeId, out var inputNode))
-				continue;
+			var connectedAny = false;
+			foreach (var connection in pendingConnections.ToList())
+			{
+				if (!_nodesById.TryGetValue(connection.OutputNodeId, out var outputNode) ||
+					!_nodesById.TryGetValue(connection.InputNodeId, out var inputNode))
+					continue;
 
-			var outputPort = outputNode.OutputPorts.FirstOrDefault(port => port.Port.Name == connection.OutputPortName);
-			var inputPort = inputNode.InputPorts.FirstOrDefault(port => port.Port.Name == connection.InputPortName);
-			if (outputPort is not null && inputPort is not null)
-				TryConnect(outputPort, inputPort);
+				var outputPort = outputNode.OutputPorts.FirstOrDefault(port => port.Port.Name == connection.OutputPortName);
+				var inputPort = inputNode.InputPorts.FirstOrDefault(port => port.Port.Name == connection.InputPortName);
+				if (outputPort is null || inputPort is null || !TryConnect(outputPort, inputPort))
+					continue;
+
+				pendingConnections.Remove(connection);
+				connectedAny = true;
+			}
+
+			if (!connectedAny)
+				break;
 		}
 	}
 
@@ -249,7 +260,7 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 		if (ReferenceEquals(outputPort.ParentNode, inputPort.ParentNode))
 			return false;
 
-		if (!AreTypesCompatible(outputPort.Port.Type, inputPort.Port.Type))
+		if (!AreTypesCompatible(outputPort, inputPort))
 			return false;
 
 		if (Connections.Any(connection => connection.Target == inputPort))
@@ -848,7 +859,9 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	}
 
 	private static bool IsCoalescableRuntimeMessage(ExecutionMessageDto message)
-		=> message.MessageType is ExecutionMessageTypeDto.NodeUpdate or
+		=> message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+			message.NodeUpdate?.Status != NodeExecutionStatusDto.Failed ||
+			message.MessageType is
 			ExecutionMessageTypeDto.HistogramPreview or
 			ExecutionMessageTypeDto.TextPreview ||
 			message.MessageType == ExecutionMessageTypeDto.ExecutionState &&
@@ -856,6 +869,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
 	private static bool IsCriticalExecutionMessage(ExecutionMessageDto message)
 		=> message.MessageType is ExecutionMessageTypeDto.Completed or ExecutionMessageTypeDto.Failure ||
+			message.MessageType == ExecutionMessageTypeDto.NodeUpdate &&
+			message.NodeUpdate?.Status == NodeExecutionStatusDto.Failed ||
 			message.MessageType == ExecutionMessageTypeDto.ExecutionState &&
 			message.ExecutionState?.Status != ExecutionStatusDto.Running;
 
@@ -884,10 +899,30 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 			_ => string.Empty
 		});
 
-	private static bool AreTypesCompatible(string outputType, string inputType)
-		=> string.Equals(outputType, inputType, StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(inputType, "Any", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(outputType, "Any", StringComparison.OrdinalIgnoreCase);
+	private bool AreTypesCompatible(PortViewModel outputPort, PortViewModel inputPort)
+	{
+		var outputType = ResolveOutputType(outputPort, []);
+		return outputType is not null &&
+			(string.Equals(outputType, inputPort.Port.Type, StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(inputPort.Port.Type, "Any", StringComparison.OrdinalIgnoreCase));
+	}
+
+	private string? ResolveOutputType(PortViewModel outputPort, HashSet<PortViewModel> visitedPorts)
+	{
+		if (!visitedPorts.Add(outputPort))
+			return null;
+
+		if (!string.Equals(outputPort.ParentNode.Node.Type, "GenericVisualizerNode", StringComparison.OrdinalIgnoreCase) ||
+			!string.Equals(outputPort.Port.Name, "Data", StringComparison.OrdinalIgnoreCase))
+			return outputPort.Port.Type;
+
+		var inputPort = outputPort.ParentNode.InputPorts.FirstOrDefault(port =>
+			string.Equals(port.Port.Name, "Data", StringComparison.OrdinalIgnoreCase));
+		var inputConnection = inputPort is null
+			? null
+			: Connections.FirstOrDefault(connection => connection.Target == inputPort);
+		return inputConnection is null ? null : ResolveOutputType(inputConnection.Source, visitedPorts);
+	}
 
 	private static string FormatExecutionTime(double executionDurationMs)
 		=> executionDurationMs >= 1.0
