@@ -178,12 +178,15 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("{");
 			sb.AppendLine("    var image = new Image(new Size2D(width, height), 1);");
 			sb.AppendLine("    var access = image.Planes[0].GetLinearAccess();");
+			sb.AppendLine("    var basePtr = access.BasePtr;");
+			sb.AppendLine("    var xInc = access.XInc.ToInt64();");
+			sb.AppendLine("    var yInc = access.YInc.ToInt64();");
 			sb.AppendLine("    for (int y = 0; y < height; y++)");
 			sb.AppendLine("    {");
 			sb.AppendLine("        for (int x = 0; x < width; x++)");
 			sb.AppendLine("        {");
 			sb.AppendLine("            byte val = (byte)((x + y) % 256);");
-			sb.AppendLine("            var ptr = access.BasePtr + (nint)(y * access.YInc + x * access.XInc);");
+			sb.AppendLine("            var ptr = basePtr + (nint)(y * yInc + x * xInc);");
 			sb.AppendLine("            Marshal.WriteByte(ptr, val);");
 			sb.AppendLine("        }");
 			sb.AppendLine("    }");

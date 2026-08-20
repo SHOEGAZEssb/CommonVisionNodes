@@ -189,6 +189,12 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("    {");
 			sb.AppendLine("        var srcAccess = source.Planes[p].GetLinearAccess();");
 			sb.AppendLine("        var dstAccess = result.Planes[p].GetLinearAccess();");
+			sb.AppendLine("        var srcBase = srcAccess.BasePtr;");
+			sb.AppendLine("        var srcXInc = srcAccess.XInc.ToInt64();");
+			sb.AppendLine("        var srcYInc = srcAccess.YInc.ToInt64();");
+			sb.AppendLine("        var dstBase = dstAccess.BasePtr;");
+			sb.AppendLine("        var dstXInc = dstAccess.XInc.ToInt64();");
+			sb.AppendLine("        var dstYInc = dstAccess.YInc.ToInt64();");
 			sb.AppendLine("        for (int dy = 0; dy < srcH; dy++)");
 			sb.AppendLine("        {");
 			sb.AppendLine("            for (int dx = 0; dx < srcW; dx++)");
@@ -197,8 +203,8 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("                double ry = (dy - translateY - cy) * invSy;");
 			sb.AppendLine("                double sx = rx * cos + ry * sin + cx;");
 			sb.AppendLine("                double sy = -rx * sin + ry * cos + cy;");
-			sb.AppendLine("                byte val = SampleBilinear(srcAccess, sx, sy, srcW, srcH);");
-			sb.AppendLine("                var dstPtr = dstAccess.BasePtr + (nint)(dy * dstAccess.YInc + dx * dstAccess.XInc);");
+			sb.AppendLine("                byte val = SampleBilinear(srcBase, srcXInc, srcYInc, sx, sy, srcW, srcH);");
+			sb.AppendLine("                var dstPtr = dstBase + (nint)(dy * dstYInc + dx * dstXInc);");
 			sb.AppendLine("                Marshal.WriteByte(dstPtr, val);");
 			sb.AppendLine("            }");
 			sb.AppendLine("        }");
@@ -206,7 +212,7 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("    return result;");
 			sb.AppendLine("}");
 			sb.AppendLine();
-			sb.AppendLine("static byte SampleBilinear(LinearAccessData access, double x, double y, int w, int h)");
+			sb.AppendLine("static byte SampleBilinear(nint basePtr, long xInc, long yInc, double x, double y, int w, int h)");
 			sb.AppendLine("{");
 			sb.AppendLine("    if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1)");
 			sb.AppendLine("        return 0;");
@@ -216,10 +222,10 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("    int y1 = y0 + 1;");
 			sb.AppendLine("    double fx = x - x0;");
 			sb.AppendLine("    double fy = y - y0;");
-			sb.AppendLine("    byte v00 = Marshal.ReadByte(access.BasePtr + (nint)(y0 * access.YInc + x0 * access.XInc));");
-			sb.AppendLine("    byte v10 = Marshal.ReadByte(access.BasePtr + (nint)(y0 * access.YInc + x1 * access.XInc));");
-			sb.AppendLine("    byte v01 = Marshal.ReadByte(access.BasePtr + (nint)(y1 * access.YInc + x0 * access.XInc));");
-			sb.AppendLine("    byte v11 = Marshal.ReadByte(access.BasePtr + (nint)(y1 * access.YInc + x1 * access.XInc));");
+			sb.AppendLine("    byte v00 = Marshal.ReadByte(basePtr + (nint)(y0 * yInc + x0 * xInc));");
+			sb.AppendLine("    byte v10 = Marshal.ReadByte(basePtr + (nint)(y0 * yInc + x1 * xInc));");
+			sb.AppendLine("    byte v01 = Marshal.ReadByte(basePtr + (nint)(y1 * yInc + x0 * xInc));");
+			sb.AppendLine("    byte v11 = Marshal.ReadByte(basePtr + (nint)(y1 * yInc + x1 * xInc));");
 			sb.AppendLine("    double val = v00 * (1 - fx) * (1 - fy)");
 			sb.AppendLine("               + v10 * fx * (1 - fy)");
 			sb.AppendLine("               + v01 * (1 - fx) * fy");

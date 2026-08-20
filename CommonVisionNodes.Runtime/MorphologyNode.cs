@@ -207,6 +207,12 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("    {");
 			sb.AppendLine("        var srcAccess = source.Planes[p].GetLinearAccess();");
 			sb.AppendLine("        var dstAccess = result.Planes[p].GetLinearAccess();");
+			sb.AppendLine("        var srcBase = srcAccess.BasePtr;");
+			sb.AppendLine("        var srcXInc = srcAccess.XInc.ToInt64();");
+			sb.AppendLine("        var srcYInc = srcAccess.YInc.ToInt64();");
+			sb.AppendLine("        var dstBase = dstAccess.BasePtr;");
+			sb.AppendLine("        var dstXInc = dstAccess.XInc.ToInt64();");
+			sb.AppendLine("        var dstYInc = dstAccess.YInc.ToInt64();");
 			sb.AppendLine("        for (int y = 0; y < height; y++)");
 			sb.AppendLine("        {");
 			sb.AppendLine("            for (int x = 0; x < width; x++)");
@@ -218,12 +224,12 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("                    for (int kx = -radius; kx <= radius; kx++)");
 			sb.AppendLine("                    {");
 			sb.AppendLine("                        int sx = Math.Clamp(x + kx, 0, width - 1);");
-			sb.AppendLine("                        var ptr = srcAccess.BasePtr + (nint)(sy * srcAccess.YInc + sx * srcAccess.XInc);");
+			sb.AppendLine("                        var ptr = srcBase + (nint)(sy * srcYInc + sx * srcXInc);");
 			sb.AppendLine("                        byte val = Marshal.ReadByte(ptr);");
 			sb.AppendLine("                        extremum = erode ? Math.Min(extremum, val) : Math.Max(extremum, val);");
 			sb.AppendLine("                    }");
 			sb.AppendLine("                }");
-			sb.AppendLine("                var dstPtr = dstAccess.BasePtr + (nint)(y * dstAccess.YInc + x * dstAccess.XInc);");
+			sb.AppendLine("                var dstPtr = dstBase + (nint)(y * dstYInc + x * dstXInc);");
 			sb.AppendLine("                Marshal.WriteByte(dstPtr, extremum);");
 			sb.AppendLine("            }");
 			sb.AppendLine("        }");

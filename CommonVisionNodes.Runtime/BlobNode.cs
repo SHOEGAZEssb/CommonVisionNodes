@@ -325,11 +325,14 @@ namespace CommonVisionNodes.Runtime
 			sb.AppendLine("    int width = source.Width, height = source.Height;");
 			sb.AppendLine("    byte threshold = (byte)Math.Clamp(fgThreshold, 0, 255);");
 			sb.AppendLine("    var srcAccess = source.Planes[0].GetLinearAccess();");
+			sb.AppendLine("    var srcBase = srcAccess.BasePtr;");
+			sb.AppendLine("    var srcXInc = srcAccess.XInc.ToInt64();");
+			sb.AppendLine("    var srcYInc = srcAccess.YInc.ToInt64();");
 			sb.AppendLine("    bool[,] fg = new bool[height, width];");
 			sb.AppendLine("    for (int y = 0; y < height; y++)");
 			sb.AppendLine("        for (int x = 0; x < width; x++)");
 			sb.AppendLine("        {");
-			sb.AppendLine("            var ptr = srcAccess.BasePtr + (nint)(y * srcAccess.YInc + x * srcAccess.XInc);");
+			sb.AppendLine("            var ptr = srcBase + (nint)(y * srcYInc + x * srcXInc);");
 			sb.AppendLine("            byte val = Marshal.ReadByte(ptr);");
 			sb.AppendLine("            fg[y, x] = invert ? val < threshold : val >= threshold;");
 			sb.AppendLine("        }");
