@@ -522,6 +522,12 @@ public sealed partial class NodeControl : UserControl
 
 	private void Port_PointerPressed(object sender, PointerRoutedEventArgs e)
 	{
+		if (_viewModel?.IsGraphRunning == true)
+		{
+			e.Handled = true;
+			return;
+		}
+
 		if (sender is Ellipse ellipse && ellipse.DataContext is PortViewModel port)
 		{
 			if (e.GetCurrentPoint(null).Properties.IsRightButtonPressed)

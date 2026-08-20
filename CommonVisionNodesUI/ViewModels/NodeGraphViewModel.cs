@@ -244,12 +244,16 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 
 	/// <summary>
 	/// Attempts to connect two ports, replacing an existing input connection when necessary.
+	/// Connections cannot be changed while continuous graph execution is active.
 	/// </summary>
 	/// <param name="portA">First port involved in the connection gesture.</param>
 	/// <param name="portB">Second port involved in the connection gesture.</param>
 	/// <returns><c>true</c> when a connection was created.</returns>
 	public bool TryConnect(PortViewModel portA, PortViewModel portB)
 	{
+		if (IsRunning)
+			return false;
+
 		var outputPort = portA.Port.Direction == PortDirectionDto.Output ? portA : portB;
 		var inputPort = portA.Port.Direction == PortDirectionDto.Input ? portA : portB;
 
@@ -284,11 +288,14 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	}
 
 	/// <summary>
-	/// Removes every connection attached to a port.
+	/// Removes every connection attached to a port when the graph is not running.
 	/// </summary>
 	/// <param name="port">Port to disconnect.</param>
 	public void DisconnectPort(PortViewModel port)
 	{
+		if (IsRunning)
+			return;
+
 		var toRemove = Connections
 			.Where(connection => connection.Source == port || connection.Target == port)
 			.ToList();
@@ -403,6 +410,20 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	}
 
 	[RelayCommand]
+	private async Task AddPlaneMergeNode()
+	{
+		await InitializeAsync();
+		AddNode("PlaneMergeNode");
+	}
+
+	[RelayCommand]
+	private async Task AddPlaneSplitNode()
+	{
+		await InitializeAsync();
+		AddNode("PlaneSplitNode");
+	}
+
+	[RelayCommand]
 	private async Task AddMinosSearchNode()
 	{
 		await InitializeAsync();
@@ -442,6 +463,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	{
 		nodeViewModel.ConfigurationChanged -= OnNodeConfigurationChanged;
 		nodeViewModel.PropertyChanged -= OnNodePropertyChanged;
+		nodeViewModel.OutputPortsChanged -= OnNodeOutputPortsChanged;
+		nodeViewModel.InputPortsChanged -= OnNodeInputPortsChanged;
 		if (nodeViewModel is ManualTriggerNodeViewModel manualTriggerNode)
 			manualTriggerNode.TriggerRequested -= OnManualTriggerRequested;
 
@@ -540,6 +563,8 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 		{
 			node.ConfigurationChanged -= OnNodeConfigurationChanged;
 			node.PropertyChanged -= OnNodePropertyChanged;
+			node.OutputPortsChanged -= OnNodeOutputPortsChanged;
+			node.InputPortsChanged -= OnNodeInputPortsChanged;
 			if (node is ManualTriggerNodeViewModel manualTriggerNode)
 				manualTriggerNode.TriggerRequested -= OnManualTriggerRequested;
 		}
@@ -650,12 +675,42 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	{
 		viewModel.ConfigurationChanged += OnNodeConfigurationChanged;
 		viewModel.PropertyChanged += OnNodePropertyChanged;
+		viewModel.OutputPortsChanged += OnNodeOutputPortsChanged;
+		viewModel.InputPortsChanged += OnNodeInputPortsChanged;
 		viewModel.IsGraphRunning = IsRunning;
 		if (viewModel is ManualTriggerNodeViewModel manualTriggerNode)
 			manualTriggerNode.TriggerRequested += OnManualTriggerRequested;
 
 		Nodes.Add(viewModel);
 		_nodesById[viewModel.Node.Id] = viewModel;
+	}
+
+	private void OnNodeOutputPortsChanged(object? sender, EventArgs e)
+	{
+		if (sender is not NodeViewModel node)
+			return;
+
+		var currentOutputs = node.OutputPorts.ToHashSet();
+		foreach (var connection in Connections
+			.Where(connection => connection.Source.ParentNode == node && !currentOutputs.Contains(connection.Source))
+			.ToList())
+		{
+			Connections.Remove(connection);
+		}
+	}
+
+	private void OnNodeInputPortsChanged(object? sender, EventArgs e)
+	{
+		if (sender is not NodeViewModel node)
+			return;
+
+		var currentInputs = node.InputPorts.ToHashSet();
+		foreach (var connection in Connections
+			.Where(connection => connection.Target.ParentNode == node && !currentInputs.Contains(connection.Target))
+			.ToList())
+		{
+			Connections.Remove(connection);
+		}
 	}
 
 	private async void OnManualTriggerRequested(object? sender, EventArgs e)

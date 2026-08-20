@@ -46,6 +46,18 @@ namespace CommonVisionNodes.Runtime
 		}
 
 		/// <summary>
+		/// Removes an input port previously registered on this node.
+		/// Intended for nodes whose persisted configuration determines their port count.
+		/// </summary>
+		/// <param name="port">Input port to remove.</param>
+		protected void RemoveInput(Port port)
+		{
+			ArgumentNullException.ThrowIfNull(port);
+			if (port.Node != this || port.Direction != PortDirection.Input || !_inputs.Remove(port))
+				throw new InvalidOperationException("Input port does not belong to this node.");
+		}
+
+		/// <summary>
 		/// Registers a new output port on this node.
 		/// </summary>
 		/// <param name="name">Display name of the port.</param>
@@ -57,6 +69,18 @@ namespace CommonVisionNodes.Runtime
 			var port = new Port(this, name, type, PortDirection.Output, description);
 			_outputs.Add(port);
 			return port;
+		}
+
+		/// <summary>
+		/// Removes an output port previously registered on this node.
+		/// Intended for nodes whose persisted configuration determines their port count.
+		/// </summary>
+		/// <param name="port">Output port to remove.</param>
+		protected void RemoveOutput(Port port)
+		{
+			ArgumentNullException.ThrowIfNull(port);
+			if (port.Node != this || port.Direction != PortDirection.Output || !_outputs.Remove(port))
+				throw new InvalidOperationException("Output port does not belong to this node.");
 		}
 
 		/// <summary>

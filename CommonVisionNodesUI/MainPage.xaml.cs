@@ -196,6 +196,9 @@ public sealed partial class MainPage : Page
 
 	private void OnPortPressed(NodeControl sender, PortViewModel port, PointerRoutedEventArgs e)
 	{
+		if (_viewModel.Graph.IsRunning)
+			return;
+
 		_connectionDragSource = port;
 
 		_pendingConnectionPath = CreateBezierPath(
@@ -211,6 +214,9 @@ public sealed partial class MainPage : Page
 
 	private void OnPortRightTapped(NodeControl sender, PortViewModel port)
 	{
+		if (_viewModel.Graph.IsRunning)
+			return;
+
 		_viewModel.Graph.DisconnectPort(port);
 	}
 

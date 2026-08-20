@@ -356,6 +356,80 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="PlaneSplitNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Plane Count" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding PlaneCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Minimum="1"
+                               Maximum="16"
+                               SpinButtonPlacementMode="Compact"
+                               FontSize="13"/>
+                    <TextBlock Text="Set this to the number of planes in the incoming image. Changing it removes connections from outputs that no longer exist."
+                               FontSize="11"
+                               Foreground="#888888"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Pixel Mode" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <ComboBox ItemsSource="{Binding AvailableModes}"
+                              SelectedItem="{Binding Mode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Link shares the input plane's pixels; changes to either image are visible in the other."
+                               FontSize="11"
+                               Foreground="#888888"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PlaneMergeNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="Plane Count" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <NumberBox Value="{Binding PlaneCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Minimum="1"
+                               Maximum="16"
+                               IsEnabled="{Binding IsPlaneCountEditable}"
+                               SpinButtonPlacementMode="Compact"
+                               FontSize="13"/>
+                    <TextBlock Text="Each input must be a single-plane image. Changing the count removes connections from inputs that no longer exist."
+                               FontSize="11"
+                               Foreground="#888888"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                    <TextBlock Text="Non-unit weights support unsigned 8- and 16-bit planes."
+                               FontSize="11"
+                               Foreground="#888888"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Intensity Weights" FontSize="12" Foreground="#AAAAAA"/>
+                    <ItemsControl ItemsSource="{Binding PlaneWeights}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Label}" Foreground="White" VerticalAlignment="Center" FontSize="13"/>
+                                    <NumberBox Grid.Column="1"
+                                               Value="{Binding Weight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                               Minimum="0"
+                                               SpinButtonPlacementMode="Compact"
+                                               FontSize="13"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="BlobNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -603,6 +677,8 @@
             MorphologyNodeTemplate="{StaticResource MorphologyNodePropertiesTemplate}"
             BlobNodeTemplate="{StaticResource BlobNodePropertiesTemplate}"
             NormalizeNodeTemplate="{StaticResource NormalizeNodePropertiesTemplate}"
+            PlaneMergeNodeTemplate="{StaticResource PlaneMergeNodePropertiesTemplate}"
+            PlaneSplitNodeTemplate="{StaticResource PlaneSplitNodePropertiesTemplate}"
             MinosSearchNodeTemplate="{StaticResource MinosSearchNodePropertiesTemplate}"
             PolimagoClassifyNodeTemplate="{StaticResource PolimagoClassifyNodePropertiesTemplate}"
             CodeReaderNodeTemplate="{StaticResource CodeReaderNodePropertiesTemplate}"
@@ -737,6 +813,16 @@
                         <MenuFlyoutItem Text="Normalize" Command="{Binding Graph.AddNormalizeNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE793;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Plane Merge" Command="{Binding Graph.AddPlaneMergeNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8A5;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Plane Split" Command="{Binding Graph.AddPlaneSplitNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8A5;"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem Text="C# Script" Command="{Binding Graph.AddCSharpNodeCommand}">

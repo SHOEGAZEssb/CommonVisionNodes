@@ -600,6 +600,14 @@ public sealed class GraphExecutionRunner(
 			if (string.Equals(property.Name, NodePreviewSettings.ShowPreviewPropertyName, StringComparison.OrdinalIgnoreCase))
 				continue;
 
+			if (node is PlaneMergeNode)
+			{
+				if (string.Equals(property.Name, nameof(PlaneMergeNode.PlaneWeights), StringComparison.OrdinalIgnoreCase))
+					yield return property;
+
+				continue;
+			}
+
 			if (node is PolimagoClassifyNode &&
 				string.Equals(property.Name, nameof(PolimagoClassifyNode.MinQuality), StringComparison.OrdinalIgnoreCase))
 			{

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CommonVisionNodes.Contracts;
 using Windows.UI;
@@ -54,8 +55,8 @@ public abstract partial class NodeViewModel : ObservableObject
 		EnsureDefaultProperties();
 		ShowPreview = ReadShowPreview();
 
-		InputPorts = [.. definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index))];
-		OutputPorts = [.. definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index))];
+		InputPorts = new ObservableCollection<PortViewModel>(definition.InputPorts.Select((port, index) => new PortViewModel(port, this, index)));
+		OutputPorts = new ObservableCollection<PortViewModel>(definition.OutputPorts.Select((port, index) => new PortViewModel(port, this, index)));
 
 		X = node.X;
 		Y = node.Y;
@@ -79,6 +80,16 @@ public abstract partial class NodeViewModel : ObservableObject
 	public event EventHandler? ConfigurationChanged;
 
 	/// <summary>
+	/// Raised after this node's output-port collection changes.
+	/// </summary>
+	public event EventHandler? OutputPortsChanged;
+
+	/// <summary>
+	/// Raised after this node's input-port collection changes.
+	/// </summary>
+	public event EventHandler? InputPortsChanged;
+
+	/// <summary>
 	/// User-facing node title.
 	/// </summary>
 	public string Title => Definition.DisplayName;
@@ -86,12 +97,12 @@ public abstract partial class NodeViewModel : ObservableObject
 	/// <summary>
 	/// View models for input ports.
 	/// </summary>
-	public List<PortViewModel> InputPorts { get; }
+	public ObservableCollection<PortViewModel> InputPorts { get; }
 
 	/// <summary>
 	/// View models for output ports.
 	/// </summary>
-	public List<PortViewModel> OutputPorts { get; }
+	public ObservableCollection<PortViewModel> OutputPorts { get; }
 
 	/// <summary>
 	/// Short status/configuration text displayed inside the node.
@@ -445,6 +456,72 @@ public abstract partial class NodeViewModel : ObservableObject
 	/// </summary>
 	protected void RaiseSummaryChanged() => OnPropertyChanged(nameof(Summary));
 
+	/// <summary>
+	/// Reconciles the rendered input ports with configuration-specific port metadata.
+	/// Ports with an unchanged name, type, and direction retain their view model and connections.
+	/// </summary>
+	/// <param name="ports">Desired input ports in display order.</param>
+	protected void SetInputPorts(IEnumerable<PortDto> ports)
+	{
+		var previousMinimumHeight = MinimumContentHeight;
+		var desiredPorts = ports.ToList();
+		var existingPorts = InputPorts.ToDictionary(
+			port => (port.Port.Name, port.Port.Type, port.Port.Direction),
+			port => port,
+			EqualityComparer<(string, string, PortDirectionDto)>.Default);
+		var nextPorts = desiredPorts.Select((port, index) =>
+			existingPorts.TryGetValue((port.Name, port.Type, port.Direction), out var existing)
+				? existing
+				: new PortViewModel(port, this, index))
+			.ToList();
+
+		if (InputPorts.SequenceEqual(nextPorts))
+			return;
+
+		InputPorts.Clear();
+		foreach (var port in nextPorts)
+			InputPorts.Add(port);
+
+		AdjustHeightForPortCountChange(previousMinimumHeight);
+
+		NotifyPortPositions();
+		OnPropertyChanged(nameof(MinimumContentHeight));
+		InputPortsChanged?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>
+	/// Reconciles the rendered output ports with configuration-specific port metadata.
+	/// Ports with an unchanged name, type, and direction retain their view model and connections.
+	/// </summary>
+	/// <param name="ports">Desired output ports in display order.</param>
+	protected void SetOutputPorts(IEnumerable<PortDto> ports)
+	{
+		var previousMinimumHeight = MinimumContentHeight;
+		var desiredPorts = ports.ToList();
+		var existingPorts = OutputPorts.ToDictionary(
+			port => (port.Port.Name, port.Port.Type, port.Port.Direction),
+			port => port,
+			EqualityComparer<(string, string, PortDirectionDto)>.Default);
+		var nextPorts = desiredPorts.Select((port, index) =>
+			existingPorts.TryGetValue((port.Name, port.Type, port.Direction), out var existing)
+				? existing
+				: new PortViewModel(port, this, index))
+			.ToList();
+
+		if (OutputPorts.SequenceEqual(nextPorts))
+			return;
+
+		OutputPorts.Clear();
+		foreach (var port in nextPorts)
+			OutputPorts.Add(port);
+
+		AdjustHeightForPortCountChange(previousMinimumHeight);
+
+		NotifyPortPositions();
+		OnPropertyChanged(nameof(MinimumContentHeight));
+		OutputPortsChanged?.Invoke(this, EventArgs.Empty);
+	}
+
 	partial void OnShowPreviewChanged(bool value)
 	{
 		if (!SupportsPreviewToggle)
@@ -564,6 +641,15 @@ public abstract partial class NodeViewModel : ObservableObject
 			foreach (var port in OutputPorts)
 				port.NotifyPositionChanged();
 		}
+	}
+
+	private void AdjustHeightForPortCountChange(double previousMinimumHeight)
+	{
+		var currentMinimumHeight = MinimumContentHeight;
+		// A node at its old minimum height was automatically sized to its ports, so keep it
+		// fitted when ports are removed. Extra height chosen by the user remains intact.
+		if (Height < currentMinimumHeight || Math.Abs(Height - previousMinimumHeight) < 0.01)
+			Height = currentMinimumHeight;
 	}
 
 	private static string FormatExecutionTime(double executionDurationMs)

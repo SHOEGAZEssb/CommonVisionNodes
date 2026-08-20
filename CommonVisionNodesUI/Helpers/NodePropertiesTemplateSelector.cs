@@ -39,6 +39,10 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
 	public DataTemplate? BlobNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="NormalizeNodeViewModel"/>.</summary>
 	public DataTemplate? NormalizeNodeTemplate { get; set; }
+	/// <summary>Template for <see cref="PlaneMergeNodeViewModel"/>.</summary>
+	public DataTemplate? PlaneMergeNodeTemplate { get; set; }
+	/// <summary>Template for <see cref="PlaneSplitNodeViewModel"/>.</summary>
+	public DataTemplate? PlaneSplitNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="MinosSearchNodeViewModel"/>.</summary>
 	public DataTemplate? MinosSearchNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="PolimagoClassifyNodeViewModel"/>.</summary>
@@ -74,6 +78,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
 			MorphologyNodeViewModel => MorphologyNodeTemplate,
 			BlobNodeViewModel => BlobNodeTemplate,
 			NormalizeNodeViewModel => NormalizeNodeTemplate,
+			PlaneMergeNodeViewModel => PlaneMergeNodeTemplate,
+			PlaneSplitNodeViewModel => PlaneSplitNodeTemplate,
 			MinosSearchNodeViewModel => MinosSearchNodeTemplate,
 			PolimagoClassifyNodeViewModel => PolimagoClassifyNodeTemplate,
 			CodeReaderNodeViewModel => CodeReaderNodeTemplate,

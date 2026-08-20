@@ -34,6 +34,8 @@ public static class NodeViewModelFactory
 			"MorphologyNode" => new MorphologyNodeViewModel(node, definition),
 			"BlobNode" => new BlobNodeViewModel(node, definition),
 			"NormalizeNode" => new NormalizeNodeViewModel(node, definition),
+			"PlaneMergeNode" => new PlaneMergeNodeViewModel(node, definition),
+			"PlaneSplitNode" => new PlaneSplitNodeViewModel(node, definition),
 			"MinosSearchNode" => new MinosSearchNodeViewModel(node, definition),
 			"PolimagoClassifyNode" => new PolimagoClassifyNodeViewModel(node, definition),
 			"CodeReaderNode" => new CodeReaderNodeViewModel(node, definition),
