@@ -23,6 +23,7 @@ public static class NodeViewModelFactory
 			"SaveImageNode" => new SaveImageNodeViewModel(node, definition),
 			"GevServerNode" => new GevServerNodeViewModel(node, definition),
 			"DeviceNode" => new DeviceNodeViewModel(node, definition, refreshDeviceDefinitionsAsync),
+			"WebCamNode" => new WebCamNodeViewModel(node, definition, refreshDeviceDefinitionsAsync),
 			"BinarizeNode" => new BinarizeNodeViewModel(node, definition),
 			"SubImageNode" => new SubImageNodeViewModel(node, definition),
 			"MatrixTransformNode" => new MatrixTransformNodeViewModel(node, definition),

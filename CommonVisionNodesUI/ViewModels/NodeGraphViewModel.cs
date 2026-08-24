@@ -333,6 +333,13 @@ public partial class NodeGraphViewModel(IBackendClient backendClient) : Observab
 	}
 
 	[RelayCommand]
+	private async Task AddWebCamNode()
+	{
+		await InitializeAsync();
+		AddNode("WebCamNode");
+	}
+
+	[RelayCommand]
 	private async Task AddBinarizeNode()
 	{
 		await InitializeAsync();

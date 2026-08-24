@@ -85,9 +85,10 @@ public sealed partial class NodeControl : UserControl
 				UpdateSummary();
 			else if (e.PropertyName is nameof(NodeViewModel.ExecutionTime) or nameof(NodeViewModel.SinkFps))
 				UpdateExecutionMetrics();
-			else if (e.PropertyName is nameof(NodeViewModel.HasExecutionError) or nameof(NodeViewModel.ExecutionErrorText))
+			else if (e.PropertyName is nameof(NodeViewModel.HasExecutionError) or nameof(NodeViewModel.ExecutionErrorText) or nameof(NodeViewModel.IsInitializing) or nameof(NodeViewModel.ExecutionMessage))
 			{
 				UpdateExecutionError();
+				UpdateInitializationStatus();
 				UpdateNodeBorder();
 			}
 			else if (e.PropertyName is nameof(NodeViewModel.Width) or nameof(NodeViewModel.Height))
@@ -103,6 +104,7 @@ public sealed partial class NodeControl : UserControl
 		UpdateSummary();
 		UpdateExecutionMetrics();
 		UpdateExecutionError();
+		UpdateInitializationStatus();
 		UpdateNodeBorder();
 
 		if (vm is ImageNodeViewModel imageVM)
@@ -121,6 +123,15 @@ public sealed partial class NodeControl : UserControl
 			{
 				if (e.PropertyName is nameof(DeviceNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
 					UpdateImagePreview(ImagePreview, vm, deviceVM.PreviewImage);
+			};
+		}
+		else if (vm is WebCamNodeViewModel webCamVM)
+		{
+			UpdateImagePreview(ImagePreview, vm, webCamVM.PreviewImage);
+			webCamVM.PropertyChanged += (_, e) =>
+			{
+				if (e.PropertyName is nameof(WebCamNodeViewModel.PreviewImage) or nameof(NodeViewModel.ShowPreview))
+					UpdateImagePreview(ImagePreview, vm, webCamVM.PreviewImage);
 			};
 		}
 		else if (vm is SaveImageNodeViewModel saveVM)
@@ -308,10 +319,12 @@ public sealed partial class NodeControl : UserControl
 		NodeBorder.BorderBrush = new SolidColorBrush(
 			_viewModel?.HasExecutionError == true
 				? Windows.UI.Color.FromArgb(255, 229, 57, 53)
+				: _viewModel?.IsInitializing == true
+				? Windows.UI.Color.FromArgb(255, 79, 140, 201)
 				: _isSelected
 				? Windows.UI.Color.FromArgb(255, 100, 180, 255)
 				: Windows.UI.Color.FromArgb(255, 85, 85, 85));
-		NodeBorder.BorderThickness = new Thickness(_isSelected || _viewModel?.HasExecutionError == true ? 2 : 1);
+		NodeBorder.BorderThickness = new Thickness(_isSelected || _viewModel?.HasExecutionError == true || _viewModel?.IsInitializing == true ? 2 : 1);
 	}
 
 	private void ApplyNodeSize()
@@ -443,6 +456,22 @@ public sealed partial class NodeControl : UserControl
 			ExecutionErrorText.Text = string.Empty;
 			ExecutionErrorPanel.Visibility = Visibility.Collapsed;
 			ToolTipService.SetToolTip(ExecutionErrorPanel, null);
+		}
+	}
+
+	private void UpdateInitializationStatus()
+	{
+		if (_viewModel?.IsInitializing == true)
+		{
+			InitializationText.Text = string.IsNullOrWhiteSpace(_viewModel.ExecutionMessage)
+				? "Initializing..."
+				: _viewModel.ExecutionMessage;
+			InitializationPanel.Visibility = Visibility.Visible;
+		}
+		else
+		{
+			InitializationText.Text = string.Empty;
+			InitializationPanel.Visibility = Visibility.Collapsed;
 		}
 	}
 

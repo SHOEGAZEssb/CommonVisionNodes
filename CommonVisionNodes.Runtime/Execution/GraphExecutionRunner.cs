@@ -180,7 +180,21 @@ public sealed class GraphExecutionRunner(
 
 			await PublishStateAsync(ExecutionStatusDto.Initializing, "Initializing runtime nodes.", framesProcessed, null, null, ExecutionMessageTypeDto.ExecutionState, cancellationToken).ConfigureAwait(false);
 			lock (_graphSync)
-				graphBuildResult.Graph.Initialize();
+				graphBuildResult.Graph.Initialize(
+					beforeInitialize: node => PublishNodeUpdateAsync(
+						graphBuildResult.NodeIdsByRuntime[node],
+						node,
+						NodeExecutionStatusDto.Initializing,
+						"Initializing...",
+						null,
+						cancellationToken).GetAwaiter().GetResult(),
+					afterInitialize: node => PublishNodeUpdateAsync(
+						graphBuildResult.NodeIdsByRuntime[node],
+						node,
+						NodeExecutionStatusDto.Succeeded,
+						"Initialized.",
+						null,
+						cancellationToken).GetAwaiter().GetResult());
 			var frameCompletionNodes = GetFrameCompletionNodes(graphBuildResult.Graph);
 			var framesInWindowByCompletionNode = frameCompletionNodes.ToDictionary(node => node, _ => 0);
 			var framesPerSecondByCompletionNode = new Dictionary<Node, double>();

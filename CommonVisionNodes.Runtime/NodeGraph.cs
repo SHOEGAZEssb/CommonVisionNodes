@@ -101,13 +101,14 @@ namespace CommonVisionNodes.Runtime
 		/// <summary>
 		/// Initializes all <see cref="IInitializable"/> nodes in topological order.
 		/// </summary>
-		public void Initialize()
+		public void Initialize(Action<Node>? beforeInitialize = null, Action<Node>? afterInitialize = null)
 		{
 			var sorted = TopologicalSort();
 			foreach (var node in sorted)
 			{
 				if (node is IInitializable initializable && !initializable.IsInitialized)
 				{
+					beforeInitialize?.Invoke(node);
 					try
 					{
 						initializable.Initialize();
@@ -116,6 +117,8 @@ namespace CommonVisionNodes.Runtime
 					{
 						throw new NodeExecutionException(node, exception);
 					}
+
+					afterInitialize?.Invoke(node);
 				}
 			}
 		}

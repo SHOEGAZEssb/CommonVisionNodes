@@ -73,6 +73,11 @@ public enum NodeExecutionStatusDto
 	Pending,
 
 	/// <summary>
+	/// The node is opening an external resource or otherwise performing one-time initialization.
+	/// </summary>
+	Initializing,
+
+	/// <summary>
 	/// The node is currently running.
 	/// </summary>
 	Running,

@@ -46,6 +46,7 @@ public sealed class RuntimeNodeCatalog
 			nameof(ImageNode) => new ImageNode(),
 			nameof(SaveImageNode) => new SaveImageNode(),
 			nameof(DeviceNode) => new DeviceNode(),
+			nameof(WebCamNode) => new WebCamNode(),
 			nameof(BinarizeNode) => new BinarizeNode(),
 			nameof(SubImageNode) => new SubImageNode(),
 			nameof(MatrixTransformNode) => new MatrixTransformNode(),
@@ -98,6 +99,17 @@ public sealed class RuntimeNodeCatalog
 				canEditWhileRunning: false,
 				() => new DeviceNode(),
 				EnumLikeProperty("AccessToken", "Device", "Select a discovered device.", GetDeviceOptions()),
+				PreviewToggleProperty()),
+			CreateDefinition(
+				nameof(WebCamNode),
+				"Webcam",
+				"Input",
+				"Acquire images from a local Windows webcam.",
+				"&#xE714;",
+				NodePreviewKindDto.Image,
+				canEditWhileRunning: false,
+				() => new WebCamNode(),
+				EnumLikeProperty(nameof(WebCamNode.DeviceId), "Webcam", "Select a locally connected webcam.", GetWebCamOptions()),
 				PreviewToggleProperty()),
 			CreateDefinition(
 				nameof(ImageGeneratorNode),
@@ -627,6 +639,16 @@ public sealed class RuntimeNodeCatalog
 		{
 			return [];
 		}
+	}
+
+	private static IList<PropertyOptionDto> GetWebCamOptions()
+	{
+		return [.. new DirectShowWebCamDeviceProvider().GetDevices()
+			.Select(device => new PropertyOptionDto
+			{
+				Value = device.Id,
+				Label = device.DisplayName
+			})];
 	}
 
 	private static string SplitCamelCase(string value)

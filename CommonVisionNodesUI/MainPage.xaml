@@ -287,6 +287,32 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate x:Key="WebCamNodePropertiesTemplate">
+            <StackPanel Spacing="12">
+                <TextBlock Text="The webcam is connected to the machine running the backend." FontSize="12" Foreground="#AAAAAA" TextWrapping="Wrap"/>
+                <StackPanel>
+                    <TextBlock Text="Webcam" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,4"/>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding DiscoveredWebCams}"
+                                  SelectedItem="{Binding SelectedWebCam, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  DisplayMemberPath="DisplayName"
+                                  PlaceholderText="No webcams found"
+                                  HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="1" Content="&#xE094;"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                Command="{Binding RefreshWebCamsCommand}"
+                                ToolTipService.ToolTip="Refresh webcam list"
+                                Padding="8,6" CornerRadius="4"/>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="FilterNodePropertiesTemplate">
             <StackPanel Spacing="12">
                 <StackPanel>
@@ -666,6 +692,7 @@
             SaveImageNodeTemplate="{StaticResource SaveImageNodePropertiesTemplate}"
             GevServerNodeTemplate="{StaticResource GevServerNodePropertiesTemplate}"
             DeviceNodeTemplate="{StaticResource DeviceNodePropertiesTemplate}"
+            WebCamNodeTemplate="{StaticResource WebCamNodePropertiesTemplate}"
             BinarizeNodeTemplate="{StaticResource BinarizeNodePropertiesTemplate}"
             SubImageNodeTemplate="{StaticResource SubImageNodePropertiesTemplate}"
             MatrixTransformNodeTemplate="{StaticResource MatrixTransformNodePropertiesTemplate}"
@@ -712,6 +739,11 @@
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem Text="Device" Command="{Binding Graph.AddDeviceNodeCommand}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE714;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Webcam" Command="{Binding Graph.AddWebCamNodeCommand}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE714;"/>
                             </MenuFlyoutItem.Icon>

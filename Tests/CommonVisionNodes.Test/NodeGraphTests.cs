@@ -429,6 +429,8 @@ namespace CommonVisionNodes.Test
 		{
 			// Arrange
 			var initLog = new List<Node>();
+			var initializingNodes = new List<Node>();
+			var initializedNodes = new List<Node>();
 			var graph = new NodeGraph();
 			var source = new InitializableSourceNode { InitLog = initLog };
 			var sink = new SinkNode();
@@ -437,13 +439,15 @@ namespace CommonVisionNodes.Test
 			graph.Connect(source.Output, sink.Input);
 
 			// Act
-			graph.Initialize();
+			graph.Initialize(initializingNodes.Add, initializedNodes.Add);
 
 			// Assert
 			Assert.That(initLog, Has.Count.EqualTo(1));
 			using (Assert.EnterMultipleScope())
 			{
 				Assert.That(initLog[0], Is.SameAs(source));
+				Assert.That(initializingNodes, Is.EqualTo([source]));
+				Assert.That(initializedNodes, Is.EqualTo([source]));
 				Assert.That(source.IsInitialized, Is.True);
 			}
 		}

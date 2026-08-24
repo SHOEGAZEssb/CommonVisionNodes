@@ -17,6 +17,8 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
 	public DataTemplate? GevServerNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="DeviceNodeViewModel"/>.</summary>
 	public DataTemplate? DeviceNodeTemplate { get; set; }
+	/// <summary>Template for <see cref="WebCamNodeViewModel"/>.</summary>
+	public DataTemplate? WebCamNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="BinarizeNodeViewModel"/>.</summary>
 	public DataTemplate? BinarizeNodeTemplate { get; set; }
 	/// <summary>Template for <see cref="SubImageNodeViewModel"/>.</summary>
@@ -67,6 +69,7 @@ public class NodePropertiesTemplateSelector : DataTemplateSelector
 			SaveImageNodeViewModel => SaveImageNodeTemplate,
 			GevServerNodeViewModel => GevServerNodeTemplate,
 			DeviceNodeViewModel => DeviceNodeTemplate,
+			WebCamNodeViewModel => WebCamNodeTemplate,
 			BinarizeNodeViewModel => BinarizeNodeTemplate,
 			SubImageNodeViewModel => SubImageNodeTemplate,
 			MatrixTransformNodeViewModel => MatrixTransformNodeTemplate,

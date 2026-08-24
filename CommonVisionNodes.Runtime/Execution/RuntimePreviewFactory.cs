@@ -28,6 +28,7 @@ public static class RuntimePreviewFactory
 			SaveImageNode saveImageNode => CreateImagePreviewMessage(nodeId, saveImageNode.ImageInput.Value as Image, previewImageMaxDimension, imageBufferCache),
 			GevServerNode gevServerNode => CreateImagePreviewMessage(nodeId, gevServerNode.ImageInput.Value as Image, previewImageMaxDimension, imageBufferCache),
 			DeviceNode deviceNode => CreateImagePreviewMessage(nodeId, deviceNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
+			WebCamNode webCamNode => CreateImagePreviewMessage(nodeId, webCamNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
 			BinarizeNode binarizeNode => CreateImagePreviewMessage(nodeId, binarizeNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
 			SubImageNode subImageNode => CreateImagePreviewMessage(nodeId, subImageNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),
 			MatrixTransformNode transformNode => CreateImagePreviewMessage(nodeId, transformNode.ImageOutput.Value as Image, previewImageMaxDimension, imageBufferCache),

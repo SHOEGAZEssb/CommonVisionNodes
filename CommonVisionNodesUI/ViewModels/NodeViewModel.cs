@@ -172,6 +172,11 @@ public abstract partial class NodeViewModel : ObservableObject
 	public bool HasExecutionError => ExecutionStatus == NodeExecutionStatusDto.Failed;
 
 	/// <summary>
+	/// Whether the runtime is currently opening or preparing this node.
+	/// </summary>
+	public bool IsInitializing => ExecutionStatus == NodeExecutionStatusDto.Initializing;
+
+	/// <summary>
 	/// Error text displayed near the node when execution fails.
 	/// </summary>
 	public string ExecutionErrorText => HasExecutionError
@@ -199,6 +204,7 @@ public abstract partial class NodeViewModel : ObservableObject
 		"SaveImageNode" => Color.FromArgb(255, 102, 187, 106),
 		"GevServerNode" => Color.FromArgb(255, 38, 166, 154),
 		"DeviceNode" => Color.FromArgb(255, 171, 71, 188),
+		"WebCamNode" => Color.FromArgb(255, 171, 71, 188),
 		"BinarizeNode" => Color.FromArgb(255, 255, 152, 0),
 		"SubImageNode" => Color.FromArgb(255, 0, 172, 193),
 		"MatrixTransformNode" => Color.FromArgb(255, 233, 30, 99),
@@ -541,6 +547,7 @@ public abstract partial class NodeViewModel : ObservableObject
 	{
 		OnPropertyChanged(nameof(HasExecutionError));
 		OnPropertyChanged(nameof(ExecutionErrorText));
+		OnPropertyChanged(nameof(IsInitializing));
 	}
 
 	partial void OnExecutionMessageChanged(string value)
